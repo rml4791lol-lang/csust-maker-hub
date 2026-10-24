@@ -1,0 +1,29 @@
+---
+import { site } from '../data/site';
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a href="/" class="brand" aria-label={site.name}>
+      <span class="brand-mark">创</span>
+      <span>{site.name}</span>
+    </a>
+
+    <nav class="nav-links" aria-label="主导航">
+      {site.nav.map((n) => (
+        <a href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>{n.label}</a>
+      ))}
+    </nav>
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="/services" class="nav-cta">
+        <span style="width:6px;height:6px;border-radius:50%;background:#e0632f;display:inline-block;"></span>
+        提需求
+      </a>
+      <button class="nav-burger" aria-label="菜单" aria-expanded="false">≡</button>
+    </div>
+  </div>
+</header>

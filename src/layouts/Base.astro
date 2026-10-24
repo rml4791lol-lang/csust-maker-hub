@@ -1,0 +1,88 @@
+---
+import { site } from '../data/site';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title, description } = Astro.props;
+const pageTitle = title ? `${title} · ${site.name}` : `${site.name} · ${site.tagline.join('')}`;
+const desc = description ?? site.description;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={desc} />
+    <meta name="theme-color" content="#0a0b0d" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='%23e0632f' font-family='serif'%3E创%3C/text%3E%3C/svg%3E" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
+  </head>
+  <body>
+    <div class="page">
+      <Nav />
+      <main>
+        <slot />
+      </main>
+      <Footer />
+    </div>
+
+    <script>
+      // 滚动浮现
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              e.target.classList.add('in');
+              io.unobserve(e.target);
+            }
+          }
+        },
+        { rootMargin: '0px 0px -8% 0px', threshold: 0.05 }
+      );
+      document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+      // 移动端菜单
+      const burger = document.querySelector('.nav-burger');
+      const links = document.querySelector('.nav-links');
+      burger?.addEventListener('click', () => {
+        links?.classList.toggle('open');
+        const open = links?.classList.contains('open');
+        burger.setAttribute('aria-expanded', String(!!open));
+      });
+
+      // 数字滚动
+      const nums = document.querySelectorAll('[data-count]');
+      const nio = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (!e.isIntersecting) continue;
+            const el = e.target as HTMLElement;
+            const target = Number(el.dataset.count || 0);
+            const dur = 1100;
+            const t0 = performance.now();
+            const tick = (t: number) => {
+              const p = Math.min(1, (t - t0) / dur);
+              const eased = 1 - Math.pow(1 - p, 3);
+              el.textContent = String(Math.round(target * eased));
+              if (p < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+            nio.unobserve(el);
+          }
+        },
+        { threshold: 0.4 }
+      );
+      nums.forEach((n) => nio.observe(n));
+    </script>
+  </body>
+</html>

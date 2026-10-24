@@ -1,0 +1,172 @@
+---
+import Base from '../layouts/Base.astro';
+import { services, demands } from '../data/services';
+import { site } from '../data/site';
+---
+
+<Base title="服务台" description="创客空间对部门提供的技术支持服务：选型、工作流、培训、内容代做、竞赛支撑、软著材料。">
+  <div class="wrap page-header">
+    <span class="crumb">SERVICES / 服务台</span>
+    <h1>我们能帮什么</h1>
+    <p>说清楚要解决什么，约定好时间，按清单交付。能力范围内做到位，范围外提前说——不包办全部工作。</p>
+  </div>
+
+  <!-- 服务目录 -->
+  <section class="section" style="padding-top:8px;">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="index">01 / CATALOG</span>
+          <h2 class="section-title">服务目录</h2>
+          <p class="section-desc">六类服务，都写清了交付物和周期。没有的也可以问。</p>
+        </div>
+      </div>
+
+      <div class="service-cards">
+        {services.map((s, i) => (
+          <div class="service-card">
+            <div class="sc-head">
+              <span class="sc-idx">0{i + 1}</span>
+              <span class="sc-owner">{s.owner}</span>
+            </div>
+            <h3>{s.title}</h3>
+            <p class="sc-desc">{s.desc}</p>
+            <div class="sc-meta">
+              <div><span>交付</span><b>{s.deliverable}</b></div>
+              <div><span>周期</span><b>{s.sla}</b></div>
+              <div><span>对象</span><b>{s.for}</b></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 需求登记 -->
+  <section class="section" id="submit" style="border-top:1px solid var(--line);">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="index">02 / REQUEST</span>
+          <h2 class="section-title">提一个需求</h2>
+          <p class="section-desc">写清楚「要解决什么问题」比写清楚「要做什么」更有用。提交后 1 个工作日内回复。</p>
+        </div>
+      </div>
+
+      <form class="demand-form" id="demandForm" novalidate>
+        <div class="form-grid">
+          <label class="field">
+            <span>需求标题 <i>*</i></span>
+            <input name="title" required placeholder="例：需要 3 张招新海报的模板" />
+          </label>
+          <label class="field">
+            <span>提出部门</span>
+            <select name="dept">
+              <option>技术部</option>
+              <option>竞赛部</option>
+              <option>宣传部</option>
+              <option>创新创业部</option>
+              <option>其他</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>希望什么时候要</span>
+            <input name="due" placeholder="例：11 月 5 日前" />
+          </label>
+          <label class="field">
+            <span>你的联系方式</span>
+            <input name="contact" placeholder="微信 / 手机 / 邮箱" />
+          </label>
+        </div>
+        <label class="field">
+          <span>具体要解决什么 <i>*</i></span>
+          <textarea name="detail" rows="5" required placeholder="现在是怎么做的、卡在哪、希望变成什么样。有素材和参考链接一起贴上。"></textarea>
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">提交需求 <span class="arrow">→</span></button>
+          <span class="form-note">提交后会打开邮件客户端，也可以直接发到 {site.contact.email}</span>
+        </div>
+        <p class="form-error" id="formError" style="display:none;color:#e0632f;">先填标题和具体描述。</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- 需求看板 -->
+  <section class="section" id="board" style="border-top:1px solid var(--line);">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="index">03 / BOARD</span>
+          <h2 class="section-title">需求进度</h2>
+          <p class="section-desc">每条需求都有状态，不用在群里问「那个做了没」。</p>
+        </div>
+      </div>
+
+      <div class="board">
+        {['待接', '处理中', '已交付'].map((st) => (
+          <div class="board-col">
+            <h4>{st} <span>{(demands as any[]).filter((d) => d.status === st).length}</span></h4>
+            {demands.filter((d) => d.status === st).map((d) => (
+              <div class="board-item">
+                <div class="bi-title">{d.title}</div>
+                <div class="bi-meta">{d.dept} · {d.date.replaceAll('-', '.')}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 流程 -->
+  <section class="section" style="border-top:1px solid var(--line);">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="index">04 / FLOW</span>
+          <h2 class="section-title">怎么配合</h2>
+        </div>
+      </div>
+      <div class="flow">
+        {[
+          ['提交', '写清问题、时间和联系方式'],
+          ['确认', '1 个工作日内回复能不能接、谁来做'],
+          ['交付', '按约定时间给成品和源文件'],
+          ['复盘', '做完记一条，下次同类需求直接复用'],
+        ].map(([t, d], i) => (
+          <div class="flow-step">
+            <span class="flow-n">0{i + 1}</span>
+            <h4>{t}</h4>
+            <p>{d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const form = document.getElementById('demandForm') as HTMLFormElement | null;
+    const err = document.getElementById('formError');
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const title = String(fd.get('title') || '').trim();
+      const detail = String(fd.get('detail') || '').trim();
+      if (!title || !detail) {
+        if (err) err.style.display = 'block';
+        return;
+      }
+      if (err) err.style.display = 'none';
+      const body = [
+        `需求标题：${title}`,
+        `提出部门：${fd.get('dept')}`,
+        `期望时间：${fd.get('due')}`,
+        `联系方式：${fd.get('contact')}`,
+        '',
+        '具体描述：',
+        detail,
+      ].join('\n');
+      location.href = `mailto:hello@an520.xin?subject=${encodeURIComponent('[需求] ' + title)}&body=${encodeURIComponent(body)}`;
+    });
+  </script>
+</Base>

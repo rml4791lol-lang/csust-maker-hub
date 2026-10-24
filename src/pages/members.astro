@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import { members, depts } from '../data/members';
+import { items, typeMeta } from '../data/items';
+import { site } from '../data/site';
+
+const itemMap = new Map(items.map((i) => [i.id, i]));
+const deptCounts = Object.fromEntries(depts.map((d) => [d, members.filter((m) => m.dept === d).length]));
+---
+
+<Base title="成员" description="创客空间成员的能力、参与项目和成果。">
+  <div class="wrap page-header">
+    <span class="crumb">PEOPLE / 成员</span>
+    <h1>谁在做</h1>
+    <p>每个人的能力、参与项目和成果都在这里。找人对事，不用再问一圈。</p>
+  </div>
+
+  <div class="wrap" style="padding-bottom:96px;">
+    <div class="filter-bar" id="filters">
+      <button class="chip active" data-filter="all">全部 <span class="count">{members.length}</span></button>
+      {depts.map((d) => (
+        <button class="chip" data-filter={d}>{d} <span class="count">{deptCounts[d]}</span></button>
+      ))}
+      <div style="flex:1"></div>
+      <label class="search-box">
+        <span style="color:var(--muted);font-size:13px;">⌕</span>
+        <input type="search" id="q" placeholder="搜姓名、技能…" />
+      </label>
+    </div>
+
+    <div class="people-grid" id="grid">
+      {members.map((m) => {
+        const projs = m.projects.map((id) => itemMap.get(id)).filter(Boolean);
+        return (
+          <div class="person person-lg" data-dept={m.dept}
+               data-search={`${m.name} ${m.dept} ${m.skills.join(' ')} ${m.bio ?? ''}`}>
+            <div class="person-top">
+              <div class="avatar">{m.name.slice(0, 1)}</div>
+              <div>
+                <h4>{m.name}{m.role ? <span class="role"> · {m.role}</span> : null}</h4>
+                <div class="dept">{m.dept} / {m.grade}</div>
+              </div>
+            </div>
+            {m.bio && <p class="bio">{m.bio}</p>}
+            <div class="skills">{m.skills.map((s) => <span class="tag">{s}</span>)}</div>
+            {projs.length > 0 && (
+              <div class="worked">
+                <span class="worked-label">参与</span>
+                {projs.map((p: any) => (
+                  <a href={`/library/${p.id}`} class="worked-item">{p.title}</a>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+
+    <div class="empty-state" id="empty" style="display:none;">没有匹配的成员。</div>
+  </div>
+
+  <script>
+    const chips = document.querySelectorAll<HTMLButtonElement>('#filters .chip');
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('#grid .person'));
+    const q = document.querySelector<HTMLInputElement>('#q');
+    const empty = document.querySelector<HTMLElement>('#empty');
+    let filter = 'all';
+
+    function apply() {
+      const kw = (q?.value || '').trim().toLowerCase();
+      let visible = 0;
+      for (const card of cards) {
+        const okDept = filter === 'all' || card.dataset.dept === filter;
+        const okKw = !kw || (card.dataset.search || '').toLowerCase().includes(kw);
+        const show = okDept && okKw;
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      }
+      if (empty) empty.style.display = visible ? 'none' : '';
+    }
+
+    chips.forEach((c) =>
+      c.addEventListener('click', () => {
+        filter = c.dataset.filter || 'all';
+        chips.forEach((x) => x.classList.toggle('active', x === c));
+        apply();
+      })
+    );
+    q?.addEventListener('input', apply);
+    apply();
+  </script>
+</Base>

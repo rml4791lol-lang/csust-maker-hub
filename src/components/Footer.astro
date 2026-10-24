@@ -1,0 +1,49 @@
+---
+import { site } from '../data/site';
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="about">
+        <div class="brand">
+          <span class="brand-mark">创</span>
+          <span>{site.name}</span>
+        </div>
+        <p>{site.description}</p>
+      </div>
+
+      <div>
+        <h5>站内</h5>
+        <ul>
+          {site.nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+        </ul>
+      </div>
+
+      <div>
+        <h5>服务</h5>
+        <ul>
+          <li><a href="/services">提交需求</a></li>
+          <li><a href="/services#board">需求进度</a></li>
+          <li><a href="/library?type=course">课程</a></li>
+          <li><a href="/library?type=project">项目</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h5>联系</h5>
+        <ul>
+          <li><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></li>
+          <li><span style="color:var(--muted);font-size:13px;">{site.contact.group}</span></li>
+          <li><span style="color:var(--muted);font-size:13px;">{site.contact.address}</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© {year} {site.name} · {site.nameEn}</span>
+      <span>MAKE SOMETHING REAL.</span>
+    </div>
+  </div>
+</footer>
