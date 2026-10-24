@@ -24,3 +24,11 @@ Create a GitHub issue.
 ## When a skill says "fetch the relevant ticket"
 
 Read it as in **Read an issue** above.
+
+## 本机环境备注
+
+本机访问 GitHub 需要代理，`gh` 调用前先导出：
+
+```bash
+export HTTPS_PROXY=http://127.0.0.1:7897 HTTP_PROXY=http://127.0.0.1:7897
+```
