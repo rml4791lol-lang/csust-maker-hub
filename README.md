@@ -46,7 +46,7 @@ pnpm build        # 产物在 dist/
 
 ```bash
 pnpm build
-rsync -az --delete --exclude '.DS_Store' \
+rsync -az --delete --chmod=D755,F644 --exclude '.DS_Store' \
   -e "ssh -i ~/.ssh/tencent_hk_hermes.pem" \
   dist/ ubuntu@43.161.198.195:/var/www/csust-maker/
 ```
