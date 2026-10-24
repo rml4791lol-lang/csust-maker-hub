@@ -37,6 +37,30 @@ rows.push({ k: '参与人', v: item.people.join('、') });
 
   <div class="wrap detail-grid" style="padding-bottom:96px;">
     <article class="detail-main">
+      {item.type === 'video' && (
+        <section>
+          <h2>视频</h2>
+          {item.extra?.embedUrl ? (
+            <div class="video-frame">
+              <iframe
+                src={item.extra.embedUrl}
+                title={item.title}
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            </div>
+          ) : (
+            <div class="video-placeholder">
+              <span class="vp-icon">▶</span>
+              <b>视频待上传</b>
+              <p>把播放器地址填到 <code>src/data/items.ts</code> 里这条记录的 <code>embedUrl</code>，这里就会直接播放。</p>
+            </div>
+          )}
+          {item.extra?.duration && <div class="video-meta">时长 {item.extra.duration}</div>}
+        </section>
+      )}
+
       {item.extra?.outline && (
         <section>
           <h2>课程大纲</h2>

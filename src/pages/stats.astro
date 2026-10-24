@@ -5,7 +5,7 @@ import { members, depts } from '../data/members';
 import { services, demands } from '../data/services';
 import { stats } from '../data/site';
 
-const types = ['project', 'competition', 'activity', 'course'] as const;
+const types = ['project', 'competition', 'activity', 'course', 'video'] as const;
 
 // 类型分布
 const byType = types.map((t) => {
@@ -54,6 +54,7 @@ const colors: Record<string, string> = {
   competition: '#a16207',
   activity: '#1d4ed8',
   course: '#15803d',
+  video: '#b91c1c',
 };
 ---
 

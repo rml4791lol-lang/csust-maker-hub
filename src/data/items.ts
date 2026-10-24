@@ -1,4 +1,4 @@
-export type ItemType = 'project' | 'competition' | 'activity' | 'course';
+export type ItemType = 'project' | 'competition' | 'activity' | 'course' | 'video';
 
 export interface Item {
   id: string;
@@ -25,6 +25,10 @@ export interface Item {
     difficulty?: string;
     duration?: string;
     outline?: string[];
+    /** video：播放器嵌入地址，留空则显示占位 */
+    provider?: string;
+    embedUrl?: string;
+    cover?: string;
   };
 }
 
@@ -33,6 +37,7 @@ export const typeMeta: Record<ItemType, { label: string; glyph: string; color: s
   competition: { label: '竞赛', glyph: '赛', color: '#c9a227' },
   activity: { label: '活动', glyph: '活', color: '#5e9bd6' },
   course: { label: '课程', glyph: '课', color: '#6bb08a' },
+  video: { label: '视频', glyph: '播', color: '#dc2626' },
 };
 
 export const items: Item[] = [
@@ -178,6 +183,37 @@ export const items: Item[] = [
       difficulty: '入门',
       duration: '1.5 小时',
       outline: ['哪些项目适合申请', '材料清单和顺序', '代码和说明书怎么写', '常见退回原因'],
+    },
+  },
+  {
+    id: 'v01',
+    type: 'video',
+    title: 'AI 工具工作坊 · 第一期回放',
+    summary: '两小时的动手场完整录像。现场把一件重复的活自动化，从找场景到跑通流程。',
+    date: '2026-10-17',
+    status: '可观看',
+    people: ['沈青', '夏至'],
+    tags: ['工作坊', 'AI', '回放'],
+    extra: {
+      provider: 'bilibili',
+      // 换成实际视频的 B 站 BV 号或播放器地址；留空则详情页显示占位
+      embedUrl: '',
+      duration: '1:52:30',
+    },
+  },
+  {
+    id: 'v02',
+    type: 'video',
+    title: '创客开放日 · 现场记录',
+    summary: '项目展示和招新的现场剪辑，三分钟看完当天做了什么。',
+    date: '2026-09-26',
+    status: '可观看',
+    people: ['白露'],
+    tags: ['活动', '招新', '记录'],
+    extra: {
+      provider: 'mp4',
+      embedUrl: '',
+      duration: '3:12',
     },
   },
 ];
