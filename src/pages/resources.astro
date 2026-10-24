@@ -1,0 +1,191 @@
+---
+import Base from '../layouts/Base.astro';
+import { services } from '../data/services';
+
+const resources = [
+  {
+    id: 'course-outline',
+    title: '课程大纲模板',
+    desc: '开课之前先填这个。写清学完能做什么、现场产出什么，避免讲成一节概念课。',
+    file: '/downloads/course-outline.md',
+    tag: '课程',
+  },
+  {
+    id: 'project-readme',
+    title: '项目 README 模板',
+    desc: '每个项目一个 README。一句话说清解决什么问题、谁在用、怎么跑起来。',
+    file: '/downloads/project-readme.md',
+    tag: '项目',
+  },
+  {
+    id: 'software-copyright',
+    title: '软著申请材料清单',
+    desc: '从项目到可提交的材料：源程序页数、页眉要求、常见退回原因。',
+    file: '/downloads/software-copyright-checklist.md',
+    tag: '软著',
+  },
+  {
+    id: 'demand-form',
+    title: '需求登记表模板',
+    desc: '提需求前先对一遍字段。说清要解决什么，比说清要做什么有用。',
+    file: '/downloads/demand-form.md',
+    tag: '服务',
+  },
+];
+---
+
+<Base title="资源" description="创客空间的模板和可复用的材料，直接下载或复制。">
+  <div class="wrap page-header">
+    <span class="crumb">RESOURCES / 资源</span>
+    <h1>资源</h1>
+    <p>模板、清单、可复用的材料。点下载存成文件，或者直接复制内容粘到自己的文档里。</p>
+  </div>
+
+  <div class="wrap" style="padding-bottom:80px;">
+    <div class="res-list">
+      {resources.map((r) => (
+        <div class="res-row">
+          <span class="res-tag">{r.tag}</span>
+          <div class="res-main">
+            <h3>{r.title}</h3>
+            <p>{r.desc}</p>
+          </div>
+          <div class="res-actions">
+            <button class="btn btn-ghost res-btn" data-copy={r.file}>复制</button>
+            <a class="btn btn-primary res-btn" href={r.file} download>下载</a>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="res-tip">
+      <span class="res-tip-label">怎么用</span>
+      <p>模板不是必填表。它只是把「想到的步骤」固定下来，让下一个人接手时不用重新问一遍。用完觉得哪里别扭，直接改，改完提交。</p>
+    </div>
+
+    <!-- 自助服务 -->
+    <div class="section-head" style="margin-top:56px;">
+      <div class="sh-left">
+        <span class="sh-tag">自助</span>
+        <h2 class="section-title">不用等人回，直接能用</h2>
+      </div>
+      <div class="sh-right">
+        <span class="sh-count">{services.length} 类服务</span>
+      </div>
+    </div>
+
+    <div class="self-grid">
+      <a href="/stats" class="self-card">
+        <h4>查数据</h4>
+        <p>内容、成员、需求、服务的实时统计。</p>
+        <span>打开看板 →</span>
+      </a>
+      <a href="/library" class="self-card">
+        <h4>找作业参考</h4>
+        <p>做过什么、谁做的、做到什么程度。</p>
+        <span>进内容库 →</span>
+      </a>
+      <a href="/members" class="self-card">
+        <h4>找人对事</h4>
+        <p>按部门或技能筛，直接看到参与过的项目。</p>
+        <span>看成员表 →</span>
+      </a>
+      <a href="/services#submit" class="self-card">
+        <h4>提需求</h4>
+        <p>说清要解决什么，1 个工作日内回复。</p>
+        <span>去提交 →</span>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+      const original = btn.textContent || '复制';
+      btn.addEventListener('click', async () => {
+        const url = btn.dataset.copy || '';
+        try {
+          const res = await fetch(url);
+          const text = await res.text();
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '已复制';
+        } catch {
+          btn.textContent = '复制失败';
+        }
+        setTimeout(() => {
+          btn.textContent = original;
+        }, 1600);
+      });
+    });
+  </script>
+
+  <style>
+    .res-list { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .res-row {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .res-row:last-child { border-bottom: 0; }
+    .res-row:hover { background: var(--bg-sub); }
+    .res-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-2);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 2px 0;
+      text-align: center;
+      background: var(--bg-sub);
+    }
+    .res-main h3 { font-size: 15px; font-weight: 600; margin: 0 0 3px; }
+    .res-main p { font-size: 13px; color: var(--text-2); margin: 0; line-height: 1.6; }
+    .res-actions { display: flex; gap: 8px; }
+    .res-btn { padding: 8px 14px; font-size: 12.5px; }
+
+    .res-tip {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-sub);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .res-tip-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      padding-top: 3px;
+    }
+    .res-tip p { margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.7; }
+
+    .self-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .self-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .self-card:hover { border-color: var(--line-strong); box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    .self-card h4 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+    .self-card p { margin: 0 0 12px; font-size: 12.5px; color: var(--text-2); line-height: 1.6; }
+    .self-card span { font-size: 12px; color: var(--accent); }
+
+    @media (max-width: 980px) {
+      .self-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 680px) {
+      .res-row { grid-template-columns: 52px 1fr; gap: 12px; }
+      .res-actions { grid-column: 2; }
+      .self-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</Base>

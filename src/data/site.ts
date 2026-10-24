@@ -9,6 +9,7 @@ export const site = {
     { href: '/', label: '首页' },
     { href: '/library', label: '内容库' },
     { href: '/members', label: '成员' },
+    { href: '/resources', label: '资源' },
     { href: '/services', label: '服务台' },
     { href: '/stats', label: '数据' },
     { href: '/about', label: '关于' },
