@@ -1,5 +1,8 @@
 ---
 import { site } from '../data/site';
+import { items, typeMeta } from '../data/items';
+import { members } from '../data/members';
+import { services } from '../data/services';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
@@ -11,6 +14,33 @@ interface Props {
 const { title, description } = Astro.props;
 const pageTitle = title ? `${title} · ${site.name}` : `${site.name} · ${site.tagline.join('')}`;
 const desc = description ?? site.description;
+
+const searchIndex = [
+  ...items.map((i) => ({
+    t: '内容',
+    k: typeMeta[i.type].label,
+    title: i.title,
+    desc: i.summary,
+    url: `/library/${i.id}`,
+    q: [i.title, i.summary, ...i.tags, ...i.people].join(' '),
+  })),
+  ...members.map((m) => ({
+    t: '成员',
+    k: m.dept,
+    title: m.name + (m.role ? ` · ${m.role}` : ''),
+    desc: `${m.grade} · ${m.skills.join(' / ')}`,
+    url: `/members#${m.id}`,
+    q: [m.name, m.dept, m.grade, ...m.skills, m.bio ?? ''].join(' '),
+  })),
+  ...services.map((s) => ({
+    t: '服务',
+    k: s.owner,
+    title: s.title,
+    desc: s.desc,
+    url: '/services',
+    q: [s.title, s.desc, s.deliverable, s.owner].join(' '),
+  })),
+];
 ---
 
 <!doctype html>
@@ -34,6 +64,30 @@ const desc = description ?? site.description;
         <slot />
       </main>
       <Footer />
+    </div>
+
+    <script type="application/json" id="site-index" set:html={JSON.stringify(searchIndex).replace(/</g, '\\u003c')}></script>
+
+    <div class="cmdk" id="cmdk" aria-hidden="true">
+      <div class="cmdk-bg" data-cmdk-close></div>
+      <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="站内搜索">
+        <div class="cmdk-top">
+          <span class="cmdk-icon">⌕</span>
+          <input id="cmdkInput" type="text" placeholder="搜索内容、成员、服务…" autocomplete="off" spellcheck="false" />
+          <kbd>ESC</kbd>
+        </div>
+        <div class="cmdk-body" id="cmdkBody">
+          <div class="cmdk-hint" id="cmdkHint">
+            <span>输入关键词开始搜索</span>
+            <span class="cmdk-hint-sub">或者在任意页面按 <kbd>⌘</kbd><kbd>K</kbd></span>
+          </div>
+        </div>
+        <div class="cmdk-foot">
+          <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+          <span><kbd>↵</kbd> 打开</span>
+          <span><kbd>esc</kbd> 关闭</span>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -83,6 +137,103 @@ const desc = description ?? site.description;
         { threshold: 0.4 }
       );
       nums.forEach((n) => nio.observe(n));
+
+      // ---------- 全局搜索（⌘K） ----------
+      const cmdkEl = document.getElementById('cmdk');
+      const cmdkInput = document.getElementById('cmdkInput') as HTMLInputElement | null;
+      const cmdkBody = document.getElementById('cmdkBody');
+      const indexEl = document.getElementById('site-index');
+      let idx: any[] = [];
+      try {
+        idx = JSON.parse(indexEl?.textContent || '[]');
+      } catch {
+        idx = [];
+      }
+      let filtered: any[] = [];
+      let cursor = 0;
+
+      const esc = (s: string) =>
+        String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+
+      function paint() {
+        cmdkBody?.querySelectorAll<HTMLElement>('.cmdk-item').forEach((el) => {
+          el.classList.toggle('active', Number(el.dataset.i) === cursor);
+        });
+        cmdkBody?.querySelector<HTMLElement>('.cmdk-item.active')?.scrollIntoView({ block: 'nearest' });
+      }
+
+      function render(q: string) {
+        const kw = q.trim().toLowerCase();
+        filtered = !kw
+          ? idx.slice(0, 8)
+          : idx.filter((r) => String(r.q || '').toLowerCase().includes(kw)).slice(0, 12);
+        cursor = 0;
+        if (!cmdkBody) return;
+        if (!filtered.length) {
+          cmdkBody.innerHTML = '<div class="cmdk-hint"><span>没有匹配的结果</span></div>';
+          return;
+        }
+        let html = '';
+        let lastT = '';
+        filtered.forEach((r, i) => {
+          if (r.t !== lastT) {
+            html += `<div class="cmdk-group">${esc(r.t)}</div>`;
+            lastT = r.t;
+          }
+          html += `<a class="cmdk-item${i === 0 ? ' active' : ''}" href="${esc(r.url)}" data-i="${i}">
+            <span class="cmdk-kind">${esc(r.k)}</span>
+            <span class="cmdk-main"><b>${esc(r.title)}</b><i>${esc(r.desc)}</i></span>
+            <span class="cmdk-go">↵</span>
+          </a>`;
+        });
+        cmdkBody.innerHTML = html;
+        cmdkBody.querySelectorAll<HTMLElement>('.cmdk-item').forEach((el) => {
+          el.addEventListener('mouseenter', () => {
+            cursor = Number(el.dataset.i || 0);
+            paint();
+          });
+        });
+      }
+
+      const openCmdk = () => {
+        cmdkEl?.classList.add('open');
+        cmdkEl?.setAttribute('aria-hidden', 'false');
+        if (cmdkInput) {
+          cmdkInput.value = '';
+          cmdkInput.focus();
+        }
+        render('');
+      };
+      const closeCmdk = () => {
+        cmdkEl?.classList.remove('open');
+        cmdkEl?.setAttribute('aria-hidden', 'true');
+      };
+
+      document.querySelectorAll('[data-cmdk-open]').forEach((b) => b.addEventListener('click', openCmdk));
+      document.querySelectorAll('[data-cmdk-close]').forEach((b) => b.addEventListener('click', closeCmdk));
+      cmdkInput?.addEventListener('input', () => render(cmdkInput.value));
+      cmdkInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          cursor = Math.min(cursor + 1, filtered.length - 1);
+          paint();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          cursor = Math.max(cursor - 1, 0);
+          paint();
+        } else if (e.key === 'Enter') {
+          const r = filtered[cursor];
+          if (r) location.href = r.url;
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          if (cmdkEl?.classList.contains('open')) closeCmdk();
+          else openCmdk();
+        }
+        if (e.key === 'Escape' && cmdkEl?.classList.contains('open')) closeCmdk();
+      });
     </script>
   </body>
 </html>
