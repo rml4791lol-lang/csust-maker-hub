@@ -8,14 +8,14 @@ const counts = Object.fromEntries(
 ) as Record<(typeof types)[number], number>;
 ---
 
-<Base title="内容库" description="项目、竞赛、活动、课程，每个条目都带参与人、状态和可复用的产出。">
+<Base title="内容库" description="项目、竞赛、活动、课程，每条都有参与人、状态和可复用的产出。">
   <div class="wrap page-header">
     <span class="crumb">LIBRARY / 内容库</span>
-    <h1>做过的东西</h1>
-    <p>项目、竞赛、活动、课程。不是文章列表——每条都有参与人、当前状态和能拿走用的产出。</p>
+    <h1>内容库</h1>
+    <p>项目、竞赛、活动、课程。每条记录都有参与人、当前状态和能拿走用的产出。</p>
   </div>
 
-  <div class="wrap" style="padding-bottom:96px;">
+  <div class="wrap" style="padding-bottom:80px;">
     <div class="filter-bar" id="filters">
       <button class="chip active" data-filter="all">全部 <span class="count">{items.length}</span></button>
       {types.map((t) => (
@@ -25,43 +25,41 @@ const counts = Object.fromEntries(
       ))}
       <div style="flex:1"></div>
       <label class="search-box">
-        <span style="color:var(--muted);font-size:13px;">⌕</span>
+        <span style="color:var(--text-3);font-size:13px;">⌕</span>
         <input type="search" id="q" placeholder="搜标题、标签、参与人…" />
       </label>
     </div>
 
-    <div class="card-grid" id="grid">
-      {sortedByDate.map((i, idx) => (
-        <a href={`/library/${i.id}`} class="card" data-type={i.type}
+    <div class="data-list" id="grid">
+      {sortedByDate.map((i) => (
+        <a href={`/library/${i.id}`} class="data-row" data-type={i.type}
            data-search={`${i.title} ${i.summary} ${i.tags.join(' ')} ${i.people.join(' ')}`}>
-          <div class="card-cover" data-type={i.type}>
-            <span class="type-tag">{meta[i.type].label}</span>
-            <span class="glyph">{i.title.slice(0, 1)}</span>
-          </div>
-          <div class="card-body">
-            <div class="card-meta">
-              <span>{i.date.replaceAll('-', '.')}</span>
-              <span>·</span>
-              <span>{i.status}</span>
-            </div>
-            <h3>{i.title}</h3>
-            <p>{i.summary}</p>
-            <div class="tags">
-              {i.tags.slice(0, 3).map((t) => <span class="tag">{t}</span>)}
-            </div>
-          </div>
+          <span class="data-type" data-type={i.type}>{meta[i.type].label}</span>
+          <span class="data-main">
+            <b>{i.title}</b>
+            <i>{i.summary}</i>
+          </span>
+          <span class="data-people">{i.people.join(' / ')}</span>
+          <span class="data-status" data-s={i.status}>{i.status}</span>
+          <span class="data-date">{i.date.replaceAll('-', '.')}</span>
         </a>
       ))}
     </div>
 
-    <div class="empty-state" id="empty" style="display:none;">没有匹配的条目。换个关键词或筛选试试。</div>
+    <div class="empty-state" id="empty" style="display:none;margin-top:16px;">没有匹配的条目。换个关键词或筛选试试。</div>
+
+    <div style="display:flex;justify-content:space-between;gap:16px;margin-top:20px;font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
+      <span id="resultCount"></span>
+      <span>点击任一行查看详情</span>
+    </div>
   </div>
 
   <script>
     const chips = document.querySelectorAll<HTMLButtonElement>('#filters .chip');
-    const cards = Array.from(document.querySelectorAll<HTMLElement>('#grid .card'));
+    const rows = Array.from(document.querySelectorAll<HTMLElement>('#grid .data-row'));
     const q = document.querySelector<HTMLInputElement>('#q');
     const empty = document.querySelector<HTMLElement>('#empty');
+    const resultCount = document.querySelector<HTMLElement>('#resultCount');
     let filter = 'all';
 
     const params = new URLSearchParams(location.search);
@@ -74,14 +72,15 @@ const counts = Object.fromEntries(
     function apply() {
       const kw = (q?.value || '').trim().toLowerCase();
       let visible = 0;
-      for (const card of cards) {
-        const okType = filter === 'all' || card.dataset.type === filter;
-        const okKw = !kw || (card.dataset.search || '').toLowerCase().includes(kw);
+      for (const row of rows) {
+        const okType = filter === 'all' || row.dataset.type === filter;
+        const okKw = !kw || (row.dataset.search || '').toLowerCase().includes(kw);
         const show = okType && okKw;
-        card.style.display = show ? '' : 'none';
+        row.style.display = show ? '' : 'none';
         if (show) visible++;
       }
       if (empty) empty.style.display = visible ? 'none' : '';
+      if (resultCount) resultCount.textContent = `显示 ${visible} / ${rows.length} 条`;
     }
 
     chips.forEach((c) =>
