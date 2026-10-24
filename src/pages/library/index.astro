@@ -36,7 +36,7 @@ const counts = Object.fromEntries(
            data-search={`${i.title} ${i.summary} ${i.tags.join(' ')} ${i.people.join(' ')}`}>
           <div class="card-cover" data-type={i.type}>
             <span class="type-tag">{meta[i.type].label}</span>
-            <span class="glyph">{String(idx + 1).padStart(2, "0")}</span>
+            <span class="glyph">{i.title.slice(0, 1)}</span>
           </div>
           <div class="card-body">
             <div class="card-meta">

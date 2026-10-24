@@ -6,72 +6,87 @@ import { services } from '../data/services';
 import { members } from '../data/members';
 
 const latest = sortedByDate.slice(0, 5);
+const working = sortedByDate
+  .filter((i) => i.status === '进行中' || i.status === '备赛中' || i.status === '报名中')
+  .slice(0, 3);
 const featured = items.filter((i) => i.type === 'project' || i.type === 'course').slice(0, 3);
 const topServices = services.slice(0, 4);
 const people = members.slice(0, 8);
-
-const typeLabel = (t: keyof typeof typeMeta) => typeMeta[t].label;
-const dateShort = (d: string) => d.slice(5).replace('-', '.');
 ---
 
 <Base>
   <!-- ================= HERO ================= -->
   <section class="hero">
     <div class="wrap hero-grid">
-      <div>
-        <span class="eyebrow"><i class="dot"></i> {site.nameEn} · SINCE 2019</span>
+      <div class="hero-copy">
+        <span class="eyebrow">
+          <i class="dot"></i>
+          <span>{site.nameEn}</span>
+          <span class="eyebrow-sep">/</span>
+          <span>2019 — 2026</span>
+        </span>
 
         <h1>
-          <span class="h1-line">{site.tagline[0]}</span>
-          <span class="h1-line"><em>{site.tagline[1]}</em></span>
-          <span class="underline"></span>
+          <span class="h1-line">把想法，</span>
+          <span class="h1-line"><em>做成东西。</em></span>
         </h1>
 
         <p class="hero-sub">
-          长沙理工大学创客空间。我们做课程、带竞赛、接需求，
-          也把做成过的东西整理成能直接拿去用的技能——不做看完就忘的资料库。
+          长沙理工大学创客空间。课程、竞赛、技术支持、软著材料——
+          做过的每一件事都留下能直接拿走用的东西，不做看完就忘的资料库。
         </p>
 
         <div class="hero-actions">
-          <a href="/services" class="btn btn-primary">
-            提一个需求 <span class="arrow">→</span>
-          </a>
-          <a href="/library" class="btn btn-ghost">
-            看我们做过什么 <span class="arrow">↗</span>
-          </a>
+          <a href="/services" class="btn btn-primary">提一个需求 <span class="arrow">→</span></a>
+          <a href="/library" class="btn btn-ghost">看我们做过什么 <span class="arrow">↗</span></a>
         </div>
       </div>
 
-      <aside class="console" aria-label="实时数据">
-        <div class="console-top">
-          <span>SYSTEM · STATUS</span>
-          <span class="live">● LIVE</span>
+      <aside class="workbench" aria-label="本周工作台">
+        <div class="wb-head">
+          <span class="wb-title">本周工作台</span>
+          <span class="wb-live"><i></i>进行中</span>
         </div>
-        <div class="console-rows">
-          {stats.map((s, i) => (
-            <div class="console-row">
-              <span class="k">{s.k}</span>
-              <span class="v">
-                <span data-count={s.v}>{s.v}</span><small>{s.unit}</small>
+
+        <div class="wb-list">
+          {working.map((i) => (
+            <a href={`/library/${i.id}`} class="wb-item">
+              <span class="wb-type" data-type={i.type}>{typeMeta[i.type].label}</span>
+              <span class="wb-text">
+                <b>{i.title}</b>
+                <i>{i.people[0]} · {i.status}</i>
               </span>
-            </div>
+            </a>
           ))}
         </div>
-        <div class="console-foot">
-          <span>UPDATED · 2026.10</span>
-          <span class="bar"><i></i></span>
-        </div>
+
+        <a href="/library" class="wb-more">全部内容 <span>→</span></a>
       </aside>
+    </div>
+
+    <!-- 状态带 -->
+    <div class="strip">
+      <div class="wrap strip-inner">
+        {stats.map((s) => (
+          <div class="strip-item">
+            <span class="strip-num" data-count={s.v}>{s.v}</span>
+            <span class="strip-label">{s.k}<i>{s.unit}</i></span>
+          </div>
+        ))}
+        <div class="strip-item strip-note">
+          <span class="strip-label">UPDATED<i>2026.10</i></span>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- ================= 三入口 ================= -->
-  <section class="section" style="padding-top:0;">
+  <section class="section" style="padding-top:64px;">
     <div class="wrap">
       <div class="entries reveal">
         {site.entries.map((e) => (
-          <a href={e.href} class="entry" data-num={e.num}>
-            <span class="icon">{e.icon}</span>
+          <a href={e.href} class="entry">
+            <span class="entry-icon">{e.icon}</span>
             <h3>{e.title}</h3>
             <p>{e.desc}</p>
             <span class="go">{e.go} <span>→</span></span>
@@ -85,21 +100,23 @@ const dateShort = (d: string) => d.slice(5).replace('-', '.');
   <section class="section" style="border-top:1px solid var(--line);">
     <div class="wrap">
       <div class="section-head reveal">
-        <div>
-          <span class="index">01 / TIMELINE</span>
+        <div class="sh-left">
+          <span class="sh-tag">时间线</span>
           <h2 class="section-title">最近在做什么</h2>
-          <p class="section-desc">项目、竞赛、活动、课程，按时间排。点进去能看到谁在做、做到哪一步。</p>
         </div>
-        <a href="/library" class="more">全部 →</a>
+        <div class="sh-right">
+          <span class="sh-count">{latest.length} 条</span>
+          <a href="/library" class="more">全部 →</a>
+        </div>
       </div>
 
       <div class="timeline reveal">
         {latest.map((i) => (
-          <div class="tl-item">
+          <a href={`/library/${i.id}`} class="tl-item">
             <span class="date">{i.date.replaceAll('-', '.')}</span>
-            <h4>{i.title}<span class="kind">{typeLabel(i.type)}</span></h4>
+            <h4>{i.title}<span class="kind" data-type={i.type}>{typeMeta[i.type].label}</span></h4>
             <p>{i.summary}</p>
-          </div>
+          </a>
         ))}
       </div>
     </div>
@@ -109,26 +126,29 @@ const dateShort = (d: string) => d.slice(5).replace('-', '.');
   <section class="section" style="border-top:1px solid var(--line);">
     <div class="wrap">
       <div class="section-head reveal">
-        <div>
-          <span class="index">02 / LIBRARY</span>
+        <div class="sh-left">
+          <span class="sh-tag">内容库</span>
           <h2 class="section-title">做过的东西</h2>
-          <p class="section-desc">每个条目都带参与人、状态和可复用的产出，不是只有一段介绍。</p>
         </div>
-        <a href="/library" class="more">内容库 →</a>
+        <div class="sh-right">
+          <span class="sh-count">{items.length} 条</span>
+          <a href="/library" class="more">内容库 →</a>
+        </div>
       </div>
 
       <div class="card-grid reveal">
-        {featured.map((i, idx) => (
+        {featured.map((i) => (
           <a href={`/library/${i.id}`} class="card">
             <div class="card-cover" data-type={i.type}>
-              <span class="type-tag">{typeLabel(i.type)}</span>
-              <span class="glyph">{String(idx + 1).padStart(2, "0")}</span>
+              <span class="glyph">{i.title.slice(0, 1)}</span>
+              <span class="type-tag">{typeMeta[i.type].label}</span>
+              <span class="status-tag">{i.status}</span>
             </div>
             <div class="card-body">
               <div class="card-meta">
                 <span>{i.date.replaceAll('-', '.')}</span>
                 <span>·</span>
-                <span>{i.status}</span>
+                <span>{i.people.join(' / ')}</span>
               </div>
               <h3>{i.title}</h3>
               <p>{i.summary}</p>
@@ -146,18 +166,20 @@ const dateShort = (d: string) => d.slice(5).replace('-', '.');
   <section class="section" style="border-top:1px solid var(--line);">
     <div class="wrap">
       <div class="section-head reveal">
-        <div>
-          <span class="index">03 / SERVICES</span>
+        <div class="sh-left">
+          <span class="sh-tag">服务台</span>
           <h2 class="section-title">我们能帮什么</h2>
-          <p class="section-desc">说清需求、约定时间，按清单交付。能力范围内做到位，范围外提前说。</p>
         </div>
-        <a href="/services" class="more">服务台 →</a>
+        <div class="sh-right">
+          <span class="sh-count">{services.length} 类</span>
+          <a href="/services" class="more">服务台 →</a>
+        </div>
       </div>
 
       <div class="service-list reveal">
         {topServices.map((s, idx) => (
           <a href="/services" class="service-row">
-            <span class="idx">0{idx + 1}</span>
+            <span class="idx">{String(idx + 1).padStart(2, '0')}</span>
             <div>
               <h4>{s.title}</h4>
               <div class="sub">{s.desc}</div>
@@ -174,36 +196,38 @@ const dateShort = (d: string) => d.slice(5).replace('-', '.');
   <section class="section" style="border-top:1px solid var(--line);">
     <div class="wrap">
       <div class="section-head reveal">
-        <div>
-          <span class="index">04 / PEOPLE</span>
+        <div class="sh-left">
+          <span class="sh-tag">成员</span>
           <h2 class="section-title">谁在做</h2>
-          <p class="section-desc">成员能力、参与项目和成果都在各自的档案里，找人对事不用再问一圈。</p>
         </div>
-        <a href="/members" class="more">全部成员 →</a>
+        <div class="sh-right">
+          <span class="sh-count">{members.length} 人</span>
+          <a href="/members" class="more">全部成员 →</a>
+        </div>
       </div>
 
       <div class="people reveal">
         {people.map((m) => (
-          <div class="person">
+          <a href={`/members#${m.id}`} class="person">
             <div class="avatar">{m.name.slice(0, 1)}</div>
             <h4>{m.name}{m.role ? ` · ${m.role}` : ''}</h4>
             <div class="dept">{m.dept} / {m.grade}</div>
             <div class="skills">
               {m.skills.slice(0, 3).map((s) => <span class="tag">{s}</span>)}
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </div>
   </section>
 
   <!-- ================= CTA ================= -->
-  <section class="section" style="border-top:1px solid var(--line);padding-bottom:120px;">
+  <section class="section cta-section" style="border-top:1px solid var(--line);">
     <div class="wrap reveal">
-      <div style="max-width:760px;">
-        <span class="index" style="font-family:var(--font-mono);font-size:12px;letter-spacing:.18em;color:var(--signal);">05 / START</span>
-        <h2 class="section-title" style="font-size:clamp(30px,4.6vw,54px);margin:14px 0 20px;">
-          有一个具体的活，或者一个模糊的想法，都可以提。
+      <div class="cta-inner">
+        <span class="sh-tag">开始</span>
+        <h2 class="section-title" style="font-size:clamp(30px,4.6vw,54px);margin:18px 0 22px;">
+          有一个具体的活，<br class="br-desktop" />或者一个模糊的想法，都可以提。
         </h2>
         <p class="section-desc" style="margin-bottom:32px;">
           说清楚要解决什么，比说清楚要做什么更有用。
