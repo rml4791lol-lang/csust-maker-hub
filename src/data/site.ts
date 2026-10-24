@@ -10,6 +10,7 @@ export const site = {
     { href: '/library', label: '内容库' },
     { href: '/members', label: '成员' },
     { href: '/services', label: '服务台' },
+    { href: '/stats', label: '数据' },
     { href: '/about', label: '关于' },
   ],
   contact: {
