@@ -6,6 +6,8 @@ export const site = {
   name: '长理创客',
   nameEn: 'CSUST MAKER SPACE',
   short: '创客空间',
+  /** 站点对外地址（脚本生成链接、部署说明共用，别在脚本里再硬编码） */
+  url: 'https://an520.xin',
   tagline: ['把想法，', '做成东西。'],
   description:
     '长沙理工大学创客空间的内部知识库。攻略、技能指令、模板、外部项目、培训，每条都留下能直接拿走用的东西。',
@@ -44,4 +46,20 @@ export const stats = [
   { k: '内容条目', v: live.length, unit: '条' },
   { k: '攻略收录', v: live.filter((i) => i.type === 'guide').length, unit: '篇' },
   { k: '进行中', v: live.filter((i) => ACTIVE_STATES.includes(i.status)).length, unit: '项' },
+];
+
+/** 内容值班：一期排班（「双周」只是示例排法，区间长度完全由配置决定） */
+export interface DutyShift {
+  /** 值班人（成员名） */
+  name: string;
+  /** 起始日期 YYYY-MM-DD（含） */
+  from: string;
+  /** 结束日期 YYYY-MM-DD（含） */
+  to: string;
+}
+
+/** 值班轮换表：示例排班，真实值班由人工维护此配置。按时间顺序追加，空数组则数据页不显示值班面板。 */
+export const dutyRota: DutyShift[] = [
+  { name: '林知', from: '2026-10-13', to: '2026-10-26' },
+  { name: '陈屿', from: '2026-10-27', to: '2026-11-09' },
 ];

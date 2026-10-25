@@ -10,13 +10,22 @@
  *   ADMIN_USERS="admin:admin123,editor:xxx"  人用账号
  *   AGENT_TOKEN="..."                        agent 用 token
  *   ADMIN_PORT=3210
+ *   FEISHU_WEBHOOK=...                       飞书自定义机器人 webhook（可选）
+ *   FEISHU_SECRET=...                        飞书签名密钥（配 FEISHU_WEBHOOK 时用）
+ *   WECOM_WEBHOOK=...                        企业微信群机器人 webhook（可选）
+ *   REVIEW_DAYS=90                           复核周期天数（默认 90，issue #13）
+ * 密钥只放服务器 env 文件（.env.admin），绝不入 git。
  */
 import http from 'node:http';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
-import { expiringSoon } from '../src/data/validate';
+import { members } from '../src/data/members';
+import { expiringSoon, validateContent } from '../src/data/validate';
+import { SITE_BASE, sendIm } from './im-push';
+import { overdueReviews } from '../src/data/review';
+import { voteLabel } from '../src/data/vote-labels';
 
 const ROOT = process.cwd();
 const CONTENT_FILE = join(ROOT, 'content/items.json');
@@ -28,6 +37,8 @@ const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 /** 部署目标目录。设置后 /api/build 构建成功会 rsync 过去（服务器本机路径，如 /var/www/csust-maker/） */
 const DEPLOY_TARGET = process.env.DEPLOY_TARGET || '';
+/** 复核周期天数：超过该天数未复核的已发布内容进「待复核」清单（issue #13） */
+const REVIEW_DAYS = Number(process.env.REVIEW_DAYS) > 0 ? Number(process.env.REVIEW_DAYS) : 90;
 
 type State = 'draft' | 'reviewing' | 'published' | 'unpublished';
 const STATES: State[] = ['draft', 'reviewing', 'published', 'unpublished'];
@@ -86,6 +97,7 @@ function setState(id: string, next: State, actor: string, method: 'human' | 'age
   overrides[id] = next;
   writeJson(STATE_FILE, overrides);
   logTransition({ id, from: prev, to: next, actor, method, note });
+  if (next === 'published' && prev !== 'published') notifyPublished(id, actor, method);
 }
 
 function readItems(): any[] {
@@ -93,6 +105,34 @@ function readItems(): any[] {
 }
 function writeItems(list: any[]) {
   writeJson(CONTENT_FILE, list);
+}
+
+/* ---------------------------- IM 群机器人推送（issue #10，通道实现见 scripts/im-push.ts） ---------------------------- */
+
+/** 发布卡片内容：标题 / 作者 / 一句话摘要 / 详情页链接 */
+function publishCard(id: string) {
+  const entry =
+    readItems().find((i) => i.id === id) || items.find((i) => i.id === id) || ({} as any);
+  return {
+    title: String(entry.title || id),
+    author: String(entry.author || '未署名'),
+    summary: String(entry.summary || '').slice(0, 120),
+    link: `${SITE_BASE}/library/${id}`,
+  };
+}
+
+/** 条目发布后推送 IM 群。异步、不阻塞状态流转；失败只记日志。未配置 webhook 时 dry-run 打印卡片。 */
+function notifyPublished(id: string, actor: string, method: 'human' | 'agent') {
+  const card = publishCard(id);
+  void sendIm(
+    {
+      header: `📄 新内容发布：${card.title}`,
+      body: `**作者**：${card.author}\n**摘要**：${card.summary}`,
+      buttons: [{ text: '查看详情', url: card.link }],
+    },
+    'im-push',
+    `${id}（${actor}）`
+  );
 }
 
 /* ---------------------------- 人的页面 ---------------------------- */
@@ -127,15 +167,46 @@ function page(actor: string): string {
         .join('、')}</span></div>`
     : '';
 
-  // 反馈汇总：有用/没用计数 + 最近留言（spec user story #20）
+  // 缺作者清单：warn 级校验问题，供逐条认领（issue #9）
+  const noAuthor = validateContent({ items: live as any, members }).filter(
+    (i) => i.code === 'missing-author'
+  );
+  const noAuthorHtml = noAuthor.length
+    ? `<div class="soon noauthor"><b>${noAuthor.length} 条缺作者</b><span>${noAuthor
+        .map((i) => {
+          const it = live.find((x) => x.id === i.id);
+          return `${it?.title ?? ''}（<span class="mono">${i.id}</span>）`;
+        })
+        .join('、')}</span></div>`
+    : '';
+
+  // 待复核清单：已发布且最近复核超 REVIEW_DAYS 天，一键刷新复核时间（issue #13）
+  const dueReview = overdueReviews(
+    live.map((i) => ({ ...i, publishState: currentState(i.id) })),
+    readJson<any[]>(LOG_FILE, []),
+    new Date(),
+    REVIEW_DAYS
+  );
+  const reviewHtml = dueReview.length
+    ? `<div class="soon overdue"><b>${dueReview.length} 条待复核（超 ${REVIEW_DAYS} 天未复核）</b>${dueReview
+        .map(
+          (i) =>
+            `<span>${i.title}（<span class="mono">${i.id}</span>）· 最近复核：${
+              i.lastReviewAt ? i.lastReviewAt.slice(0, 10) : '无记录'
+            } <button class="op" data-review="${i.id}">完成复核</button></span>`
+        )
+        .join('')}</div>`
+    : '';
+
+  // 反馈汇总：有用/没用/照做计数 + 最近留言（spec user story #20 + issue #11）
   const m = readMetrics();
-  const fbAgg: Record<string, { useful: number; useless: number }> = {};
-  for (const f of m.feedback) (fbAgg[f.item] ??= { useful: 0, useless: 0 })[f.vote]++;
+  const fbAgg: Record<string, { useful: number; useless: number; confirmed: number }> = {};
+  for (const f of m.feedback) (fbAgg[f.item] ??= { useful: 0, useless: 0, confirmed: 0 })[f.vote]++;
   const fbRows = Object.entries(fbAgg)
-    .sort((a, b) => b[1].useful + b[1].useless - (a[1].useful + a[1].useless))
+    .sort((a, b) => b[1].useful + b[1].useless + b[1].confirmed - (a[1].useful + a[1].useless + a[1].confirmed))
     .map(([id, c]) => {
       const it = live.find((i) => i.id === id);
-      return `<tr><td class="mono">${id}</td><td>${it?.title ?? id}</td><td>${c.useful}</td><td>${c.useless}</td></tr>`;
+      return `<tr><td class="mono">${id}</td><td>${it?.title ?? id}</td><td>${c.useful}</td><td>${c.useless}</td><td>${c.confirmed}</td></tr>`;
     })
     .join('');
   const fbHtml =
@@ -145,7 +216,7 @@ function page(actor: string): string {
     <span>总浏览 ${Object.values(m.views).reduce((a, b) => a + b, 0)} 次 · 反馈 ${m.feedback.length} 条</span>
     ${
       fbRows
-        ? `<table class="fbtable"><tr><th>条目</th><th>标题</th><th>有用</th><th>没用</th></tr>${fbRows}</table>`
+        ? `<table class="fbtable"><tr><th>条目</th><th>标题</th><th>有用</th><th>没用</th><th>照做</th></tr>${fbRows}</table>`
         : ''
     }
     ${
@@ -155,7 +226,7 @@ function page(actor: string): string {
             .reverse()
             .map(
               (f) =>
-                `<li><span class="mono">${f.item}</span> · ${f.vote === 'useful' ? '有用' : '没用'}${
+                `<li><span class="mono">${f.item}</span> · ${voteLabel[f.vote] ?? f.vote }${
                   f.note ? ` · 「${f.note}」` : ''
                 } · ${f.at.slice(0, 10)}</li>`
             )
@@ -164,6 +235,12 @@ function page(actor: string): string {
     }
   </div>`
       : '';
+
+  // IM 推送状态（issue #10）
+  const imChannelNow = imChannel();
+  const imStatus = imChannelNow
+    ? `IM 推送：已启用（${imChannelNow === 'feishu' ? '飞书' : '企业微信'}）`
+    : 'IM 推送：未配置（dry-run）';
 
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="robots" content="noindex">
@@ -195,6 +272,7 @@ function page(actor: string): string {
   .soon{border:1px solid #e9e9e9;background:#fafafa;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12.5px;display:flex;gap:10px;flex-wrap:wrap}
   .soon b{color:#b45309;font-weight:600}
   .soon span{color:#8a8a8a}
+  .noauthor b{color:#1a56db}
   .fbpanel{border:1px solid #e9e9e9;background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:12.5px;display:grid;gap:8px}
   .fbpanel>b{font-weight:600}
   .fbpanel>span{color:#8a8a8a;font-size:12px}
@@ -214,6 +292,8 @@ function page(actor: string): string {
 <header><h1>内容后台</h1><span class="who">${actor}</span></header>
 <main>
   ${soonHtml}
+  ${noAuthorHtml}
+  ${reviewHtml}
   ${fbHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>
@@ -221,7 +301,7 @@ function page(actor: string): string {
     <label><input type="checkbox" class="rule"> 不含他人隐私与未公开数据</label>
     <label><input type="checkbox" class="rule"> 不转载未授权付费内容与破解教程</label>
   </div>
-  <p class="note">改状态会写入发布记录。过期内容保留展示，仅标注已截止。</p>
+  <p class="note">${imStatus}。改状态会写入发布记录，发布即推送群通知。过期内容保留展示，仅标注已截止。</p>
   <table>
     <thead><tr><th>ID</th><th>标题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>${rows}</tbody>
@@ -234,6 +314,7 @@ function page(actor: string): string {
     <p><code>PUT /api/items/:id</code> 新建或更新（JSON body，写入 content/items.json）</p>
     <p><code>DELETE /api/items/:id</code> 删除</p>
     <p><code>POST /api/state</code> body <code>{"id":"g01","state":"published"}</code></p>
+    <p><code>POST /api/review</code> body <code>{"id":"g01"}</code> 完成复核（盖复核章，写 review-log）</p>
     <p><code>POST /api/build</code> 重新构建并部署</p>
   </div>
 </main>
@@ -266,6 +347,25 @@ function page(actor: string): string {
       }
     });
   });
+  document.querySelectorAll('[data-review]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const r = await fetch('api/review', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ id: btn.dataset.review }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '操作失败');
+        toast('已记录复核');
+        setTimeout(()=>location.reload(), 500);
+      } catch (e) {
+        toast('失败：' + e.message);
+        btn.disabled = false;
+      }
+    });
+  });
 </script>
 </body></html>`;
 }
@@ -279,7 +379,7 @@ function json(res: http.ServerResponse, code: number, data: unknown, headers: Re
 
 type MetricsFile = {
   views: Record<string, number>;
-  feedback: { item: string; vote: 'useful' | 'useless'; note?: string; at: string }[];
+  feedback: { item: string; vote: 'useful' | 'useless' | 'confirmed'; note?: string; at: string }[];
   updatedAt?: string;
 };
 
@@ -319,9 +419,9 @@ const server = http.createServer(async (req, res) => {
     const CORS = { 'Access-Control-Allow-Origin': '*' };
     if (req.method === 'GET' && url === '/api/metrics') {
       const m = readMetrics();
-      const fb: Record<string, { useful: number; useless: number }> = {};
+      const fb: Record<string, { useful: number; useless: number; confirmed: number }> = {};
       for (const f of m.feedback) {
-        (fb[f.item] ??= { useful: 0, useless: 0 })[f.vote]++;
+        (fb[f.item] ??= { useful: 0, useless: 0, confirmed: 0 })[f.vote]++;
       }
       const total = Object.values(m.views).reduce((a, b) => a + b, 0);
       return json(res, 200, { total, views: m.views, feedback: fb, updatedAt: m.updatedAt ?? null }, CORS);
@@ -345,7 +445,7 @@ const server = http.createServer(async (req, res) => {
         const id = String(p?.item ?? '');
         const vote = String(p?.vote ?? '');
         if (!ids.has(id)) return json(res, 400, { error: 'unknown id' }, CORS);
-        if (vote !== 'useful' && vote !== 'useless') return json(res, 400, { error: 'bad vote' }, CORS);
+        if (!['useful', 'useless', 'confirmed'].includes(vote)) return json(res, 400, { error: 'bad vote' }, CORS);
         m.feedback.push({ item: id, vote, note: String(p?.note ?? '').slice(0, 200), at: new Date().toISOString() });
         if (m.feedback.length > 500) m.feedback = m.feedback.slice(-500);
       }
@@ -503,6 +603,19 @@ const server = http.createServer(async (req, res) => {
       if (!items.some((i) => i.id === id)) throw new Error('内容不存在：' + id);
       setState(id, state, actor, who.role === 'agent' ? 'agent' : 'human', note || '');
       return json(res, 200, { ok: true, id, state });
+    } catch (e: any) {
+      return json(res, 400, { error: e.message });
+    }
+  }
+
+  // POST /api/review — 完成复核：盖复核章并写 review-log（issue #13）
+  if (req.method === 'POST' && url === '/api/review') {
+    try {
+      const { id } = JSON.parse((await body(req)) || '{}');
+      const exists = readItems().some((i) => i.id === id) || items.some((i) => i.id === id);
+      if (!id || !exists) throw new Error('内容不存在：' + (id || '(空)'));
+      logTransition({ id, type: 'review', actor, method: who.role === 'agent' ? 'agent' : 'human' });
+      return json(res, 200, { ok: true, id });
     } catch (e: any) {
       return json(res, 400, { error: e.message });
     }

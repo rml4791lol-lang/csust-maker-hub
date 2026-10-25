@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateContent, validateCurrentContent, publishedItems, isExpired } from '../src/data/validate';
+import { lastReviewAt, overdueReviews } from '../src/data/review';
 import type { Item } from '../src/data/items';
 import type { Member } from '../src/data/members';
 
@@ -27,8 +28,10 @@ const baseMember = (over: Partial<Member> = {}): Member => ({
 });
 
 describe('内容校验', () => {
-  it('仓库现有内容全部通过', () => {
-    expect(validateCurrentContent()).toEqual([]);
+  it('仓库现有内容无 error 级问题', () => {
+    // 基线从 toEqual([])（全部问题为空）放宽为只断言 error 级：#9 起 warn 级
+    // 缺作者条目合法存在，warn 不阻塞，这里只兜住会挡发布的 error。
+    expect(validateCurrentContent().filter((i) => i.level === 'error')).toEqual([]);
   });
 
   it('抓出重复 id', () => {
@@ -72,6 +75,25 @@ describe('内容校验', () => {
     expect(issues.some((i) => i.code === 'unknown-project')).toBe(true);
   });
 
+  it('缺 author 产生 warn 级问题', () => {
+    const issues = validateContent({
+      items: [baseItem({ author: undefined })],
+      members: [],
+    });
+    const miss = issues.find((i) => i.code === 'missing-author');
+    expect(miss).toBeDefined();
+    expect(miss?.level).toBe('warn');
+    expect(miss?.field).toBe('author');
+  });
+
+  it('有 author 不产生缺作者问题', () => {
+    const issues = validateContent({
+      items: [baseItem({ author: '张三' })],
+      members: [],
+    });
+    expect(issues.some((i) => i.code === 'missing-author')).toBe(false);
+  });
+
   it('抓出日期格式错误', () => {
     const issues = validateContent({
       items: [baseItem({ date: '2026/10/01' })],
@@ -110,5 +132,30 @@ describe('过期自动下架', () => {
   it('未发布内容不出现在列表', () => {
     const list = [baseItem({ id: 'a', publishState: 'draft' })];
     expect(publishedItems(list)).toEqual([]);
+  });
+});
+
+describe('90 天复核（issue #13）', () => {
+  const now = new Date('2026-10-25T12:00:00Z');
+  const pub = (id: string, over = {}) => ({ id, title: `标题${id}`, publishState: 'published', ...over });
+
+  it('最近复核超过阈值 → 超龄进待复核清单', () => {
+    const log = [{ id: 'a', type: 'review', at: '2026-06-01T00:00:00Z' }];
+    expect(overdueReviews([pub('a')], log, now, 90).map((i) => i.id)).toEqual(['a']);
+  });
+
+  it('阈值内发布/复核过 → 不超龄', () => {
+    const log = [
+      { id: 'a', to: 'published', at: '2026-10-01T00:00:00Z' },
+      { id: 'a', type: 'review', at: '2026-10-10T00:00:00Z' },
+    ];
+    expect(overdueReviews([pub('a')], log, now, 90)).toEqual([]);
+    expect(lastReviewAt(log, 'a')).toBe('2026-10-10T00:00:00Z');
+  });
+
+  it('无复核记录的已发布条目算超龄，未发布不进清单', () => {
+    const due = overdueReviews([pub('a'), pub('b', { publishState: 'draft' })], [], now, 90);
+    expect(due.map((i) => i.id)).toEqual(['a']);
+    expect(due[0].lastReviewAt).toBeNull();
   });
 });

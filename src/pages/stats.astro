@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { items, typeMeta } from '../data/items';
 import { members, depts } from '../data/members';
-import { stats } from '../data/site';
+import { stats, dutyRota } from '../data/site';
 
 // 类型分布：实际存在的类型，按数量降序；颜色取 typeMeta 单一来源
 const byType = [...new Set(items.map((i) => i.type))]
@@ -47,6 +47,30 @@ const maxStatus = Math.max(...byStatus.map((x) => x.n), 1);
 const itemIndex = Object.fromEntries(
   items.map((i) => [i.id, { t: i.title, h: i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}` }])
 );
+
+// 内容值班：区间按 YYYY-MM-DD 字符串比较（字典序即时间序），条目按收录日期落入区间计数
+const now = new Date();
+const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+const dutyShifts = [...dutyRota]
+  .sort((a, b) => a.from.localeCompare(b.from))
+  .map((s) => {
+    const collected = items
+      .filter((i) => i.date >= s.from && i.date <= s.to)
+      .map((i) => ({ id: i.id, title: i.title }));
+    return {
+      ...s,
+      onDuty: today >= s.from && today <= s.to,
+      count: collected.length,
+      collected,
+    };
+  });
+
+// 当前值班期；空档期（today 不落在任何区间）退回最近一期（按结束日期），并标注等待排班
+const dutyNow =
+  dutyShifts.find((s) => s.onDuty) ??
+  [...dutyShifts].sort((a, b) => b.to.localeCompare(a.to))[0] ??
+  null;
 ---
 
 <Base title="数据" description="创客空间的内容、成员与浏览数据看板。">
@@ -144,6 +168,43 @@ const itemIndex = Object.fromEntries(
         </div>
       </section>
 
+      <!-- 内容值班（配置在 site.ts 的 dutyRota，空数组则不渲染） -->
+      {dutyShifts.length > 0 && dutyNow && (
+        <section class="panel panel-wide">
+          <div class="panel-head">
+            <h3>内容值班</h3>
+            <span>{dutyShifts.length} 期 · 构建时计算</span>
+          </div>
+          <div class="duty-now" class:list={{ 'duty-now-gap': !dutyNow.onDuty }}>
+            <span class="duty-now-name">{dutyNow.name}</span>
+            <span class="duty-now-range">{dutyNow.from} ~ {dutyNow.to}</span>
+            <span class="duty-now-note">
+              {dutyNow.onDuty ? `值班中 · 本班收录 ${dutyNow.count} 条` : '空档中，等待排班'}
+            </span>
+          </div>
+          <div class="duty-list">
+            {dutyShifts.map((s) => (
+              <div class="duty-row" class:list={{ 'duty-row-current': s.onDuty }}>
+                <span class="duty-name">
+                  {s.name}
+                  {s.onDuty && <i class="duty-flag">值班中</i>}
+                </span>
+                <span class="duty-date">{s.from} ~ {s.to}</span>
+                <span class="duty-count">{s.count} 条</span>
+                {s.collected.length > 0 && (
+                  <ul class="duty-items">
+                    {s.collected.slice(0, 6).map((c) => (
+                      <li><a href={`/library/${c.id}`}>{c.title}</a></li>
+                    ))}
+                    {s.collected.length > 6 && <li class="duty-more">等 {s.collected.length} 条</li>}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <!-- 浏览量排行（实时，来自后台 metrics） -->
       <section class="panel panel-wide">
         <div class="panel-head">
@@ -175,8 +236,12 @@ const itemIndex = Object.fromEntries(
         } catch { /* 索引缺失就用 id 兜底 */ }
 
         const fb = d.feedback || {};
-        const fbTotal = Object.values(fb).reduce((s: number, f: any) => s + f.useful + f.useless, 0);
-        meta.textContent = `总浏览 ${d.total ?? 0} 次 · 反馈 ${fbTotal} 条`;
+        const fbTotal = Object.values(fb).reduce(
+          (s: number, f: any) => s + (f.useful || 0) + (f.useless || 0) + (f.confirmed || 0),
+          0
+        );
+        const fbConfirmed = Object.values(fb).reduce((s: number, f: any) => s + (f.confirmed || 0), 0);
+        meta.textContent = `总浏览 ${d.total ?? 0} 次 · 反馈 ${fbTotal} 条 · 照做 ${fbConfirmed} 次`;
 
         const rows = (Object.entries(d.views || {}) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 8);
         if (!rows.length) {
@@ -188,7 +253,10 @@ const itemIndex = Object.fromEntries(
           .map(([id, n]) => {
             const t = titles[id] || { t: id, h: `/library/${id}` };
             const w = Math.max(4, Math.round((n / max) * 100));
-            return `<div class="hbar-row"><a href="${esc(t.h)}" title="${esc(t.t)}"><span class="hbar-label">${esc(t.t)}</span></a><div class="hbar-track"><div class="hbar" style="width:${w}%"></div></div><span class="hbar-num">${n}</span></div>`;
+            const conf = fb[id]?.confirmed || 0;
+            // confirmed>0 时在浏览数旁带出「· K 照做」；总览行的合计见上方 viewsMeta
+            const extra = conf > 0 ? `<span class="hbar-confirmed">· ${conf} 照做</span>` : '';
+            return `<div class="hbar-row${extra ? ' hbar-row-extra' : ''}"><a href="${esc(t.h)}" title="${esc(t.t)}"><span class="hbar-label">${esc(t.t)}</span></a><div class="hbar-track"><div class="hbar" style="width:${w}%"></div></div><span class="hbar-num">${n}</span>${extra}</div>`;
           })
           .join('');
       })

@@ -209,6 +209,7 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
         <div class="fb-actions">
           <button class="fb-btn" data-vote="useful">有用</button>
           <button class="fb-btn" data-vote="useless">没用</button>
+          <button class="fb-btn" data-vote="confirmed">照做出来了</button>
         </div>
         <input class="fb-note" type="text" placeholder="想说的话（可选）" />
         <p class="fb-msg" aria-live="polite"></p>
@@ -246,7 +247,8 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
 </Base>
 
 <script>
-  // 反馈：有用 / 没用
+  // 反馈：有用 / 没用 / 照做出来了（issue #11）；文案单一来源在 src/data/vote-labels.ts
+  import { voteLabel as voteLabels } from '../../data/vote-labels';
   document.querySelectorAll<HTMLElement>('.feedback').forEach((box) => {
     const itemId = box.dataset.item || '';
     const key = `fb:${itemId}`;
@@ -266,7 +268,7 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
     }
 
     const saved = localStorage.getItem(key);
-    if (saved && msg) msg.textContent = `你之前标记过：${saved === 'useful' ? '有用' : '没用'}`;
+    if (saved && voteLabels[saved] && msg) msg.textContent = `你之前标记过：${voteLabels[saved]}`;
 
     btns.forEach((btn) => {
       btn.addEventListener('click', async () => {
