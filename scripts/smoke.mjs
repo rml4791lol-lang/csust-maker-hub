@@ -27,7 +27,7 @@ const pages = [
   'index.html',
   'library/index.html',
   'members/index.html',
-  'services/index.html',
+  'resources/index.html',
   'about/index.html',
   'stats/index.html',
 ];
