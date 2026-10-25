@@ -139,11 +139,6 @@ export function isExpired(item: Item, now = new Date()): boolean {
   return new Date(item.expiresAt + 'T23:59:59') < now;
 }
 
-/** 列表里可见的内容：已发布且未过期（过期自动下架） */
-export function visibleItems(list: Item[] = items): Item[] {
-  return publishedItems(list).filter((i) => !isExpired(i));
-}
-
 /** 即将到期的内容（14 天内），用于后台提醒 */
 export function expiringSoon(list: Item[] = items, days = 14): Item[] {
   const now = new Date();

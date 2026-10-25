@@ -502,6 +502,13 @@ kbd {
   display: block;
 }
 .data-people { font-size: 12.5px; color: var(--text-2); }
+.data-status.is-expired {
+  color: var(--text-3);
+  border-color: var(--line);
+  background: transparent;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
 .data-status {
   font-size: 11.5px;
   padding: 2px 8px;
