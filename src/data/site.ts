@@ -4,13 +4,12 @@ export const site = {
   short: '创客空间',
   tagline: ['把想法，', '做成东西。'],
   description:
-    '长沙理工大学创客空间 · 技术分享与服务平台。我们做课程、带竞赛、接需求，也把做过的东西整理成能直接拿去用的技能。',
+    '长沙理工大学创客空间的内部知识库。攻略、技能指令、模板、外部项目、培训，每条都留下能直接拿走用的东西。',
   nav: [
     { href: '/', label: '首页' },
     { href: '/library', label: '内容库' },
     { href: '/members', label: '成员' },
     { href: '/resources', label: '资源' },
-    { href: '/services', label: '服务台' },
     { href: '/stats', label: '数据' },
     { href: '/about', label: '关于' },
   ],
@@ -34,6 +33,6 @@ export const site = {
 export const stats = [
   { k: '在册成员', v: 32, unit: '人' },
   { k: '内容条目', v: 12, unit: '条' },
-  { k: '已交付需求', v: 18, unit: '项' },
+  { k: '收录条目', v: 19, unit: '条' },
   { k: '竞赛获奖', v: 9, unit: '项' },
 ];

@@ -2,7 +2,6 @@
 import Base from '../layouts/Base.astro';
 import { site, stats } from '../data/site';
 import { items, typeMeta, sortedByDate } from '../data/items';
-import { services } from '../data/services';
 import { members } from '../data/members';
 import { publishedItems } from '../data/validate';
 
@@ -10,7 +9,6 @@ const latest = publishedItems(sortedByDate).slice(0, 8);
 const working = publishedItems(sortedByDate)
   .filter((i) => i.status === '进行中' || i.status === '备赛中' || i.status === '报名中')
   .slice(0, 3);
-const topServices = services.slice(0, 3);
 const people = members.slice(0, 8);
 ---
 
@@ -32,13 +30,13 @@ const people = members.slice(0, 8);
         </h1>
 
         <p class="hero-sub">
-          长沙理工大学创客空间的工作台。查项目、找成员、提需求、看服务进度——
-          每个入口都直接通向能用的数据，不是一段介绍。
+          长沙理工大学创客空间的内部知识库。攻略、技能指令、模板、外部项目、培训——
+          每条都带现成路径和能直接拿走的东西。
         </p>
 
         <div class="hero-actions">
-          <a href="/services" class="btn btn-primary">提一个需求</a>
-          <a href="/library" class="btn btn-ghost">浏览内容库</a>
+          <a href="/library" class="btn btn-primary">浏览内容库</a>
+          <a href="/resources" class="btn btn-ghost">找模板</a>
         </div>
       </div>
 
@@ -124,39 +122,6 @@ const people = members.slice(0, 8);
     </div>
   </section>
 
-  <!-- ================= 服务 ================= -->
-  <section class="section" style="border-top:1px solid var(--line);">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <div class="sh-left">
-          <span class="sh-tag">服务台</span>
-          <h2 class="section-title">能接什么活</h2>
-        </div>
-        <div class="sh-right">
-          <span class="sh-count">{services.length} 类服务</span>
-          <a href="/services" class="more">服务台 →</a>
-        </div>
-      </div>
-
-      <div class="service-cards reveal">
-        {topServices.map((s, idx) => (
-          <a href="/services" class="service-card">
-            <div class="sc-head">
-              <span class="sc-idx">{String(idx + 1).padStart(2, '0')}</span>
-              <span class="sc-owner">{s.owner}</span>
-            </div>
-            <h3>{s.title}</h3>
-            <p class="sc-desc">{s.desc}</p>
-            <div class="sc-meta">
-              <div><span>交付</span><b>{s.deliverable}</b></div>
-              <div><span>周期</span><b>{s.sla}</b></div>
-            </div>
-          </a>
-        ))}
-      </div>
-    </div>
-  </section>
-
   <!-- ================= 成员 ================= -->
   <section class="section" style="border-top:1px solid var(--line);">
     <div class="wrap">
@@ -195,11 +160,11 @@ const people = members.slice(0, 8);
           有一个具体的活，<br class="br-desktop" />或者一个模糊的想法，都可以提。
         </h2>
         <p class="section-desc" style="margin-bottom:26px;">
-          说清楚要解决什么，比说清楚要做什么更有用。
+          每条都带现成路径和可复制的东西，看完能直接动手。
         </p>
         <div class="hero-actions">
-          <a href="/services" class="btn btn-primary">提交需求</a>
-          <a href="/members" class="btn btn-ghost">先看看谁在做</a>
+          <a href="/library" class="btn btn-primary">看最新收录</a>
+          <a href="/resources" class="btn btn-ghost">下载模板</a>
         </div>
       </div>
     </div>
