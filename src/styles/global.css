@@ -391,12 +391,12 @@ kbd {
 
 /* ---------------------------- 入口卡 ---------------------------- */
 
-.entries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.entries { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .entry {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fff;
-  padding: 20px 18px;
+  padding: 16px 15px;
   display: flex;
   flex-direction: column;
   min-height: 168px;
@@ -414,7 +414,7 @@ kbd {
   margin-bottom: 16px;
 }
 .entry h3 { font-size: 15.5px; font-weight: 600; margin: 0 0 6px; }
-.entry p { color: var(--text-2); font-size: 13px; line-height: 1.7; margin: 0 0 16px; flex: 1; }
+.entry p { color: var(--text-2); font-size: 12.5px; line-height: 1.65; margin: 0 0 14px; flex: 1; }
 .entry .go { font-size: 12.5px; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; }
 .entry .go span { transition: transform 0.15s; }
 .entry:hover .go span { transform: translateX(3px); }
@@ -447,6 +447,11 @@ kbd {
 .data-type[data-type="activity"] { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }
 .data-type[data-type="course"] { color: #15803d; border-color: #bbf7d0; background: #f0fdf4; }
 .data-type[data-type="video"] { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+.data-type[data-type="guide"] { color: #1a56db; border-color: #c7d7fb; background: #f1f5fd; }
+.data-type[data-type="skill"] { color: #7c3aed; border-color: #ddd6fe; background: #f5f3ff; }
+.data-type[data-type="template"] { color: #0f766e; border-color: #99f6e4; background: #f0fdfa; }
+.data-type[data-type="link"] { color: #b45309; border-color: #fcd9a8; background: #fffaf0; }
+.data-type[data-type="training"] { color: #be185d; border-color: #fbcfe8; background: #fdf2f8; }
 .data-main { min-width: 0; }
 .data-main b {
   display: block;
@@ -833,6 +838,94 @@ kbd {
 }
 .video-meta { margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
 
+/* ---------------------------- 攻略 / 技能指令 ---------------------------- */
+
+.code-block {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-sub);
+  padding: 18px;
+  margin-top: 4px;
+}
+.code-block pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text);
+}
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.code-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); margin-top: 8px; }
+
+.kv-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.kv-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.kv-list span { color: var(--text-3); }
+.kv-list b { font-weight: 500; }
+
+/* ---------------------------- 反馈 ---------------------------- */
+
+.feedback {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 8px;
+}
+.feedback h2 {
+  font-size: 15px;
+  border: 0;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.fb-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+.fb-btn {
+  font-size: 13px;
+  padding: 7px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.fb-btn:hover { border-color: var(--accent); color: var(--accent); }
+.fb-btn.active { background: var(--text); border-color: var(--text); color: #fff; }
+.fb-note {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.fb-note:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,86,219,.1); }
+.fb-msg { margin: 10px 0 0; font-size: 12.5px; color: var(--text-3); }
+
 /* ---------------------------- 关于 ---------------------------- */
 
 .about-grid { display: grid; grid-template-columns: 1fr 320px; gap: 48px; align-items: start; }
@@ -995,7 +1088,8 @@ kbd {
 
 @media (max-width: 980px) {
   .hero-grid { grid-template-columns: 1fr; gap: 32px; }
-  .entries, .card-grid, .service-cards { grid-template-columns: repeat(2, 1fr); }
+  .entries { grid-template-columns: repeat(2, 1fr); }
+  .card-grid, .service-cards { grid-template-columns: repeat(2, 1fr); }
   .people { grid-template-columns: repeat(3, 1fr); }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
   .detail-grid, .about-grid { grid-template-columns: 1fr; gap: 28px; }

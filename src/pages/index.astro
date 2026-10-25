@@ -4,9 +4,10 @@ import { site, stats } from '../data/site';
 import { items, typeMeta, sortedByDate } from '../data/items';
 import { services } from '../data/services';
 import { members } from '../data/members';
+import { publishedItems } from '../data/validate';
 
-const latest = sortedByDate.slice(0, 6);
-const working = sortedByDate
+const latest = publishedItems(sortedByDate).slice(0, 8);
+const working = publishedItems(sortedByDate)
   .filter((i) => i.status === '进行中' || i.status === '备赛中' || i.status === '报名中')
   .slice(0, 3);
 const topServices = services.slice(0, 3);

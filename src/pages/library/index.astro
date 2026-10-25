@@ -1,10 +1,12 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { items, typeMeta as meta, sortedByDate } from '../../data/items';
+import { publishedItems } from '../../data/validate';
 
 const types = ['project', 'competition', 'activity', 'course', 'video'] as const;
+const visible = publishedItems(items);
 const counts = Object.fromEntries(
-  types.map((t) => [t, items.filter((i) => i.type === t).length])
+  types.map((t) => [t, visible.filter((i) => i.type === t).length])
 ) as Record<(typeof types)[number], number>;
 ---
 
@@ -17,7 +19,7 @@ const counts = Object.fromEntries(
 
   <div class="wrap" style="padding-bottom:80px;">
     <div class="filter-bar" id="filters">
-      <button class="chip active" data-filter="all">全部 <span class="count">{items.length}</span></button>
+      <button class="chip active" data-filter="all">全部 <span class="count">{visible.length}</span></button>
       {types.map((t) => (
         <button class="chip" data-filter={t}>
           {meta[t].label} <span class="count">{counts[t]}</span>
@@ -32,7 +34,10 @@ const counts = Object.fromEntries(
 
     <div class="data-list" id="grid">
       {sortedByDate.map((i) => (
-        <a href={`/library/${i.id}`} class="data-row" data-type={i.type}
+        <a href={i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}`}
+           target={i.type === 'link' ? '_blank' : undefined}
+           rel={i.type === 'link' ? 'noopener' : undefined}
+           class="data-row" data-type={i.type}
            data-search={`${i.title} ${i.summary} ${i.tags.join(' ')} ${i.people.join(' ')}`}>
           <span class="data-type" data-type={i.type}>{meta[i.type].label}</span>
           <span class="data-main">

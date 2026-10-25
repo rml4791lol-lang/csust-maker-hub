@@ -6,13 +6,20 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:smoke": "node scripts/smoke.mjs",
+    "test:all": "vitest run && node scripts/smoke.mjs",
+    "admin": "tsx scripts/admin-server.ts"
   },
   "dependencies": {
     "astro": "^5.13.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
-    "tailwindcss": "^4.1.0"
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.5"
   }
 }

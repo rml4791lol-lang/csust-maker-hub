@@ -14,6 +14,8 @@ export const site = {
     { href: '/stats', label: '数据' },
     { href: '/about', label: '关于' },
   ],
+  /** 反馈收集端点（飞书 Webhook / 表单地址）。留空则只记录在本地。 */
+  feedbackEndpoint: '',
   contact: {
     email: 'hello@an520.xin',
     group: '创客空间 · 技术部',
@@ -21,30 +23,11 @@ export const site = {
   },
   // 首页三入口
   entries: [
-    {
-      num: '01',
-      href: '/library',
-      icon: '◈',
-      title: '看成果',
-      desc: '项目、竞赛、活动、课程，做过的都在这里。每个都有参与人、状态和可复用的产出。',
-      go: '进入内容库',
-    },
-    {
-      num: '02',
-      href: '/services',
-      icon: '◇',
-      title: '找服务',
-      desc: '培训、组队、素材、演示、软著材料。说清楚需求，我们按约定节奏交付，不包办。',
-      go: '提交需求',
-    },
-    {
-      num: '03',
-      href: '/library?type=course',
-      icon: '△',
-      title: '学技能',
-      desc: '技术部的课程和模板。每个都能直接拿走用，不是看一遍就忘的文章。',
-      go: '开始学',
-    },
+    { num: '01', href: '/library?type=guide', icon: '攻', title: '攻略', desc: '问题场景、现成路径、可复制提示词、我们自己的使用记录。', go: '看攻略' },
+    { num: '02', href: '/library?type=skill', icon: '令', title: '技能指令', desc: '一段能直接复制给 agent 的指令，粘上就能用。', go: '拿指令' },
+    { num: '03', href: '/library?type=template', icon: '模', title: '模板素材', desc: '课程大纲、README、软著清单、需求登记表，直接下载。', go: '去下载' },
+    { num: '04', href: '/library?type=link', icon: '链', title: '外部项目', desc: '筛过的开源项目和外部资源，点开直达原文。', go: '看项目' },
+    { num: '05', href: '/library?type=training', icon: '训', title: '培训', desc: '线下培训的通知、报名和结束后的档案。', go: '看培训' },
   ],
 };
 

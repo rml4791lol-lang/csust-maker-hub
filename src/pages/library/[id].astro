@@ -2,9 +2,13 @@
 import Base from '../../layouts/Base.astro';
 import { items, typeMeta } from '../../data/items';
 import { members } from '../../data/members';
+import { publishedItems } from '../../data/validate';
 
 export async function getStaticPaths() {
-  return items.map((item) => ({ params: { id: item.id }, props: { item } }));
+  // 外部项目没有详情页，列表直接跳转原文
+  return publishedItems(items)
+    .filter((item) => item.type !== 'link')
+    .map((item) => ({ params: { id: item.id }, props: { item } }));
 }
 
 const { item } = Astro.props;
@@ -25,6 +29,9 @@ if (item.extra?.place) rows.push({ k: '地点', v: item.extra.place });
 if (item.extra?.difficulty) rows.push({ k: '难度', v: item.extra.difficulty });
 if (item.extra?.duration) rows.push({ k: '时长', v: item.extra.duration });
 rows.push({ k: '参与人', v: item.people.join('、') });
+if (item.author) rows.push({ k: '作者', v: item.author });
+rows.push({ k: '审核', v: item.reviewer ? `${item.reviewer} · ${item.reviewedAt ?? ''}` : '待审核' });
+rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
 ---
 
 <Base title={item.title} description={item.summary}>
@@ -37,6 +44,71 @@ rows.push({ k: '参与人', v: item.people.join('、') });
 
   <div class="wrap detail-grid" style="padding-bottom:96px;">
     <article class="detail-main">
+      {item.type === 'guide' && (
+        <>
+          {item.extra?.scene && (
+            <section>
+              <h2>问题场景</h2>
+              <p>{item.extra.scene}</p>
+            </section>
+          )}
+          {item.extra?.path && (
+            <section>
+              <h2>现成路径</h2>
+              <ol class="outline">
+                {item.extra.path.map((step, i) => (
+                  <li><span class="n">0{i + 1}</span><span>{step}</span></li>
+                ))}
+              </ol>
+            </section>
+          )}
+          {item.extra?.prompt && (
+            <section>
+              <h2>可复制提示词</h2>
+              <div class="code-block">
+                <pre>{item.extra.prompt}</pre>
+                <button class="copy-btn" data-copy-text={item.extra.prompt}>复制</button>
+              </div>
+            </section>
+          )}
+          {item.extra?.usage && (
+            <section>
+              <h2>我们自己的使用记录</h2>
+              <p>{item.extra.usage}</p>
+            </section>
+          )}
+        </>
+      )}
+
+      {item.type === 'skill' && (
+        <section>
+          <h2>指令</h2>
+          <div class="code-block">
+            <pre>{item.extra?.command ?? ''}</pre>
+            <button class="copy-btn" data-copy-text={item.extra?.command ?? ''}>复制</button>
+          </div>
+          {item.extra?.appliesTo && <p class="code-meta">适用：{item.extra.appliesTo}</p>}
+        </section>
+      )}
+
+      {item.type === 'template' && item.extra?.downloadUrl && (
+        <section>
+          <h2>下载</h2>
+          <p>{item.summary}</p>
+          <a class="btn btn-primary" href={item.extra.downloadUrl} download>下载文件</a>
+        </section>
+      )}
+
+      {item.type === 'training' && (
+        <section>
+          <h2>{item.extra?.kind === 'archive' ? '培训档案' : '培训信息'}</h2>
+          <ul class="kv-list">
+            {item.extra?.deadline && <li><span>报名截止</span><b>{item.extra.deadline}</b></li>}
+            {item.extra?.materials && <li><span>地点 / 材料</span><b>{item.extra.materials}</b></li>}
+          </ul>
+        </section>
+      )}
+
       {item.type === 'video' && (
         <section>
           <h2>视频</h2>
@@ -105,6 +177,16 @@ rows.push({ k: '参与人', v: item.people.join('、') });
         </div>
       </section>
 
+      <section class="feedback" data-item={item.id}>
+        <h2>这篇有用吗</h2>
+        <div class="fb-actions">
+          <button class="fb-btn" data-vote="useful">有用</button>
+          <button class="fb-btn" data-vote="useless">没用</button>
+        </div>
+        <input class="fb-note" type="text" placeholder="想说的话（可选）" />
+        <p class="fb-msg" aria-live="polite"></p>
+      </section>
+
       {related.length > 0 && (
         <section>
           <h2>同类条目</h2>
@@ -140,3 +222,55 @@ rows.push({ k: '参与人', v: item.people.join('、') });
     </aside>
   </div>
 </Base>
+
+<script>
+  // 反馈：有用 / 没用
+  document.querySelectorAll<HTMLElement>('.feedback').forEach((box) => {
+    const itemId = box.dataset.item || '';
+    const key = `fb:${itemId}`;
+    const msg = box.querySelector<HTMLElement>('.fb-msg');
+    const note = box.querySelector<HTMLInputElement>('.fb-note');
+    const endpoint = box.dataset.endpoint || '';
+    const btns = box.querySelectorAll<HTMLButtonElement>('.fb-btn');
+
+    const saved = localStorage.getItem(key);
+    if (saved && msg) msg.textContent = `你之前标记过：${saved === 'useful' ? '有用' : '没用'}`;
+
+    btns.forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const vote = btn.dataset.vote || '';
+        const payload = { item: itemId, vote, note: note?.value || '', at: new Date().toISOString() };
+        localStorage.setItem(key, vote);
+        btns.forEach((b) => b.classList.toggle('active', b === btn));
+        if (msg) msg.textContent = '已记录，谢谢';
+
+        if (endpoint) {
+          try {
+            await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+          } catch {
+            if (msg) msg.textContent = '已记录在本地（线上提交失败）';
+          }
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.copyText || '';
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = '已复制';
+      } catch {
+        btn.textContent = '复制失败';
+      }
+      setTimeout(() => {
+        btn.textContent = '复制';
+      }, 1500);
+    });
+  });
+</script>
