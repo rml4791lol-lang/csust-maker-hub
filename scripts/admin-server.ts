@@ -13,6 +13,7 @@
  *   FEISHU_WEBHOOK=...                       飞书自定义机器人 webhook（可选）
  *   FEISHU_SECRET=...                        飞书签名密钥（配 FEISHU_WEBHOOK 时用）
  *   WECOM_WEBHOOK=...                        企业微信群机器人 webhook（可选）
+ *   REVIEW_DAYS=90                           复核周期天数（默认 90，issue #13）
  * 密钥只放服务器 env 文件（.env.admin），绝不入 git。
  */
 import http from 'node:http';
@@ -23,6 +24,7 @@ import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
 import { members } from '../src/data/members';
 import { expiringSoon, validateContent } from '../src/data/validate';
+import { overdueReviews } from '../src/data/review';
 
 const ROOT = process.cwd();
 const CONTENT_FILE = join(ROOT, 'content/items.json');
@@ -34,6 +36,8 @@ const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 /** 部署目标目录。设置后 /api/build 构建成功会 rsync 过去（服务器本机路径，如 /var/www/csust-maker/） */
 const DEPLOY_TARGET = process.env.DEPLOY_TARGET || '';
+/** 复核周期天数：超过该天数未复核的已发布内容进「待复核」清单（issue #13） */
+const REVIEW_DAYS = Number(process.env.REVIEW_DAYS) > 0 ? Number(process.env.REVIEW_DAYS) : 90;
 
 type State = 'draft' | 'reviewing' | 'published' | 'unpublished';
 const STATES: State[] = ['draft', 'reviewing', 'published', 'unpublished'];
@@ -261,6 +265,24 @@ function page(actor: string): string {
         .join('、')}</span></div>`
     : '';
 
+  // 待复核清单：已发布且最近复核超 REVIEW_DAYS 天，一键刷新复核时间（issue #13）
+  const dueReview = overdueReviews(
+    live.map((i) => ({ ...i, publishState: currentState(i.id) })),
+    readJson<any[]>(LOG_FILE, []),
+    new Date(),
+    REVIEW_DAYS
+  );
+  const reviewHtml = dueReview.length
+    ? `<div class="soon overdue"><b>${dueReview.length} 条待复核（超 ${REVIEW_DAYS} 天未复核）</b>${dueReview
+        .map(
+          (i) =>
+            `<span>${i.title}（<span class="mono">${i.id}</span>）· 最近复核：${
+              i.lastReviewAt ? i.lastReviewAt.slice(0, 10) : '无记录'
+            } <button class="op" data-review="${i.id}">完成复核</button></span>`
+        )
+        .join('')}</div>`
+    : '';
+
   // 反馈汇总：有用/没用/照做计数 + 最近留言（spec user story #20 + issue #11）
   const m = readMetrics();
   const fbAgg: Record<string, { useful: number; useless: number; confirmed: number }> = {};
@@ -356,6 +378,7 @@ function page(actor: string): string {
 <main>
   ${soonHtml}
   ${noAuthorHtml}
+  ${reviewHtml}
   ${fbHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>
@@ -376,6 +399,7 @@ function page(actor: string): string {
     <p><code>PUT /api/items/:id</code> 新建或更新（JSON body，写入 content/items.json）</p>
     <p><code>DELETE /api/items/:id</code> 删除</p>
     <p><code>POST /api/state</code> body <code>{"id":"g01","state":"published"}</code></p>
+    <p><code>POST /api/review</code> body <code>{"id":"g01"}</code> 完成复核（盖复核章，写 review-log）</p>
     <p><code>POST /api/build</code> 重新构建并部署</p>
   </div>
 </main>
@@ -401,6 +425,25 @@ function page(actor: string): string {
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || '操作失败');
         toast('已改为 ' + state);
+        setTimeout(()=>location.reload(), 500);
+      } catch (e) {
+        toast('失败：' + e.message);
+        btn.disabled = false;
+      }
+    });
+  });
+  document.querySelectorAll('[data-review]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const r = await fetch('api/review', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ id: btn.dataset.review }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '操作失败');
+        toast('已记录复核');
         setTimeout(()=>location.reload(), 500);
       } catch (e) {
         toast('失败：' + e.message);
@@ -645,6 +688,19 @@ const server = http.createServer(async (req, res) => {
       if (!items.some((i) => i.id === id)) throw new Error('内容不存在：' + id);
       setState(id, state, actor, who.role === 'agent' ? 'agent' : 'human', note || '');
       return json(res, 200, { ok: true, id, state });
+    } catch (e: any) {
+      return json(res, 400, { error: e.message });
+    }
+  }
+
+  // POST /api/review — 完成复核：盖复核章并写 review-log（issue #13）
+  if (req.method === 'POST' && url === '/api/review') {
+    try {
+      const { id } = JSON.parse((await body(req)) || '{}');
+      const exists = readItems().some((i) => i.id === id) || items.some((i) => i.id === id);
+      if (!id || !exists) throw new Error('内容不存在：' + (id || '(空)'));
+      logTransition({ id, type: 'review', actor, method: who.role === 'agent' ? 'agent' : 'human' });
+      return json(res, 200, { ok: true, id });
     } catch (e: any) {
       return json(res, 400, { error: e.message });
     }

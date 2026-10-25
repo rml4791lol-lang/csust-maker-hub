@@ -101,6 +101,12 @@ sudo systemctl reload caddy
   - `WECOM_WEBHOOK`：企业微信群机器人 webhook 地址，直接 POST JSON（markdown 卡片）。
 - 都不配置则 dry-run：不报错，日志打印本应发送的卡片；后台页面顶部显示「IM 推送：未配置（dry-run）」，配置后显示「IM 推送：已启用」。
 
+### 90 天复核（2026-10-25 接入）
+
+- 已发布条目按 review-log 里最近一次「发布 / 完成复核」时间计时，超过阈值未复核的会在后台顶部列入「待复核」清单（显示条数、id、标题、最近复核日期）。
+- 清单里每条有「完成复核」按钮：`POST /api/review` body `{"id":"…"}`（后台登录态或 agent Bearer token 均可），写入 review-log（`type:"review"`，带操作人），页面刷新后移出清单。
+- 阈值用环境变量 `REVIEW_DAYS`（单位：天，写在服务器 `.env.admin`），不设置则用代码默认值。
+
 ### 回滚
 
 本次上线前备份：`/etc/caddy/Caddyfile.bak-20261024-csust-maker`
