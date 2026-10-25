@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { items, typeMeta } from '../data/items';
 import { members, depts } from '../data/members';
-import { stats } from '../data/site';
+import { stats, dutyRota } from '../data/site';
 
 // 类型分布：实际存在的类型，按数量降序；颜色取 typeMeta 单一来源
 const byType = [...new Set(items.map((i) => i.type))]
@@ -47,6 +47,24 @@ const maxStatus = Math.max(...byStatus.map((x) => x.n), 1);
 const itemIndex = Object.fromEntries(
   items.map((i) => [i.id, { t: i.title, h: i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}` }])
 );
+
+// 内容值班：区间按 YYYY-MM-DD 字符串比较（字典序即时间序），条目按收录日期落入区间计数
+const now = new Date();
+const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+const dutyShifts = [...dutyRota]
+  .sort((a, b) => a.from.localeCompare(b.from))
+  .map((s) => ({
+    ...s,
+    onDuty: today >= s.from && today <= s.to,
+    count: items.filter((i) => i.date >= s.from && i.date <= s.to).length,
+  }));
+
+// 当前值班期；空档期（today 不落在任何区间）退回最近一期（按结束日期），并标注等待排班
+const dutyNow =
+  dutyShifts.find((s) => s.onDuty) ??
+  [...dutyShifts].sort((a, b) => b.to.localeCompare(a.to))[0] ??
+  null;
 ---
 
 <Base title="数据" description="创客空间的内容、成员与浏览数据看板。">
@@ -143,6 +161,35 @@ const itemIndex = Object.fromEntries(
           ))}
         </div>
       </section>
+
+      <!-- 内容值班（配置在 site.ts 的 dutyRota，空数组则不渲染） -->
+      {dutyShifts.length > 0 && dutyNow && (
+        <section class="panel panel-wide">
+          <div class="panel-head">
+            <h3>内容值班</h3>
+            <span>{dutyShifts.length} 期 · 构建时计算</span>
+          </div>
+          <div class="duty-now" class:list={{ 'duty-now-gap': !dutyNow.onDuty }}>
+            <span class="duty-now-name">{dutyNow.name}</span>
+            <span class="duty-now-range">{dutyNow.from} ~ {dutyNow.to}</span>
+            <span class="duty-now-note">
+              {dutyNow.onDuty ? `值班中 · 本班收录 ${dutyNow.count} 条` : '空档中，等待排班'}
+            </span>
+          </div>
+          <div class="duty-list">
+            {dutyShifts.map((s) => (
+              <div class="duty-row" class:list={{ 'duty-row-current': s.onDuty }}>
+                <span class="duty-name">
+                  {s.name}
+                  {s.onDuty && <i class="duty-flag">值班中</i>}
+                </span>
+                <span class="duty-date">{s.from} ~ {s.to}</span>
+                <span class="duty-count">{s.count} 条</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <!-- 浏览量排行（实时，来自后台 metrics） -->
       <section class="panel panel-wide">

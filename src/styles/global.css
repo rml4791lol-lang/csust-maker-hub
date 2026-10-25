@@ -1269,6 +1269,51 @@ kbd {
 .panel-wide .hbar-row { grid-template-columns: 280px 1fr 40px; }
 .views-empty { color: var(--text-3); font-size: 13px; padding: 8px 0 2px; }
 
+/* 内容值班 */
+.duty-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 14px 16px;
+  background: var(--accent-bg);
+  border-radius: 8px;
+}
+.duty-now-gap { background: var(--bg-hover); }
+.duty-now-name { font-size: var(--text-lg); font-weight: 600; letter-spacing: -0.01em; }
+.duty-now-gap .duty-now-name { color: var(--text-3); font-weight: 500; }
+.duty-now-range { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.duty-now-note { margin-left: auto; font-size: var(--text-sm); color: var(--accent); }
+.duty-now-gap .duty-now-note { color: var(--text-3); }
+.duty-list { display: grid; gap: 6px; margin-top: 12px; }
+.duty-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+.duty-row-current { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.duty-name { font-size: var(--text-sm); color: var(--text); font-weight: 500; flex-shrink: 0; }
+.duty-flag {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--accent);
+  margin-left: 6px;
+}
+.duty-date {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.duty-count { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+
 /* ---------------------------- 通用 ---------------------------- */
 
 /* 工具站不做滚动隐藏：内容始终可见，避免快速滚动时出现空白 */
