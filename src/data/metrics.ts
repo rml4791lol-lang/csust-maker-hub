@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
  */
 export interface Metrics {
   views: Record<string, number>;
-  feedback: { item: string; vote: 'useful' | 'useless'; note?: string; at: string }[];
+  feedback: { item: string; vote: 'useful' | 'useless' | 'confirmed'; note?: string; at: string }[];
   updatedAt?: string;
 }
 
