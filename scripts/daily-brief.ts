@@ -22,6 +22,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { items, type Item, type PublishState } from '../src/data/items';
 import { expiringSoon } from '../src/data/validate';
+import { voteLabel } from '../src/data/vote-labels';
 import { SITE_BASE, sendIm } from './im-push';
 
 const ROOT = process.cwd();
@@ -57,8 +58,6 @@ function readItems(): Item[] {
   const base = live.length ? (live as Item[]) : items;
   return base.map((i) => ({ ...i, publishState: overrides[i.id] ?? i.publishState }));
 }
-
-const voteLabel = { useful: '有用', useless: '没用', confirmed: '照做' } as const;
 
 /** 详情页链接；外部项目（link）无详情页，直达其外链 */
 function itemLink(it: Item | undefined, id: string): string {

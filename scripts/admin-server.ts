@@ -25,6 +25,7 @@ import { members } from '../src/data/members';
 import { expiringSoon, validateContent } from '../src/data/validate';
 import { SITE_BASE, sendIm } from './im-push';
 import { overdueReviews } from '../src/data/review';
+import { voteLabel } from '../src/data/vote-labels';
 
 const ROOT = process.cwd();
 const CONTENT_FILE = join(ROOT, 'content/items.json');
@@ -225,7 +226,7 @@ function page(actor: string): string {
             .reverse()
             .map(
               (f) =>
-                `<li><span class="mono">${f.item}</span> · ${{ useful: '有用', useless: '没用', confirmed: '照做' }[f.vote] ?? f.vote }${
+                `<li><span class="mono">${f.item}</span> · ${voteLabel[f.vote] ?? f.vote }${
                   f.note ? ` · 「${f.note}」` : ''
                 } · ${f.at.slice(0, 10)}</li>`
             )

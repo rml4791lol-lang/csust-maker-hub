@@ -1267,6 +1267,9 @@ kbd {
 .hbar-row a .hbar-label { display: block; }
 .hbar-row a:hover .hbar-label { color: var(--accent); }
 .panel-wide .hbar-row { grid-template-columns: 280px 1fr 40px; }
+/* 排行行带「照做」计数时多出一列 */
+.hbar-row.hbar-row-extra { grid-template-columns: 280px 1fr 40px auto; }
+.hbar-confirmed { font-size: var(--text-xs); color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .views-empty { color: var(--text-3); font-size: 13px; padding: 8px 0 2px; }
 
 /* 内容值班 */
@@ -1299,7 +1302,7 @@ kbd {
 .duty-name { font-size: var(--text-sm); color: var(--text); font-weight: 500; flex-shrink: 0; }
 .duty-flag {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--accent);
   margin-left: 6px;
 }
@@ -1313,6 +1316,12 @@ kbd {
   white-space: nowrap;
 }
 .duty-count { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+/* 值班行第二行：该期收录条目标题链接（stats.astro 值班面板） */
+.duty-row { flex-wrap: wrap; }
+.duty-items { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 2px 16px; margin: 6px 0 0; padding: 0; list-style: none; }
+.duty-items a { font-size: var(--text-sm); color: var(--text-2); }
+.duty-items a:hover { color: var(--accent); }
+.duty-more { font-size: var(--text-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
 
 /* ---------------------------- 通用 ---------------------------- */
 
@@ -1387,6 +1396,7 @@ kbd {
   .stat-card { padding: 14px; }
   .stat-value { font-size: 24px; }
   .hbar-row { grid-template-columns: 76px 1fr 32px; gap: 10px; }
+  .hbar-row.hbar-row-extra { grid-template-columns: 76px 1fr 32px auto; }
   .bar-chart { gap: 10px; height: 150px; }
   .panel { padding: 16px; }
 }

@@ -54,11 +54,17 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0'
 
 const dutyShifts = [...dutyRota]
   .sort((a, b) => a.from.localeCompare(b.from))
-  .map((s) => ({
-    ...s,
-    onDuty: today >= s.from && today <= s.to,
-    count: items.filter((i) => i.date >= s.from && i.date <= s.to).length,
-  }));
+  .map((s) => {
+    const collected = items
+      .filter((i) => i.date >= s.from && i.date <= s.to)
+      .map((i) => ({ id: i.id, title: i.title }));
+    return {
+      ...s,
+      onDuty: today >= s.from && today <= s.to,
+      count: collected.length,
+      collected,
+    };
+  });
 
 // 当前值班期；空档期（today 不落在任何区间）退回最近一期（按结束日期），并标注等待排班
 const dutyNow =
@@ -185,6 +191,14 @@ const dutyNow =
                 </span>
                 <span class="duty-date">{s.from} ~ {s.to}</span>
                 <span class="duty-count">{s.count} 条</span>
+                {s.collected.length > 0 && (
+                  <ul class="duty-items">
+                    {s.collected.slice(0, 6).map((c) => (
+                      <li><a href={`/library/${c.id}`}>{c.title}</a></li>
+                    ))}
+                    {s.collected.length > 6 && <li class="duty-more">等 {s.collected.length} 条</li>}
+                  </ul>
+                )}
               </div>
             ))}
           </div>
@@ -239,7 +253,10 @@ const dutyNow =
           .map(([id, n]) => {
             const t = titles[id] || { t: id, h: `/library/${id}` };
             const w = Math.max(4, Math.round((n / max) * 100));
-            return `<div class="hbar-row"><a href="${esc(t.h)}" title="${esc(t.t)}"><span class="hbar-label">${esc(t.t)}</span></a><div class="hbar-track"><div class="hbar" style="width:${w}%"></div></div><span class="hbar-num">${n}</span></div>`;
+            const conf = fb[id]?.confirmed || 0;
+            // confirmed>0 时在浏览数旁带出「· K 照做」；总览行的合计见上方 viewsMeta
+            const extra = conf > 0 ? `<span class="hbar-confirmed">· ${conf} 照做</span>` : '';
+            return `<div class="hbar-row${extra ? ' hbar-row-extra' : ''}"><a href="${esc(t.h)}" title="${esc(t.t)}"><span class="hbar-label">${esc(t.t)}</span></a><div class="hbar-track"><div class="hbar" style="width:${w}%"></div></div><span class="hbar-num">${n}</span>${extra}</div>`;
           })
           .join('');
       })
