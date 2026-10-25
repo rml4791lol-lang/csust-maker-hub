@@ -29,6 +29,8 @@ const baseMember = (over: Partial<Member> = {}): Member => ({
 
 describe('内容校验', () => {
   it('仓库现有内容无 error 级问题', () => {
+    // 基线从 toEqual([])（全部问题为空）放宽为只断言 error 级：#9 起 warn 级
+    // 缺作者条目合法存在，warn 不阻塞，这里只兜住会挡发布的 error。
     expect(validateCurrentContent().filter((i) => i.level === 'error')).toEqual([]);
   });
 

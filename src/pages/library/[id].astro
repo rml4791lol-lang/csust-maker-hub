@@ -247,8 +247,8 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
 </Base>
 
 <script>
-  // 反馈：有用 / 没用 / 照做出来了（issue #11）
-  const voteLabels: Record<string, string> = { useful: '有用', useless: '没用', confirmed: '照做出来了' };
+  // 反馈：有用 / 没用 / 照做出来了（issue #11）；文案单一来源在 src/data/vote-labels.ts
+  import { voteLabel as voteLabels } from '../../data/vote-labels';
   document.querySelectorAll<HTMLElement>('.feedback').forEach((box) => {
     const itemId = box.dataset.item || '';
     const key = `fb:${itemId}`;

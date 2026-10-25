@@ -9,8 +9,10 @@
  * 环境变量在调用时读取（而非模块加载时），两个入口进程共用同一套取值逻辑。
  */
 import { createHmac } from 'node:crypto';
+import { site } from '../src/data/site';
 
-export const SITE_BASE = 'https://an520.xin';
+/** 站点对外地址，单一来源在 src/data/site.ts 的 site.url */
+export const SITE_BASE = site.url;
 
 export type ImChannel = 'feishu' | 'wecom' | null;
 

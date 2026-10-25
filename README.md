@@ -89,7 +89,9 @@ sudo systemctl reload caddy
   ```
 
   然后 `sudo systemctl daemon-reload`。注意：该 service 需要能读到推送环境变量——若其 `[Service]` 段没有 `EnvironmentFile=/home/ubuntu/csust-maker-hub/.env.admin`，需要加上（或用 `Environment=` 写入）。构建失败（`ExecStart` 非零）时 ExecStartPost 不会执行，简报不发。手工触发验证：`sudo systemctl start csust-build-daily.service`。
-- 注意：后台写入的是**服务器上**的 `content/items.json`，本机仓库不会自动同步回来；定期把服务器的 `content/`、`src/data/` 拉回本机提交。### 浏览量与反馈（2026-10-25 接入）
+- 注意：后台写入的是**服务器上**的 `content/items.json`，本机仓库不会自动同步回来；定期把服务器的 `content/`、`src/data/` 拉回本机提交。
+
+### 浏览量与反馈（2026-10-25 接入）
 
 - 运行时指标存在服务器上的 `metrics.json`（仓库根目录，**已 gitignore**，rsync 同步源码时必须 `--exclude metrics.json`，否则会覆盖线上计数）。
 - 公开端点（无需登录，挂在 `an520.xin/admin/api/*` 下）：
