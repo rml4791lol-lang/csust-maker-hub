@@ -23,7 +23,7 @@ import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
 import { members } from '../src/data/members';
 import { expiringSoon, validateContent } from '../src/data/validate';
-import { SITE_BASE, sendIm } from './im-push';
+import { SITE_BASE, sendIm, imChannel } from './im-push';
 import { overdueReviews } from '../src/data/review';
 import { voteLabel } from '../src/data/vote-labels';
 
