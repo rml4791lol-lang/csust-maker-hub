@@ -10,8 +10,13 @@
  *   ADMIN_USERS="admin:admin123,editor:xxx"  人用账号
  *   AGENT_TOKEN="..."                        agent 用 token
  *   ADMIN_PORT=3210
+ *   FEISHU_WEBHOOK=...                       飞书自定义机器人 webhook（可选）
+ *   FEISHU_SECRET=...                        飞书签名密钥（配 FEISHU_WEBHOOK 时用）
+ *   WECOM_WEBHOOK=...                        企业微信群机器人 webhook（可选）
+ * 密钥只放服务器 env 文件（.env.admin），绝不入 git。
  */
 import http from 'node:http';
+import { createHmac } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -87,6 +92,7 @@ function setState(id: string, next: State, actor: string, method: 'human' | 'age
   overrides[id] = next;
   writeJson(STATE_FILE, overrides);
   logTransition({ id, from: prev, to: next, actor, method, note });
+  if (next === 'published' && prev !== 'published') notifyPublished(id, actor, method);
 }
 
 function readItems(): any[] {
@@ -94,6 +100,120 @@ function readItems(): any[] {
 }
 function writeItems(list: any[]) {
   writeJson(CONTENT_FILE, list);
+}
+
+/* ---------------------------- IM 群机器人推送（issue #10） ---------------------------- */
+
+const FEISHU_WEBHOOK = process.env.FEISHU_WEBHOOK || '';
+const FEISHU_SECRET = process.env.FEISHU_SECRET || '';
+const WECOM_WEBHOOK = process.env.WECOM_WEBHOOK || '';
+const SITE_BASE = 'https://an520.xin';
+
+function imChannel(): 'feishu' | 'wecom' | null {
+  if (FEISHU_WEBHOOK) return 'feishu';
+  if (WECOM_WEBHOOK) return 'wecom';
+  return null;
+}
+
+/** 飞书官方签名规则：把 timestamp+"\n"+secret 当作 HmacSHA256 的 key，内容为空串，结果 base64 */
+function feishuSign(timestamp: number, secret: string): string {
+  return createHmac('sha256', `${timestamp}\n${secret}`).update('').digest('base64');
+}
+
+/** 发布卡片内容：标题 / 作者 / 一句话摘要 / 详情页链接 */
+function publishCard(id: string) {
+  const entry =
+    readItems().find((i) => i.id === id) || items.find((i) => i.id === id) || ({} as any);
+  return {
+    title: String(entry.title || id),
+    author: String(entry.author || '未署名'),
+    summary: String(entry.summary || '').slice(0, 120),
+    link: `${SITE_BASE}/library/${id}`,
+  };
+}
+
+/** 条目发布后推送 IM 群。异步、不阻塞状态流转；失败只记日志。未配置 webhook 时 dry-run 打印卡片。 */
+function notifyPublished(id: string, actor: string, method: 'human' | 'agent') {
+  const card = publishCard(id);
+  const channel = imChannel();
+
+  if (!channel) {
+    console.log(
+      `[im-push] dry-run（未配置 FEISHU_WEBHOOK/WECOM_WEBHOOK）${id} 本应发送：\n` +
+        JSON.stringify(
+          { 标题: card.title, 作者: card.author, 摘要: card.summary, 详情: card.link, 操作人: actor },
+          null,
+          2
+        )
+    );
+    return;
+  }
+
+  void (async () => {
+    try {
+      if (channel === 'feishu') {
+        const timestamp = Math.floor(Date.now() / 1000);
+        await fetch(FEISHU_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            timestamp: String(timestamp),
+            sign: feishuSign(timestamp, FEISHU_SECRET),
+            msg_type: 'interactive',
+            card: {
+              header: {
+                title: { tag: 'plain_text', content: `📄 新内容发布：${card.title}` },
+                template: 'blue',
+              },
+              elements: [
+                {
+                  tag: 'div',
+                  text: {
+                    tag: 'lark_md',
+                    content: `**作者**：${card.author}\n**摘要**：${card.summary}`,
+                  },
+                },
+                {
+                  tag: 'action',
+                  actions: [
+                    {
+                      tag: 'button',
+                      text: { tag: 'plain_text', content: '查看详情' },
+                      url: card.link,
+                      type: 'primary',
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+        }).then(async (r) => {
+          if (!r.ok) throw new Error(`webhook HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+          return r.text();
+        });
+      } else {
+        await fetch(WECOM_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            msgtype: 'markdown',
+            markdown: {
+              content:
+                `**📄 新内容发布：${card.title}**\n` +
+                `> 作者：${card.author}\n> 摘要：${card.summary}\n` +
+                `[查看详情](${card.link})`,
+            },
+          }),
+        }).then(async (r) => {
+          if (!r.ok) throw new Error(`webhook HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+          return r.text();
+        });
+      }
+      console.log(`[im-push] 已推送到 ${channel === 'feishu' ? '飞书' : '企业微信'}：${card.title}（${card.link}）`);
+    } catch (e: any) {
+      console.error(`[im-push] 推送失败（${channel}）`, e?.message || e);
+    }
+  })();
 }
 
 /* ---------------------------- 人的页面 ---------------------------- */
@@ -179,6 +299,12 @@ function page(actor: string): string {
   </div>`
       : '';
 
+  // IM 推送状态（issue #10）
+  const imChannelNow = imChannel();
+  const imStatus = imChannelNow
+    ? `IM 推送：已启用（${imChannelNow === 'feishu' ? '飞书' : '企业微信'}）`
+    : 'IM 推送：未配置（dry-run）';
+
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -237,7 +363,7 @@ function page(actor: string): string {
     <label><input type="checkbox" class="rule"> 不含他人隐私与未公开数据</label>
     <label><input type="checkbox" class="rule"> 不转载未授权付费内容与破解教程</label>
   </div>
-  <p class="note">改状态会写入发布记录。过期内容保留展示，仅标注已截止。</p>
+  <p class="note">${imStatus}。改状态会写入发布记录，发布即推送群通知。过期内容保留展示，仅标注已截止。</p>
   <table>
     <thead><tr><th>ID</th><th>标题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>${rows}</tbody>
