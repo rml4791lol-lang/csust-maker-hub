@@ -202,7 +202,7 @@ function page(actor: string): string {
       }
       btn.disabled = true;
       try {
-        const r = await fetch('/api/state', {
+        const r = await fetch('api/state', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ id, state }),
