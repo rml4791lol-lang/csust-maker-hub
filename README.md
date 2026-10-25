@@ -93,6 +93,14 @@ sudo systemctl reload caddy
   - `GET /admin/api/metrics`：聚合 `{total, views, feedback, updatedAt}`，数据页「浏览量排行」实时读它。
 - 详情页侧栏的「浏览」数字是**构建时**烘进去的（每天 03:30 定时构建刷新）；数据页的排行是实时的。
 
+### IM 群机器人推送（2026-10-25 接入）
+
+- 条目状态改为 `published` 时（后台页面或 `/api/state`），异步向群机器人推送卡片：标题 / 作者 / 一句话摘要 / 详情页链接（`https://an520.xin/library/<id>`）。推送失败只记日志，不影响状态流转。
+- 环境变量写在服务器 `.env.admin`（**值不入仓库**），配其一即可：
+  - `FEISHU_WEBHOOK`：飞书自定义机器人 webhook 地址；`FEISHU_SECRET`：签名密钥。签名按飞书官方规则：把 `timestamp+"\n"+secret` 当作 HmacSHA256 的 key、内容为空串，结果 base64，随 `timestamp`/`sign` 字段一起 POST。
+  - `WECOM_WEBHOOK`：企业微信群机器人 webhook 地址，直接 POST JSON（markdown 卡片）。
+- 都不配置则 dry-run：不报错，日志打印本应发送的卡片；后台页面顶部显示「IM 推送：未配置（dry-run）」，配置后显示「IM 推送：已启用」。
+
 ### 回滚
 
 本次上线前备份：`/etc/caddy/Caddyfile.bak-20261024-csust-maker`
