@@ -98,7 +98,8 @@ function writeItems(list: any[]) {
 /* ---------------------------- 人的页面 ---------------------------- */
 
 function page(actor: string): string {
-  const rows = items
+  const live = readItems();
+  const rows = live
     .map((i) => {
       const st = currentState(i.id);
       const actions = STATES.filter((s) => s !== st)
@@ -119,12 +120,50 @@ function page(actor: string): string {
     })
     .join('');
 
-  const soon = expiringSoon(items);
+  const soon = expiringSoon(live as any);
   const soonHtml = soon.length
     ? `<div class="soon"><b>${soon.length} 条即将到期</b><span>${soon
         .map((i) => `${i.title}（${i.expiresAt}）`)
         .join('、')}</span></div>`
     : '';
+
+  // 反馈汇总：有用/没用计数 + 最近留言（spec user story #20）
+  const m = readMetrics();
+  const fbAgg: Record<string, { useful: number; useless: number }> = {};
+  for (const f of m.feedback) (fbAgg[f.item] ??= { useful: 0, useless: 0 })[f.vote]++;
+  const fbRows = Object.entries(fbAgg)
+    .sort((a, b) => b[1].useful + b[1].useless - (a[1].useful + a[1].useless))
+    .map(([id, c]) => {
+      const it = live.find((i) => i.id === id);
+      return `<tr><td class="mono">${id}</td><td>${it?.title ?? id}</td><td>${c.useful}</td><td>${c.useless}</td></tr>`;
+    })
+    .join('');
+  const fbHtml =
+    m.feedback.length || Object.keys(m.views).length
+      ? `<div class="fbpanel">
+    <b>反馈与浏览</b>
+    <span>总浏览 ${Object.values(m.views).reduce((a, b) => a + b, 0)} 次 · 反馈 ${m.feedback.length} 条</span>
+    ${
+      fbRows
+        ? `<table class="fbtable"><tr><th>条目</th><th>标题</th><th>有用</th><th>没用</th></tr>${fbRows}</table>`
+        : ''
+    }
+    ${
+      m.feedback.length
+        ? `<ul class="fbnotes">${m.feedback
+            .slice(-8)
+            .reverse()
+            .map(
+              (f) =>
+                `<li><span class="mono">${f.item}</span> · ${f.vote === 'useful' ? '有用' : '没用'}${
+                  f.note ? ` · 「${f.note}」` : ''
+                } · ${f.at.slice(0, 10)}</li>`
+            )
+            .join('')}</ul>`
+        : ''
+    }
+  </div>`
+      : '';
 
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="robots" content="noindex">
@@ -156,6 +195,13 @@ function page(actor: string): string {
   .soon{border:1px solid #e9e9e9;background:#fafafa;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12.5px;display:flex;gap:10px;flex-wrap:wrap}
   .soon b{color:#b45309;font-weight:600}
   .soon span{color:#8a8a8a}
+  .fbpanel{border:1px solid #e9e9e9;background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:12.5px;display:grid;gap:8px}
+  .fbpanel>b{font-weight:600}
+  .fbpanel>span{color:#8a8a8a;font-size:12px}
+  .fbtable{border:1px solid #e9e9e9;border-radius:8px;overflow:hidden}
+  .fbtable th{background:#fafafa;padding:7px 10px}
+  .fbtable td{padding:7px 10px}
+  .fbnotes{margin:0;padding-left:18px;color:#525252;display:grid;gap:4px}
   .rules{border:1px solid #fde2b8;background:#fffbf2;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:grid;gap:6px;font-size:12.5px}
   .rules b{font-size:12px;color:#b45309;margin-bottom:2px}
   .rules label{display:flex;gap:8px;align-items:center;color:#525252;cursor:pointer}
@@ -168,6 +214,7 @@ function page(actor: string): string {
 <header><h1>内容后台</h1><span class="who">${actor}</span></header>
 <main>
   ${soonHtml}
+  ${fbHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>
     <label><input type="checkbox" class="rule"> 不涉政治、宗教、民族敏感内容</label>
@@ -328,6 +375,56 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && !url.startsWith('/api/')) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(page(actor));
+  }
+
+  // GET /api/scaffold?type=guide — 按类型返回内容骨架，agent 写稿用
+  if (req.method === 'GET' && url.startsWith('/api/scaffold')) {
+    const t = new URL('http://localhost' + url).searchParams.get('type') || 'guide';
+    const today = new Date().toISOString().slice(0, 10);
+    const SCAFFOLDS: Record<string, any> = {
+      guide: {
+        id: 'g??', type: 'guide', publishState: 'draft', title: '', summary: '', date: today,
+        status: '草稿', people: [], tags: [], author: '',
+        extra: {
+          scene: '具体场景，带数字：周五 17:00 前要交…平均花 90 分钟…（不写「提高效率」这类空话）',
+          path: ['第 1 步：用什么工具、点什么、说什么（共 4~6 步，每步能照做）'],
+          prompt: '完整可复制的提示词。带硬性要求：禁止空话、保留数字、不确定标 [待补充]',
+          pitfalls: ['真实容易踩的坑 ×3，不写「注意安全」这类废话'],
+          usage: '谁用过、用了多久、效果如何，有数字。没有实测就写「尚未实测，[待补充]」',
+        },
+      },
+      skill: {
+        id: 's??', type: 'skill', publishState: 'draft', title: '', summary: '', date: today,
+        status: '草稿', people: [], tags: [], author: '',
+        extra: { command: '可直接复制给 agent 的指令正文，输出结构和禁止事项写清楚', appliesTo: 'Claude Code / Codex / Cursor' },
+      },
+      template: {
+        id: 't??', type: 'template', publishState: 'draft', title: '', summary: '', date: today,
+        status: '草稿', people: [], tags: [], author: '',
+        extra: { downloadUrl: '/downloads/文件名.md（文件放 public/downloads/）' },
+      },
+      link: {
+        id: 'l??', type: 'link', publishState: 'draft', title: '', summary: '', date: today,
+        status: '外部', people: [], tags: [], author: '',
+        extra: { url: 'https://…（外部项目无详情页）' },
+      },
+      training: {
+        id: 'tr??', type: 'training', publishState: 'draft', title: '', summary: '', date: today,
+        status: '报名中', people: [], tags: [], author: '',
+        extra: { kind: 'notice', deadline: 'YYYY-MM-DD', materials: '地点 / 材料' },
+      },
+      project: { id: 'p??', type: 'project', publishState: 'draft', title: '', summary: '', date: today, status: '进行中', people: [], tags: [], author: '', extra: { deliverable: '产品 / 工具 / 素材包' } },
+      competition: { id: 'k??', type: 'competition', publishState: 'draft', title: '', summary: '', date: today, status: '备赛中', people: [], tags: [], author: '', extra: { level: '国家级 / 省级 / 校级', team: '队伍情况' } },
+      activity: { id: 'a??', type: 'activity', publishState: 'draft', title: '', summary: '', date: today, status: '已结束', people: [], tags: [], author: '', extra: { place: '地点', recap: '到场人数、产出（有数字）' } },
+      course: { id: 'c??', type: 'course', publishState: 'draft', title: '', summary: '', date: today, status: '可学习', people: [], tags: [], author: '', extra: { difficulty: '入门 / 进阶', duration: '2 小时', outline: ['能照做的动作句 ×4'] } },
+      video: { id: 'v??', type: 'video', publishState: 'draft', title: '', summary: '', date: today, status: '可观看', people: [], tags: [], author: '', extra: { provider: 'bilibili / mp4', embedUrl: '', duration: '0:00' } },
+    };
+    const sk = SCAFFOLDS[t];
+    if (!sk) return json(res, 400, { error: 'unknown type', allowed: Object.keys(SCAFFOLDS) });
+    return json(res, 200, {
+      标准: '判断标准：一个没做过的人照着做完，能产出东西。完整样板见 content/items.json 的 g01',
+      scaffold: sk,
+    });
   }
 
   // GET /api/items

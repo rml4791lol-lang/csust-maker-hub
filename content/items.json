@@ -298,7 +298,8 @@
       "kind": "notice",
       "deadline": "2026-11-02",
       "materials": "工训大楼 302，自备电脑"
-    }
+    },
+    "expiresAt": "2026-11-02"
   },
   {
     "id": "p01",
