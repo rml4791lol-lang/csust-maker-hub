@@ -141,15 +141,15 @@ function page(actor: string): string {
         .join('、')}</span></div>`
     : '';
 
-  // 反馈汇总：有用/没用计数 + 最近留言（spec user story #20）
+  // 反馈汇总：有用/没用/照做计数 + 最近留言（spec user story #20 + issue #11）
   const m = readMetrics();
-  const fbAgg: Record<string, { useful: number; useless: number }> = {};
-  for (const f of m.feedback) (fbAgg[f.item] ??= { useful: 0, useless: 0 })[f.vote]++;
+  const fbAgg: Record<string, { useful: number; useless: number; confirmed: number }> = {};
+  for (const f of m.feedback) (fbAgg[f.item] ??= { useful: 0, useless: 0, confirmed: 0 })[f.vote]++;
   const fbRows = Object.entries(fbAgg)
-    .sort((a, b) => b[1].useful + b[1].useless - (a[1].useful + a[1].useless))
+    .sort((a, b) => b[1].useful + b[1].useless + b[1].confirmed - (a[1].useful + a[1].useless + a[1].confirmed))
     .map(([id, c]) => {
       const it = live.find((i) => i.id === id);
-      return `<tr><td class="mono">${id}</td><td>${it?.title ?? id}</td><td>${c.useful}</td><td>${c.useless}</td></tr>`;
+      return `<tr><td class="mono">${id}</td><td>${it?.title ?? id}</td><td>${c.useful}</td><td>${c.useless}</td><td>${c.confirmed}</td></tr>`;
     })
     .join('');
   const fbHtml =
@@ -159,7 +159,7 @@ function page(actor: string): string {
     <span>总浏览 ${Object.values(m.views).reduce((a, b) => a + b, 0)} 次 · 反馈 ${m.feedback.length} 条</span>
     ${
       fbRows
-        ? `<table class="fbtable"><tr><th>条目</th><th>标题</th><th>有用</th><th>没用</th></tr>${fbRows}</table>`
+        ? `<table class="fbtable"><tr><th>条目</th><th>标题</th><th>有用</th><th>没用</th><th>照做</th></tr>${fbRows}</table>`
         : ''
     }
     ${
@@ -169,7 +169,7 @@ function page(actor: string): string {
             .reverse()
             .map(
               (f) =>
-                `<li><span class="mono">${f.item}</span> · ${f.vote === 'useful' ? '有用' : '没用'}${
+                `<li><span class="mono">${f.item}</span> · ${{ useful: '有用', useless: '没用', confirmed: '照做' }[f.vote] ?? f.vote }${
                   f.note ? ` · 「${f.note}」` : ''
                 } · ${f.at.slice(0, 10)}</li>`
             )
@@ -295,7 +295,7 @@ function json(res: http.ServerResponse, code: number, data: unknown, headers: Re
 
 type MetricsFile = {
   views: Record<string, number>;
-  feedback: { item: string; vote: 'useful' | 'useless'; note?: string; at: string }[];
+  feedback: { item: string; vote: 'useful' | 'useless' | 'confirmed'; note?: string; at: string }[];
   updatedAt?: string;
 };
 
@@ -335,9 +335,9 @@ const server = http.createServer(async (req, res) => {
     const CORS = { 'Access-Control-Allow-Origin': '*' };
     if (req.method === 'GET' && url === '/api/metrics') {
       const m = readMetrics();
-      const fb: Record<string, { useful: number; useless: number }> = {};
+      const fb: Record<string, { useful: number; useless: number; confirmed: number }> = {};
       for (const f of m.feedback) {
-        (fb[f.item] ??= { useful: 0, useless: 0 })[f.vote]++;
+        (fb[f.item] ??= { useful: 0, useless: 0, confirmed: 0 })[f.vote]++;
       }
       const total = Object.values(m.views).reduce((a, b) => a + b, 0);
       return json(res, 200, { total, views: m.views, feedback: fb, updatedAt: m.updatedAt ?? null }, CORS);
@@ -361,7 +361,7 @@ const server = http.createServer(async (req, res) => {
         const id = String(p?.item ?? '');
         const vote = String(p?.vote ?? '');
         if (!ids.has(id)) return json(res, 400, { error: 'unknown id' }, CORS);
-        if (vote !== 'useful' && vote !== 'useless') return json(res, 400, { error: 'bad vote' }, CORS);
+        if (!['useful', 'useless', 'confirmed'].includes(vote)) return json(res, 400, { error: 'bad vote' }, CORS);
         m.feedback.push({ item: id, vote, note: String(p?.note ?? '').slice(0, 200), at: new Date().toISOString() });
         if (m.feedback.length > 500) m.feedback = m.feedback.slice(-500);
       }

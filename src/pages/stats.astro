@@ -222,8 +222,12 @@ const dutyNow =
         } catch { /* 索引缺失就用 id 兜底 */ }
 
         const fb = d.feedback || {};
-        const fbTotal = Object.values(fb).reduce((s: number, f: any) => s + f.useful + f.useless, 0);
-        meta.textContent = `总浏览 ${d.total ?? 0} 次 · 反馈 ${fbTotal} 条`;
+        const fbTotal = Object.values(fb).reduce(
+          (s: number, f: any) => s + (f.useful || 0) + (f.useless || 0) + (f.confirmed || 0),
+          0
+        );
+        const fbConfirmed = Object.values(fb).reduce((s: number, f: any) => s + (f.confirmed || 0), 0);
+        meta.textContent = `总浏览 ${d.total ?? 0} 次 · 反馈 ${fbTotal} 条 · 照做 ${fbConfirmed} 次`;
 
         const rows = (Object.entries(d.views || {}) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 8);
         if (!rows.length) {
