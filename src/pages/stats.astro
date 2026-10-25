@@ -4,13 +4,16 @@ import { items, typeMeta } from '../data/items';
 import { members, depts } from '../data/members';
 import { stats } from '../data/site';
 
-const types = ['guide', 'skill', 'template', 'link', 'training'] as const;
-
-// 类型分布
-const byType = types.map((t) => {
-  const n = items.filter((i) => i.type === t).length;
-  return { key: t, label: typeMeta[t].label, n, pct: Math.round((n / items.length) * 100) };
-});
+// 类型分布：实际存在的类型，按数量降序；颜色取 typeMeta 单一来源
+const byType = [...new Set(items.map((i) => i.type))]
+  .map((t) => ({
+    key: t,
+    label: typeMeta[t].label,
+    color: typeMeta[t].color,
+    n: items.filter((i) => i.type === t).length,
+  }))
+  .sort((a, b) => b.n - a.n);
+const maxType = Math.max(...byType.map((x) => x.n), 1);
 
 // 月度更新
 const monthMap = new Map<string, number>();
@@ -29,34 +32,28 @@ const byDept = depts.map((d) => ({
 }));
 const maxDept = Math.max(...byDept.map((x) => x.n), 1);
 
-// 内容状态
-const contentStatus = ['已完成', '已上线', '已结束', '可学习', '进行中', '备赛中', '报名中'];
-const contentStatusData = contentStatus
-  .map((s) => ({ s, n: items.filter((i) => i.status === s).length }))
-  .filter((x) => x.n > 0);
-const maxStatus = Math.max(...contentStatusData.map((x) => x.n), 1);
+// 内容状态：从数据动态统计，不维护硬编码清单
+const byStatus = Object.entries(
+  items.reduce<Record<string, number>>((acc, i) => {
+    acc[i.status] = (acc[i.status] || 0) + 1;
+    return acc;
+  }, {})
+)
+  .map(([s, n]) => ({ s, n }))
+  .sort((a, b) => b.n - a.n);
+const maxStatus = Math.max(...byStatus.map((x) => x.n), 1);
 
-// 计算环形图角度
-let acc = 0;
-const donut = byType.map((t) => {
-  const start = acc;
-  acc += (t.n / items.length) * 360;
-  return { ...t, start, end: acc };
-});
-const colors: Record<string, string> = {
-  project: '#b45309',
-  competition: '#a16207',
-  activity: '#1d4ed8',
-  course: '#15803d',
-  video: '#b91c1c',
-};
+// 浏览排行面板用的条目索引（id → 标题 + 链接）
+const itemIndex = Object.fromEntries(
+  items.map((i) => [i.id, { t: i.title, h: i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}` }])
+);
 ---
 
-<Base title="数据" description="创客空间的内容、成员数据看板。">
+<Base title="数据" description="创客空间的内容、成员与浏览数据看板。">
   <div class="wrap page-header">
     <span class="crumb">DATA / 数据看板</span>
     <h1>数据看板</h1>
-    <p>内容、成员的实时聚合。所有数字从内容库自动算出来，不手工维护。</p>
+    <p>内容、成员与浏览量的实时聚合。所有数字从内容库自动算出来，不手工维护。</p>
   </div>
 
   <div class="wrap" style="padding-bottom:80px;">
@@ -96,25 +93,16 @@ const colors: Record<string, string> = {
           <h3>内容类型</h3>
           <span>{items.length} 条</span>
         </div>
-        <div class="donut-row">
-          <div class="donut" style={`background: conic-gradient(${donut
-            .map((d) => `${colors[d.key]} ${d.start}deg ${d.end}deg`)
-            .join(', ')});`}>
-            <div class="donut-hole">
-              <b>{items.length}</b>
-              <span>条目</span>
+        <div class="hbar-list">
+          {byType.map((t) => (
+            <div class="hbar-row">
+              <span class="hbar-label">{t.label}</span>
+              <div class="hbar-track">
+                <div class="hbar" style={`width:${Math.round((t.n / maxType) * 100)}%;background:${t.color};`}></div>
+              </div>
+              <span class="hbar-num">{t.n}</span>
             </div>
-          </div>
-          <ul class="legend">
-            {byType.map((t) => (
-              <li>
-                <i style={`background:${colors[t.key]}`}></i>
-                <span>{t.label}</span>
-                <b>{t.n}</b>
-                <em>{t.pct}%</em>
-              </li>
-            ))}
-          </ul>
+          ))}
         </div>
       </section>
 
@@ -138,13 +126,13 @@ const colors: Record<string, string> = {
       </section>
 
       <!-- 内容状态 -->
-      <section class="panel panel-wide">
+      <section class="panel">
         <div class="panel-head">
           <h3>内容状态分布</h3>
-          <span>{contentStatusData.length} 种状态</span>
+          <span>{byStatus.length} 种状态</span>
         </div>
         <div class="hbar-list">
-          {contentStatusData.map((x) => (
+          {byStatus.map((x) => (
             <div class="hbar-row">
               <span class="hbar-label">{x.s}</span>
               <div class="hbar-track">
@@ -156,6 +144,57 @@ const colors: Record<string, string> = {
         </div>
       </section>
 
+      <!-- 浏览量排行（实时，来自后台 metrics） -->
+      <section class="panel panel-wide">
+        <div class="panel-head">
+          <h3>浏览量排行</h3>
+          <span id="viewsMeta">读取中…</span>
+        </div>
+        <div class="hbar-list" id="viewsBox">
+          <div class="views-empty">正在从后台读取浏览数据…</div>
+        </div>
+      </section>
+
     </div>
   </div>
+
+  <script type="application/json" id="item-index" set:html={JSON.stringify(itemIndex).replace(/</g, '\\u003c')}></script>
+
+  <script>
+    const box = document.getElementById('viewsBox')!;
+    const meta = document.getElementById('viewsMeta')!;
+    const esc = (s: string) =>
+      String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+
+    fetch('/admin/api/metrics')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: any) => {
+        let titles: Record<string, { t: string; h: string }> = {};
+        try {
+          titles = JSON.parse(document.getElementById('item-index')?.textContent || '{}');
+        } catch { /* 索引缺失就用 id 兜底 */ }
+
+        const fb = d.feedback || {};
+        const fbTotal = Object.values(fb).reduce((s: number, f: any) => s + f.useful + f.useless, 0);
+        meta.textContent = `总浏览 ${d.total ?? 0} 次 · 反馈 ${fbTotal} 条`;
+
+        const rows = (Object.entries(d.views || {}) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        if (!rows.length) {
+          box.innerHTML = '<div class="views-empty">还没有浏览数据——有人打开攻略后，这里就会长出来。</div>';
+          return;
+        }
+        const max = rows[0][1] || 1;
+        box.innerHTML = rows
+          .map(([id, n]) => {
+            const t = titles[id] || { t: id, h: `/library/${id}` };
+            const w = Math.max(4, Math.round((n / max) * 100));
+            return `<div class="hbar-row"><a href="${esc(t.h)}" title="${esc(t.t)}"><span class="hbar-label">${esc(t.t)}</span></a><div class="hbar-track"><div class="hbar" style="width:${w}%"></div></div><span class="hbar-num">${n}</span></div>`;
+          })
+          .join('');
+      })
+      .catch(() => {
+        meta.textContent = '实时';
+        box.innerHTML = '<div class="views-empty">读不到后台服务（本地开发常见）。部署后这里会显示实时浏览数据。</div>';
+      });
+  </script>
 </Base>

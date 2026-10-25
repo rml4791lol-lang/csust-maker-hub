@@ -17,8 +17,10 @@ export const site = {
     { href: '/stats', label: '数据' },
     { href: '/about', label: '关于' },
   ],
-  /** 反馈收集端点（飞书 Webhook / 表单地址）。留空则只记录在本地。 */
-  feedbackEndpoint: '',
+  /** 反馈收集端点（后台服务公开接口）。留空则只记录在本地。 */
+  feedbackEndpoint: '/admin/api/feedback',
+  /** 浏览打点端点：详情页每次访问 sendBeacon 一下，后台聚合到 metrics.json */
+  trackEndpoint: '/admin/api/track',
   contact: {
     email: 'hello@an520.xin',
     group: '创客空间 · 技术部',

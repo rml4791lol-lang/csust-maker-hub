@@ -3,6 +3,8 @@ import Base from '../../layouts/Base.astro';
 import { items, typeMeta } from '../../data/items';
 import { members } from '../../data/members';
 import { publishedItems, isExpired } from '../../data/validate';
+import { site } from '../../data/site';
+import { viewCount } from '../../data/metrics';
 
 export async function getStaticPaths() {
   // 外部项目没有详情页，列表直接跳转原文
@@ -39,6 +41,7 @@ rows.push({
       : '待审核',
 });
 rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
+rows.push({ k: '浏览', v: String(viewCount(item.id)) });
 ---
 
 {item.expiresAt && isExpired(item) && (
@@ -201,7 +204,7 @@ rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
         </section>
       )}
 
-      <section class="feedback" data-item={item.id}>
+      <section class="feedback" data-item={item.id} data-endpoint={site.feedbackEndpoint} data-track={site.trackEndpoint}>
         <h2>这篇有用吗</h2>
         <div class="fb-actions">
           <button class="fb-btn" data-vote="useful">有用</button>
@@ -250,7 +253,17 @@ rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
     const msg = box.querySelector<HTMLElement>('.fb-msg');
     const note = box.querySelector<HTMLInputElement>('.fb-note');
     const endpoint = box.dataset.endpoint || '';
+    const trackUrl = box.dataset.track || '';
     const btns = box.querySelectorAll<HTMLButtonElement>('.fb-btn');
+
+    // 浏览打点：sendBeacon 失败静默（本地开发没有后台时）
+    if (trackUrl && itemId) {
+      try {
+        navigator.sendBeacon(trackUrl, JSON.stringify({ id: itemId }));
+      } catch {
+        /* 忽略 */
+      }
+    }
 
     const saved = localStorage.getItem(key);
     if (saved && msg) msg.textContent = `你之前标记过：${saved === 'useful' ? '有用' : '没用'}`;

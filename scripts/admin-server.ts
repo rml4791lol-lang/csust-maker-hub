@@ -22,6 +22,8 @@ const ROOT = process.cwd();
 const CONTENT_FILE = join(ROOT, 'content/items.json');
 const STATE_FILE = join(ROOT, 'src/data/publish-state.json');
 const LOG_FILE = join(ROOT, 'src/data/review-log.json');
+/** 运行时指标：浏览量 + 反馈。线上服务器持有，gitignore，构建时被 src/data/metrics.ts 读走 */
+const METRICS_FILE = join(ROOT, 'metrics.json');
 const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 /** 部署目标目录。设置后 /api/build 构建成功会 rsync 过去（服务器本机路径，如 /var/www/csust-maker/） */
@@ -223,9 +225,27 @@ function page(actor: string): string {
 
 /* ---------------------------- HTTP ---------------------------- */
 
-function json(res: http.ServerResponse, code: number, data: unknown) {
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+function json(res: http.ServerResponse, code: number, data: unknown, headers: Record<string, string> = {}) {
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', ...headers });
   res.end(JSON.stringify(data));
+}
+
+type MetricsFile = {
+  views: Record<string, number>;
+  feedback: { item: string; vote: 'useful' | 'useless'; note?: string; at: string }[];
+  updatedAt?: string;
+};
+
+function readMetrics(): MetricsFile {
+  try {
+    return { views: {}, feedback: [], ...JSON.parse(readFileSync(METRICS_FILE, 'utf8')) };
+  } catch {
+    return { views: {}, feedback: [] };
+  }
+}
+
+function writeMetrics(m: MetricsFile) {
+  writeFileSync(METRICS_FILE, JSON.stringify(m, null, 2) + '\n');
 }
 
 function body(req: http.IncomingMessage): Promise<string> {
@@ -237,6 +257,58 @@ function body(req: http.IncomingMessage): Promise<string> {
 }
 
 const server = http.createServer(async (req, res) => {
+  const url = req.url || '/';
+
+  // ---------- 公开接口（无需登录）：浏览打点 / 反馈 / 聚合指标 ----------
+  if (req.method === 'OPTIONS' && (url === '/api/track' || url === '/api/feedback')) {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    });
+    return res.end();
+  }
+  if (url === '/api/track' || url === '/api/feedback' || url === '/api/metrics') {
+    const CORS = { 'Access-Control-Allow-Origin': '*' };
+    if (req.method === 'GET' && url === '/api/metrics') {
+      const m = readMetrics();
+      const fb: Record<string, { useful: number; useless: number }> = {};
+      for (const f of m.feedback) {
+        (fb[f.item] ??= { useful: 0, useless: 0 })[f.vote]++;
+      }
+      const total = Object.values(m.views).reduce((a, b) => a + b, 0);
+      return json(res, 200, { total, views: m.views, feedback: fb, updatedAt: m.updatedAt ?? null }, CORS);
+    }
+    if (req.method === 'POST' && (url === '/api/track' || url === '/api/feedback')) {
+      const raw = await body(req);
+      if (raw.length > 2048) return json(res, 413, { error: 'payload too large' }, CORS);
+      let p: any;
+      try {
+        p = JSON.parse(raw);
+      } catch {
+        return json(res, 400, { error: 'bad json' }, CORS);
+      }
+      const ids = new Set(readItems().map((i) => i.id));
+      const m = readMetrics();
+      if (url === '/api/track') {
+        const id = String(p?.id ?? '');
+        if (!ids.has(id)) return json(res, 400, { error: 'unknown id' }, CORS);
+        m.views[id] = (m.views[id] || 0) + 1;
+      } else {
+        const id = String(p?.item ?? '');
+        const vote = String(p?.vote ?? '');
+        if (!ids.has(id)) return json(res, 400, { error: 'unknown id' }, CORS);
+        if (vote !== 'useful' && vote !== 'useless') return json(res, 400, { error: 'bad vote' }, CORS);
+        m.feedback.push({ item: id, vote, note: String(p?.note ?? '').slice(0, 200), at: new Date().toISOString() });
+        if (m.feedback.length > 500) m.feedback = m.feedback.slice(-500);
+      }
+      m.updatedAt = new Date().toISOString();
+      writeMetrics(m);
+      return json(res, 200, { ok: true }, CORS);
+    }
+    return json(res, 405, { error: 'method not allowed' }, CORS);
+  }
+
   const who = identify(req);
   if (!who) {
     if (req.url?.startsWith('/api/')) return json(res, 401, { error: '需要 token 或登录' });
@@ -244,7 +316,6 @@ const server = http.createServer(async (req, res) => {
     return res.end('需要登录');
   }
 
-  const url = req.url || '/';
   const actor = who.role === 'agent' ? 'agent' : who.user;
 
   // 页面

@@ -74,7 +74,7 @@ sudo systemctl reload caddy
 
   ```bash
   rsync -az --delete --exclude node_modules --exclude dist --exclude .astro \
-    --exclude .git --exclude screenshots --exclude .env.admin \
+    --exclude .git --exclude screenshots --exclude .env.admin --exclude metrics.json \
     -e "ssh -i ~/.ssh/tencent_hk_hermes.pem" \
     ./ ubuntu@43.161.198.195:~/csust-maker-hub/
   ```
@@ -83,6 +83,15 @@ sudo systemctl reload caddy
 - Caddy 路由：`an520.xin/admin/` 剥前缀反代 3210（备份：`Caddyfile.bak-20261025-csust-admin`）。agent 调用走 `https://an520.xin/admin/api/*`，带 `Authorization: Bearer $AGENT_TOKEN`。
 - `csust-build-daily.timer`：每天 03:30 在服务器上 `pnpm build` + rsync 到 `/var/www/csust-maker/`，让过期标注和内容更新自动生效。
 - 注意：后台写入的是**服务器上**的 `content/items.json`，本机仓库不会自动同步回来；定期把服务器的 `content/`、`src/data/` 拉回本机提交。
+
+### 浏览量与反馈（2026-10-25 接入）
+
+- 运行时指标存在服务器上的 `metrics.json`（仓库根目录，**已 gitignore**，rsync 同步源码时必须 `--exclude metrics.json`，否则会覆盖线上计数）。
+- 公开端点（无需登录，挂在 `an520.xin/admin/api/*` 下）：
+  - `POST /admin/api/track`：`{"id":"g04"}`，详情页每次访问 sendBeacon 一次，id 校验后才计数；不存 IP、不存指纹。
+  - `POST /admin/api/feedback`：`{"item":"g04","vote":"useful","note":"…"}`，note 截断 200 字，日志上限 500 条。
+  - `GET /admin/api/metrics`：聚合 `{total, views, feedback, updatedAt}`，数据页「浏览量排行」实时读它。
+- 详情页侧栏的「浏览」数字是**构建时**烘进去的（每天 03:30 定时构建刷新）；数据页的排行是实时的。
 
 ### 回滚
 
