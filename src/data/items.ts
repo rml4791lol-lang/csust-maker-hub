@@ -67,6 +67,9 @@ export interface Item {
     downloadUrl?: string;
     /** link */
     url?: string;
+    /** 外部来源（收录自 ai.an520.xin 等） */
+    sourceUrl?: string;
+    sourceName?: string;
     /** training */
     kind?: 'notice' | 'archive';
     deadline?: string;
@@ -88,6 +91,170 @@ export const typeMeta: Record<ItemType, { label: string; glyph: string; color: s
 };
 
 const rawItems: Item[] = [
+  // ---------- 收录自 ai.an520.xin（已筛选：方法论 / 工具实测 / 省钱）----------
+  {
+    id: 'g02',
+    type: 'guide',
+    publishState: 'published',
+    title: '给 AI 派活前的苏格拉底六问',
+    summary: '先问明白再开工，避免 AI 把「错误的问题」解得漂漂亮亮。',
+    date: '2026-10-25',
+    status: '可照做',
+    people: [],
+    tags: ['方法论', '提问', 'AI'],
+    author: '安大王',
+    extra: {
+      scene: '直接让 AI 开干，它可能把一个没想清楚的问题解得又快又漂亮，最后返工重来。',
+      path: [
+        '开口前先过六问：澄清、假设、证据、视角、后果、回归',
+        '每问用一句话自答，答不上来的那一条就是问题所在',
+        '把答出来的共识写进提示词再让 AI 动手',
+      ],
+      prompt: '在开始之前，先用苏格拉底式提问帮我确认需求：澄清（到底要解决什么）、假设（我在默认什么成立）、证据（凭什么这么判断）、视角（有没有别的解读）、后果（做错会怎样）、回归（最初想达成什么）。每项只问一个问题，我答完再动手。',
+      usage: '适合需求模糊、或者对方说不清想要什么的时候。',
+      sourceUrl: 'https://ai.an520.xin/p/socratic',
+      sourceName: 'ai.an520.xin',
+    },
+  },
+  {
+    id: 'g03',
+    type: 'guide',
+    publishState: 'published',
+    title: 'AI Agent 选型地图：三维判断法',
+    summary: '选型先别管框架，先回答三个问题：本地还是云端、单 Agent 还是多 Agent、写代码还是低代码。',
+    date: '2026-10-25',
+    status: '可照做',
+    people: [],
+    tags: ['Agent', '选型', '框架'],
+    author: '安大王',
+    extra: {
+      scene: '20 多个 Agent 框架，看一圈下来还是不知道选哪个。',
+      path: [
+        '第一维：跑在哪 —— 本地 / 云端',
+        '第二维：几个 Agent —— 单个 / 多 Agent 协作',
+        '第三维：怎么写 —— 直接写代码 / 低代码编排',
+        '三个答案交叉，落到具体 2~3 个框架再对比',
+      ],
+      usage: '先在纸上把三个问题答完，再打开任何框架文档。',
+      sourceUrl: 'https://ai.an520.xin/p/agent-map',
+      sourceName: 'ai.an520.xin',
+    },
+  },
+  {
+    id: 'g04',
+    type: 'guide',
+    publishState: 'published',
+    title: 'OpenCode Go 套餐省钱实测',
+    summary: '月费 10 美元、官方计价额度最高 60 美元（约 400 块），附开通步骤和三个坑。',
+    date: '2026-10-25',
+    status: '可照做',
+    people: [],
+    tags: ['省钱', 'OpenCode', '实测'],
+    author: '安大王',
+    extra: {
+      scene: '想用便宜的模型额度，但不想踩充值的坑。',
+      path: [
+        '确认套餐类型：月付 10 美元，官方计价额度上限 60 美元',
+        '按步骤开通，注意区域与支付方式',
+        '留意三个已知坑（额度计算口径、限速、退款）',
+      ],
+      usage: '价格与政策会变，用之前先核对当期条款。',
+      sourceUrl: 'https://ai.an520.xin/p/opencode-go',
+      sourceName: 'ai.an520.xin',
+    },
+  },
+  {
+    id: 'g05',
+    type: 'guide',
+    publishState: 'published',
+    title: 'OpenCode Go 里跑得最多的模型是哪个',
+    summary: '10 美元套餐月跑 15 万次请求，常规模型里小米的用得最多。',
+    date: '2026-10-25',
+    status: '参考',
+    people: [],
+    tags: ['模型', '实测', 'OpenCode'],
+    author: '安大王',
+    extra: {
+      scene: '套餐买回来，不知道把哪个模型设成默认最划算。',
+      path: [
+        '看实际请求量分布，而不是看跑分',
+        '常规任务交给高频低成本的模型',
+        '关键任务再切更强的模型',
+      ],
+      usage: '结论有时效，新模型上线后要重新看分布。',
+      sourceUrl: 'https://ai.an520.xin/p/mimo-go',
+      sourceName: 'ai.an520.xin',
+    },
+  },
+  {
+    id: 'g06',
+    type: 'guide',
+    publishState: 'published',
+    title: '小米下一代模型免费内测：每周 10 亿 token',
+    summary: '申请基本就过，免费跑两款模型，文生图、图生图都能用。',
+    date: '2026-10-25',
+    status: '时效',
+    people: [],
+    tags: ['免费额度', '小米', '内测'],
+    author: '安大王',
+    extra: {
+      scene: '想白嫖额度做实验，但常规渠道要么贵要么慢。',
+      path: [
+        '找到官方邀测入口，按要求提交申请',
+        '通过后拿 key，先用小任务验证可用性',
+        '留意额度是按周重置还是总量',
+      ],
+      usage: '内测有时效和条款限制，正式使用前先看许可范围。',
+      sourceUrl: 'https://ai.an520.xin/p/mimo',
+      sourceName: 'ai.an520.xin',
+    },
+  },
+  {
+    id: 'g07',
+    type: 'guide',
+    publishState: 'published',
+    title: '一条命令复刻爆款视频：Hypit 实测',
+    summary: '把一条爆款丢给 Agent，整片复刻成能重复跑的工程，单条成片约 1.07~1.15 美元。',
+    date: '2026-10-25',
+    status: '参考',
+    people: [],
+    tags: ['视频', '复刻', '工具'],
+    author: '安大王',
+    extra: {
+      scene: '想批量做同类短视频，但每条都从头剪太慢。',
+      path: [
+        '准备一条参考视频作为模板',
+        '用命令把模板拆成可复用的工程',
+        '替换素材批量出片，注意成本与版权',
+      ],
+      usage: '复刻他人作品涉及版权，内部测试用，不要直接对外发布。',
+      sourceUrl: 'https://ai.an520.xin/p/hypit',
+      sourceName: 'ai.an520.xin',
+    },
+  },
+  {
+    id: 'g08',
+    type: 'guide',
+    publishState: 'published',
+    title: 'TTS 语音模型盘点：本地小模型与复刻天花板',
+    summary: '25MB 的本地小模型塞进笔记本就能开口，开源款盲测对 ElevenLabs 胜率 65.3%。',
+    date: '2026-10-25',
+    status: '参考',
+    people: [],
+    tags: ['TTS', '语音', '工具盘点'],
+    author: '安大王',
+    extra: {
+      scene: '要做配音，但不确定用云端服务还是本地模型。',
+      path: [
+        '先明确需求：实时 / 离线、单说话人 / 多说话人',
+        '本地小模型适合隐私敏感和离线场景',
+        '云端适合追求自然度和多语种',
+      ],
+      usage: '声音复刻涉及他人声音权，使用前必须取得授权。',
+      sourceUrl: 'https://ai.an520.xin/p/tts',
+      sourceName: 'ai.an520.xin',
+    },
+  },
   // ---------- 五类新内容 ----------
   {
     id: 'g01',

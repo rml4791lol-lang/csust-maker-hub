@@ -4,7 +4,8 @@
 
 ## 项目约定
 
-- **所有内容在 `src/data/`**：`site.ts`（站名/导航/首页）、`members.ts`（成员）、`items.ts`（项目/竞赛/活动/课程）、`services.ts`（服务与需求）。改内容不碰页面。
+- **所有内容在 `src/data/`**：`site.ts`（站名/导航/首页）、`members.ts`（成员）、`items.ts`（五类内容：攻略 guide / 技能指令 skill / 模板 template / 外部项目 link / 培训 training）。改内容不碰页面。
+- **发布状态在 `publish-state.json`**（后台写入），审核记录在 `review-log.json`。校验：`pnpm test`，构建烟雾：`pnpm test:smoke`。
 - **页面在 `src/pages/`**，布局与导航在 `src/layouts/`、`src/components/`，设计系统在 `src/styles/global.css`。
 - **不要提交** `node_modules/`、`dist/`、`.astro/`（见 `.gitignore`）。
 - **构建**：`pnpm build`，产物在 `dist/`。
@@ -14,9 +15,12 @@
 
 ## 设计约束
 
-- 深色工程感 + 橙色信号色（`#e0632f`），衬线中文标题 + 无衬线正文。
-- 动效用渐进增强：`.js` 类才启用滚动浮现，无 JS 时内容必须全部可见。
-- 中文排版优先：标题不强行断行，字号用 `clamp()`。
+- 浅色工具风：白底、黑字、单一蓝色点缀（`#1a56db`），不做渐变、不做紫色。
+- 列表与表格优先，不做营销卡片和轮播。
+- 字体：Inter（拉丁/数字）+ PingFang SC（中文）；数字统一 `tabular-nums`。
+- 字号用 token（`--text-*`），不写死；行高用 `--leading-*`。
+- 不做滚动隐藏：内容始终可见（避免快速滚动出现空白）。
+- 全站 `noindex`，内部使用。
 
 ## Agent skills
 

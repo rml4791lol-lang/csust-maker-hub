@@ -77,6 +77,14 @@ rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
               <p>{item.extra.usage}</p>
             </section>
           )}
+          {item.extra?.sourceUrl && (
+            <p class="source-line">
+              收录自
+              <a href={item.extra.sourceUrl} target="_blank" rel="noopener noreferrer">
+                {item.extra.sourceName ?? '原文'}
+              </a>
+            </p>
+          )}
         </>
       )}
 
