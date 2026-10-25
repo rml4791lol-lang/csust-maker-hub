@@ -5,6 +5,7 @@
 - 线上地址：https://an520.xin
 - 服务器：`ubuntu@43.161.198.195`（香港 hk-hermes，Caddy）
 - 站点目录：`/var/www/csust-maker`
+- **贡献 / 让你的 agent 上手：先读 [docs/contributing.md](docs/contributing.md)**（跑起来、改内容、agent API、连服务器、上线、红线，全在里面）
 
 ---
 
