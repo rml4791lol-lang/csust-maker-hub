@@ -24,6 +24,8 @@ const STATE_FILE = join(ROOT, 'src/data/publish-state.json');
 const LOG_FILE = join(ROOT, 'src/data/review-log.json');
 const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
+/** 部署目标目录。设置后 /api/build 构建成功会 rsync 过去（服务器本机路径，如 /var/www/csust-maker/） */
+const DEPLOY_TARGET = process.env.DEPLOY_TARGET || '';
 
 type State = 'draft' | 'reviewing' | 'published' | 'unpublished';
 const STATES: State[] = ['draft', 'reviewing', 'published', 'unpublished'];
@@ -336,8 +338,16 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url === '/api/build') {
     json(res, 202, { ok: true, message: '构建已开始，结果看服务日志' });
     execFile('pnpm', ['build'], { cwd: ROOT }, (err, stdout, stderr) => {
-      if (err) console.error('[build] 失败', stderr || err.message);
-      else console.log('[build] 完成', stdout.split('\n').filter(Boolean).pop());
+      if (err) {
+        console.error('[build] 失败', stderr || err.message);
+        return;
+      }
+      console.log('[build] 完成', stdout.split('\n').filter(Boolean).pop());
+      if (!DEPLOY_TARGET) return;
+      execFile('rsync', ['-az', '--delete', '--chmod=D755,F644', 'dist/', DEPLOY_TARGET], { cwd: ROOT }, (err2) => {
+        if (err2) console.error('[deploy] 失败', err2.message);
+        else console.log('[deploy] 完成 →', DEPLOY_TARGET);
+      });
     });
     return;
   }
