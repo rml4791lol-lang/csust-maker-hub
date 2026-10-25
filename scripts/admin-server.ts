@@ -253,6 +253,12 @@ const server = http.createServer(async (req, res) => {
     return res.end(page(actor));
   }
 
+  // 兜底：非 API 的 GET 一律回后台页面（反代下打错路径也能落到界面）
+  if (req.method === 'GET' && !url.startsWith('/api/')) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(page(actor));
+  }
+
   // GET /api/items
   if (req.method === 'GET' && url === '/api/items') {
     return json(res, 200, readItems().map((i) => ({ ...i, publishState: currentState(i.id) })));
