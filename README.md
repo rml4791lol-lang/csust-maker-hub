@@ -82,9 +82,14 @@ sudo systemctl reload caddy
 - `csust-admin.service`：后台常驻，监听 `127.0.0.1:3210`；环境文件 `~/csust-maker-hub/.env.admin`（AGENT_TOKEN / DEPLOY_TARGET / ADMIN_PORT）。
 - Caddy 路由：`an520.xin/admin/` 剥前缀反代 3210（备份：`Caddyfile.bak-20261025-csust-admin`）。agent 调用走 `https://an520.xin/admin/api/*`，带 `Authorization: Bearer $AGENT_TOKEN`。
 - `csust-build-daily.timer`：每天 03:30 在服务器上 `pnpm build` + rsync 到 `/var/www/csust-maker/`，让过期标注和内容更新自动生效。
-- 注意：后台写入的是**服务器上**的 `content/items.json`，本机仓库不会自动同步回来；定期把服务器的 `content/`、`src/data/` 拉回本机提交。
+- 每日运营简报（issue #14）：构建成功后向 IM 推一条简报（新增反馈 / 浏览 Top3 / 即将到期；无新动态也推一条极简说明），由 `scripts/daily-brief.ts` 实现，推送通道复用 #10（`FEISHU_WEBHOOK`/`FEISHU_SECRET` 或 `WECOM_WEBHOOK`，见下文「IM 群机器人推送」）。服务器侧需在 `/etc/systemd/system/csust-build-daily.service` 的 `[Service]` 段 `ExecStart` 之后追加一行：
 
-### 浏览量与反馈（2026-10-25 接入）
+  ```ini
+  ExecStartPost=/bin/bash -lc 'cd /home/ubuntu/csust-maker-hub && pnpm tsx scripts/daily-brief.ts'
+  ```
+
+  然后 `sudo systemctl daemon-reload`。注意：该 service 需要能读到推送环境变量——若其 `[Service]` 段没有 `EnvironmentFile=/home/ubuntu/csust-maker-hub/.env.admin`，需要加上（或用 `Environment=` 写入）。构建失败（`ExecStart` 非零）时 ExecStartPost 不会执行，简报不发。手工触发验证：`sudo systemctl start csust-build-daily.service`。
+- 注意：后台写入的是**服务器上**的 `content/items.json`，本机仓库不会自动同步回来；定期把服务器的 `content/`、`src/data/` 拉回本机提交。### 浏览量与反馈（2026-10-25 接入）
 
 - 运行时指标存在服务器上的 `metrics.json`（仓库根目录，**已 gitignore**，rsync 同步源码时必须 `--exclude metrics.json`，否则会覆盖线上计数）。
 - 公开端点（无需登录，挂在 `an520.xin/admin/api/*` 下）：

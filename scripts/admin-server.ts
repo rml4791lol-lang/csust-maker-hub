@@ -17,13 +17,13 @@
  * 密钥只放服务器 env 文件（.env.admin），绝不入 git。
  */
 import http from 'node:http';
-import { createHmac } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
 import { members } from '../src/data/members';
 import { expiringSoon, validateContent } from '../src/data/validate';
+import { SITE_BASE, sendIm } from './im-push';
 import { overdueReviews } from '../src/data/review';
 
 const ROOT = process.cwd();
@@ -106,23 +106,7 @@ function writeItems(list: any[]) {
   writeJson(CONTENT_FILE, list);
 }
 
-/* ---------------------------- IM 群机器人推送（issue #10） ---------------------------- */
-
-const FEISHU_WEBHOOK = process.env.FEISHU_WEBHOOK || '';
-const FEISHU_SECRET = process.env.FEISHU_SECRET || '';
-const WECOM_WEBHOOK = process.env.WECOM_WEBHOOK || '';
-const SITE_BASE = 'https://an520.xin';
-
-function imChannel(): 'feishu' | 'wecom' | null {
-  if (FEISHU_WEBHOOK) return 'feishu';
-  if (WECOM_WEBHOOK) return 'wecom';
-  return null;
-}
-
-/** 飞书官方签名规则：把 timestamp+"\n"+secret 当作 HmacSHA256 的 key，内容为空串，结果 base64 */
-function feishuSign(timestamp: number, secret: string): string {
-  return createHmac('sha256', `${timestamp}\n${secret}`).update('').digest('base64');
-}
+/* ---------------------------- IM 群机器人推送（issue #10，通道实现见 scripts/im-push.ts） ---------------------------- */
 
 /** 发布卡片内容：标题 / 作者 / 一句话摘要 / 详情页链接 */
 function publishCard(id: string) {
@@ -139,85 +123,15 @@ function publishCard(id: string) {
 /** 条目发布后推送 IM 群。异步、不阻塞状态流转；失败只记日志。未配置 webhook 时 dry-run 打印卡片。 */
 function notifyPublished(id: string, actor: string, method: 'human' | 'agent') {
   const card = publishCard(id);
-  const channel = imChannel();
-
-  if (!channel) {
-    console.log(
-      `[im-push] dry-run（未配置 FEISHU_WEBHOOK/WECOM_WEBHOOK）${id} 本应发送：\n` +
-        JSON.stringify(
-          { 标题: card.title, 作者: card.author, 摘要: card.summary, 详情: card.link, 操作人: actor },
-          null,
-          2
-        )
-    );
-    return;
-  }
-
-  void (async () => {
-    try {
-      if (channel === 'feishu') {
-        const timestamp = Math.floor(Date.now() / 1000);
-        await fetch(FEISHU_WEBHOOK, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            timestamp: String(timestamp),
-            sign: feishuSign(timestamp, FEISHU_SECRET),
-            msg_type: 'interactive',
-            card: {
-              header: {
-                title: { tag: 'plain_text', content: `📄 新内容发布：${card.title}` },
-                template: 'blue',
-              },
-              elements: [
-                {
-                  tag: 'div',
-                  text: {
-                    tag: 'lark_md',
-                    content: `**作者**：${card.author}\n**摘要**：${card.summary}`,
-                  },
-                },
-                {
-                  tag: 'action',
-                  actions: [
-                    {
-                      tag: 'button',
-                      text: { tag: 'plain_text', content: '查看详情' },
-                      url: card.link,
-                      type: 'primary',
-                    },
-                  ],
-                },
-              ],
-            },
-          }),
-        }).then(async (r) => {
-          if (!r.ok) throw new Error(`webhook HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
-          return r.text();
-        });
-      } else {
-        await fetch(WECOM_WEBHOOK, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            msgtype: 'markdown',
-            markdown: {
-              content:
-                `**📄 新内容发布：${card.title}**\n` +
-                `> 作者：${card.author}\n> 摘要：${card.summary}\n` +
-                `[查看详情](${card.link})`,
-            },
-          }),
-        }).then(async (r) => {
-          if (!r.ok) throw new Error(`webhook HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
-          return r.text();
-        });
-      }
-      console.log(`[im-push] 已推送到 ${channel === 'feishu' ? '飞书' : '企业微信'}：${card.title}（${card.link}）`);
-    } catch (e: any) {
-      console.error(`[im-push] 推送失败（${channel}）`, e?.message || e);
-    }
-  })();
+  void sendIm(
+    {
+      header: `📄 新内容发布：${card.title}`,
+      body: `**作者**：${card.author}\n**摘要**：${card.summary}`,
+      buttons: [{ text: '查看详情', url: card.link }],
+    },
+    'im-push',
+    `${id}（${actor}）`
+  );
 }
 
 /* ---------------------------- 人的页面 ---------------------------- */
