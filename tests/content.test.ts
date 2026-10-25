@@ -27,8 +27,8 @@ const baseMember = (over: Partial<Member> = {}): Member => ({
 });
 
 describe('内容校验', () => {
-  it('仓库现有内容全部通过', () => {
-    expect(validateCurrentContent()).toEqual([]);
+  it('仓库现有内容无 error 级问题', () => {
+    expect(validateCurrentContent().filter((i) => i.level === 'error')).toEqual([]);
   });
 
   it('抓出重复 id', () => {
@@ -70,6 +70,25 @@ describe('内容校验', () => {
       members: [baseMember({ projects: ['不存在'] })],
     });
     expect(issues.some((i) => i.code === 'unknown-project')).toBe(true);
+  });
+
+  it('缺 author 产生 warn 级问题', () => {
+    const issues = validateContent({
+      items: [baseItem({ author: undefined })],
+      members: [],
+    });
+    const miss = issues.find((i) => i.code === 'missing-author');
+    expect(miss).toBeDefined();
+    expect(miss?.level).toBe('warn');
+    expect(miss?.field).toBe('author');
+  });
+
+  it('有 author 不产生缺作者问题', () => {
+    const issues = validateContent({
+      items: [baseItem({ author: '张三' })],
+      members: [],
+    });
+    expect(issues.some((i) => i.code === 'missing-author')).toBe(false);
   });
 
   it('抓出日期格式错误', () => {

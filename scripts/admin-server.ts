@@ -16,7 +16,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
-import { expiringSoon } from '../src/data/validate';
+import { members } from '../src/data/members';
+import { expiringSoon, validateContent } from '../src/data/validate';
 
 const ROOT = process.cwd();
 const CONTENT_FILE = join(ROOT, 'content/items.json');
@@ -127,6 +128,19 @@ function page(actor: string): string {
         .join('、')}</span></div>`
     : '';
 
+  // 缺作者清单：warn 级校验问题，供逐条认领（issue #9）
+  const noAuthor = validateContent({ items: live as any, members }).filter(
+    (i) => i.code === 'missing-author'
+  );
+  const noAuthorHtml = noAuthor.length
+    ? `<div class="soon noauthor"><b>${noAuthor.length} 条缺作者</b><span>${noAuthor
+        .map((i) => {
+          const it = live.find((x) => x.id === i.id);
+          return `${it?.title ?? ''}（<span class="mono">${i.id}</span>）`;
+        })
+        .join('、')}</span></div>`
+    : '';
+
   // 反馈汇总：有用/没用计数 + 最近留言（spec user story #20）
   const m = readMetrics();
   const fbAgg: Record<string, { useful: number; useless: number }> = {};
@@ -195,6 +209,7 @@ function page(actor: string): string {
   .soon{border:1px solid #e9e9e9;background:#fafafa;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12.5px;display:flex;gap:10px;flex-wrap:wrap}
   .soon b{color:#b45309;font-weight:600}
   .soon span{color:#8a8a8a}
+  .noauthor b{color:#1a56db}
   .fbpanel{border:1px solid #e9e9e9;background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:12.5px;display:grid;gap:8px}
   .fbpanel>b{font-weight:600}
   .fbpanel>span{color:#8a8a8a;font-size:12px}
@@ -214,6 +229,7 @@ function page(actor: string): string {
 <header><h1>内容后台</h1><span class="who">${actor}</span></header>
 <main>
   ${soonHtml}
+  ${noAuthorHtml}
   ${fbHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>

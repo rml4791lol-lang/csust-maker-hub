@@ -49,6 +49,17 @@ export function validateContent(input: ContentInput): ValidationIssue[] {
       }
     }
 
+    const author = (item as any)?.author;
+    if (author === undefined || author === null || String(author).trim() === '') {
+      issues.push({
+        level: 'warn',
+        code: 'missing-author',
+        id,
+        field: 'author',
+        message: `条目 ${id} 缺作者`,
+      });
+    }
+
     if (item.id) {
       if (itemIds.has(item.id)) {
         issues.push({
