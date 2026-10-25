@@ -1,5 +1,21 @@
 [
   {
+    "id": "test-01",
+    "from": "delete",
+    "to": "deleted",
+    "actor": "agent",
+    "method": "agent",
+    "at": "2026-10-25T08:07:27.228Z"
+  },
+  {
+    "id": "test-01",
+    "from": "create",
+    "to": "draft",
+    "actor": "agent",
+    "method": "agent",
+    "at": "2026-10-25T08:07:27.197Z"
+  },
+  {
     "id": "p01",
     "from": "reviewing",
     "to": "published",

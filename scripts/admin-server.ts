@@ -1,24 +1,29 @@
 #!/usr/bin/env tsx
 /**
- * 最小后台：内容状态管理。
+ * 最小后台 + agent 接口。
  *
- * 只做四件事：列表、预览、发布 / 退回、下架。
- * 编辑仍由 agent 改文件完成，这里不提供编辑器。
+ * 人用：浏览器打开 /，账号密码登录，点发布/退回/下架。
+ * agent 用：带 Bearer token 调 /api/*，可以直接写内容和改状态。
  *
  * 启动：pnpm admin
- * 默认账号：admin / admin123（用 ADMIN_USERS 环境变量覆盖，格式 user:pass,user:pass）
+ * 环境变量：
+ *   ADMIN_USERS="admin:admin123,editor:xxx"  人用账号
+ *   AGENT_TOKEN="..."                        agent 用 token
+ *   ADMIN_PORT=3210
  */
 import http from 'node:http';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { exec, execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
 import { expiringSoon } from '../src/data/validate';
 
 const ROOT = process.cwd();
+const CONTENT_FILE = join(ROOT, 'content/items.json');
 const STATE_FILE = join(ROOT, 'src/data/publish-state.json');
 const LOG_FILE = join(ROOT, 'src/data/review-log.json');
 const PORT = Number(process.env.ADMIN_PORT || 3210);
+const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 
 type State = 'draft' | 'reviewing' | 'published' | 'unpublished';
 const STATES: State[] = ['draft', 'reviewing', 'published', 'unpublished'];
@@ -40,19 +45,23 @@ function readJson<T>(file: string, fallback: T): T {
     return fallback;
   }
 }
-
 function writeJson(file: string, data: unknown) {
   writeFileSync(file, JSON.stringify(data, null, 2) + '\n', 'utf8');
 }
 
-function authorized(req: http.IncomingMessage): string | null {
+type Who = { role: 'human'; user: string } | { role: 'agent' } | null;
+
+function identify(req: http.IncomingMessage): Who {
   const header = req.headers.authorization || '';
-  if (!header.startsWith('Basic ')) return null;
-  const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
-  const idx = decoded.indexOf(':');
-  const user = decoded.slice(0, idx);
-  const pass = decoded.slice(idx + 1);
-  return accounts().get(user) === pass ? user : null;
+  if (AGENT_TOKEN && header === `Bearer ${AGENT_TOKEN}`) return { role: 'agent' };
+  if (header.startsWith('Basic ')) {
+    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+    const idx = decoded.indexOf(':');
+    const user = decoded.slice(0, idx);
+    const pass = decoded.slice(idx + 1);
+    if (accounts().get(user) === pass) return { role: 'human', user };
+  }
+  return null;
 }
 
 function currentState(id: string): State {
@@ -61,24 +70,28 @@ function currentState(id: string): State {
   return (items.find((i) => i.id === id)?.publishState as State) || 'draft';
 }
 
-function setState(id: string, next: State, actor: string, note = '') {
+function logTransition(entry: Record<string, unknown>) {
+  const log = readJson<any[]>(LOG_FILE, []);
+  log.unshift({ ...entry, at: new Date().toISOString() });
+  writeJson(LOG_FILE, log.slice(0, 500));
+}
+
+function setState(id: string, next: State, actor: string, method: 'human' | 'agent', note = '') {
   const prev = currentState(id);
   const overrides = readJson<Record<string, State>>(STATE_FILE, {});
   overrides[id] = next;
   writeJson(STATE_FILE, overrides);
-
-  const log = readJson<any[]>(LOG_FILE, []);
-  log.unshift({
-    id,
-    from: prev,
-    to: next,
-    actor,
-    method: 'human',
-    note,
-    at: new Date().toISOString(),
-  });
-  writeJson(LOG_FILE, log.slice(0, 500));
+  logTransition({ id, from: prev, to: next, actor, method, note });
 }
+
+function readItems(): any[] {
+  return readJson<any[]>(CONTENT_FILE, []);
+}
+function writeItems(list: any[]) {
+  writeJson(CONTENT_FILE, list);
+}
+
+/* ---------------------------- 人的页面 ---------------------------- */
 
 function page(actor: string): string {
   const rows = items
@@ -101,6 +114,13 @@ function page(actor: string): string {
       </tr>`;
     })
     .join('');
+
+  const soon = expiringSoon(items);
+  const soonHtml = soon.length
+    ? `<div class="soon"><b>${soon.length} 条即将到期</b><span>${soon
+        .map((i) => `${i.title}（${i.expiresAt}）`)
+        .join('、')}</span></div>`
+    : '';
 
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="robots" content="noindex">
@@ -135,26 +155,36 @@ function page(actor: string): string {
   .rules{border:1px solid #fde2b8;background:#fffbf2;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:grid;gap:6px;font-size:12.5px}
   .rules b{font-size:12px;color:#b45309;margin-bottom:2px}
   .rules label{display:flex;gap:8px;align-items:center;color:#525252;cursor:pointer}
+  .api{margin-top:28px;border:1px solid #e9e9e9;background:#fff;border-radius:10px;padding:16px 20px;font-size:12.5px;color:#525252}
+  .api h2{font-size:13px;margin:0 0 8px}
+  .api code{font-family:ui-monospace,monospace;font-size:11.5px;background:#fafafa;border:1px solid #e9e9e9;border-radius:4px;padding:1px 5px}
+  .api p{margin:6px 0}
 </style></head>
 <body>
 <header><h1>内容后台</h1><span class="who">${actor}</span></header>
 <main>
+  ${soonHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>
     <label><input type="checkbox" class="rule"> 不涉政治、宗教、民族敏感内容</label>
     <label><input type="checkbox" class="rule"> 不含他人隐私与未公开数据</label>
     <label><input type="checkbox" class="rule"> 不转载未授权付费内容与破解教程</label>
   </div>
-  ${(() => {
-    const soon = expiringSoon(items);
-    if (!soon.length) return '';
-    return `<div class="soon"><b>${soon.length} 条即将到期</b><span>${soon.map((i) => `${i.title}（${i.expiresAt}）`).join('、')}</span></div>`;
-  })()}
-  <p class="note">改状态会写入发布记录。过期内容会自动从列表下架，详情页标注已截止。</p>
+  <p class="note">改状态会写入发布记录。过期内容保留展示，仅标注已截止。</p>
   <table>
     <thead><tr><th>ID</th><th>标题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
+
+  <div class="api">
+    <h2>agent 接口</h2>
+    <p>请求头带 <code>Authorization: Bearer $AGENT_TOKEN</code></p>
+    <p><code>GET /api/items</code> 列表 · <code>GET /api/items/:id</code> 单条</p>
+    <p><code>PUT /api/items/:id</code> 新建或更新（JSON body，写入 content/items.json）</p>
+    <p><code>DELETE /api/items/:id</code> 删除</p>
+    <p><code>POST /api/state</code> body <code>{"id":"g01","state":"published"}</code></p>
+    <p><code>POST /api/build</code> 重新构建并部署</p>
+  </div>
 </main>
 <div id="msg"></div>
 <script>
@@ -165,8 +195,7 @@ function page(actor: string): string {
       const id = btn.dataset.id, state = btn.dataset.state;
       if (state === 'published') {
         const all = [...document.querySelectorAll('.rule')];
-        const ok = all.every(r => r.checked);
-        if (!ok) { toast('发布前先确认三条合规红线'); return; }
+        if (!all.every(r => r.checked)) { toast('发布前先确认三条合规红线'); return; }
         if (!confirm('确认发布？三条合规红线已逐条核对。')) return;
       }
       btn.disabled = true;
@@ -190,43 +219,135 @@ function page(actor: string): string {
 </body></html>`;
 }
 
-const server = http.createServer((req, res) => {
-  const actor = authorized(req);
-  if (!actor) {
+/* ---------------------------- HTTP ---------------------------- */
+
+function json(res: http.ServerResponse, code: number, data: unknown) {
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(data));
+}
+
+function body(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve) => {
+    let d = '';
+    req.on('data', (c) => (d += c));
+    req.on('end', () => resolve(d));
+  });
+}
+
+const server = http.createServer(async (req, res) => {
+  const who = identify(req);
+  if (!who) {
+    if (req.url?.startsWith('/api/')) return json(res, 401, { error: '需要 token 或登录' });
     res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="admin"' });
-    res.end('需要登录');
-    return;
+    return res.end('需要登录');
   }
 
-  if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
+  const url = req.url || '/';
+  const actor = who.role === 'agent' ? 'agent' : who.user;
+
+  // 页面
+  if (req.method === 'GET' && (url === '/' || url === '/index.html')) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(page(actor));
-    return;
+    return res.end(page(actor));
   }
 
-  if (req.method === 'POST' && req.url === '/api/state') {
-    let body = '';
-    req.on('data', (c) => (body += c));
-    req.on('end', () => {
-      try {
-        const { id, state } = JSON.parse(body || '{}');
-        if (!id || !STATES.includes(state)) throw new Error('参数不合法');
-        if (!items.some((i) => i.id === id)) throw new Error('内容不存在：' + id);
-        setState(id, state, actor);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, id, state }));
-      } catch (e: any) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
-      }
+  // GET /api/items
+  if (req.method === 'GET' && url === '/api/items') {
+    return json(res, 200, readItems().map((i) => ({ ...i, publishState: currentState(i.id) })));
+  }
+
+  // GET /api/items/:id
+  const one = url.match(/^\/api\/items\/([\w-]+)$/);
+  if (one && req.method === 'GET') {
+    const item = readItems().find((i) => i.id === one[1]);
+    if (!item) return json(res, 404, { error: '不存在' });
+    return json(res, 200, { ...item, publishState: currentState(item.id) });
+  }
+
+  // PUT /api/items/:id 新建或更新
+  if (one && req.method === 'PUT') {
+    const id = one[1];
+    let data: any;
+    try {
+      data = JSON.parse(await body(req));
+    } catch {
+      return json(res, 400, { error: 'body 不是合法 JSON' });
+    }
+    if (!data.title || !data.type) return json(res, 400, { error: '至少需要 title 和 type' });
+
+    const list = readItems();
+    const idx = list.findIndex((i) => i.id === id);
+    const prev = idx >= 0 ? list[idx] : null;
+    const next = {
+      id,
+      status: '待审核',
+      publishState: 'draft',
+      people: [],
+      tags: [],
+      ...prev,
+      ...data,
+      id,
+      publishState: data.publishState ?? prev?.publishState ?? 'draft',
+    };
+    if (idx >= 0) list[idx] = next;
+    else list.push(next);
+    writeItems(list);
+    logTransition({
+      id,
+      from: prev ? 'update' : 'create',
+      to: next.publishState,
+      actor,
+      method: who.role === 'agent' ? 'agent' : 'human',
+    });
+    return json(res, 200, { ok: true, id, created: !prev });
+  }
+
+  // DELETE /api/items/:id
+  if (one && req.method === 'DELETE') {
+    const list = readItems();
+    const idx = list.findIndex((i) => i.id === one[1]);
+    if (idx < 0) return json(res, 404, { error: '不存在' });
+    list.splice(idx, 1);
+    writeItems(list);
+    logTransition({
+      id: one[1],
+      from: 'delete',
+      to: 'deleted',
+      actor,
+      method: who.role === 'agent' ? 'agent' : 'human',
+    });
+    return json(res, 200, { ok: true });
+  }
+
+  // POST /api/state
+  if (req.method === 'POST' && url === '/api/state') {
+    try {
+      const { id, state, note } = JSON.parse((await body(req)) || '{}');
+      if (!id || !STATES.includes(state)) throw new Error('参数不合法');
+      if (!items.some((i) => i.id === id)) throw new Error('内容不存在：' + id);
+      setState(id, state, actor, who.role === 'agent' ? 'agent' : 'human', note || '');
+      return json(res, 200, { ok: true, id, state });
+    } catch (e: any) {
+      return json(res, 400, { error: e.message });
+    }
+  }
+
+  // POST /api/build
+  if (req.method === 'POST' && url === '/api/build') {
+    json(res, 202, { ok: true, message: '构建已开始，结果看服务日志' });
+    execFile('pnpm', ['build'], { cwd: ROOT }, (err, stdout, stderr) => {
+      if (err) console.error('[build] 失败', stderr || err.message);
+      else console.log('[build] 完成', stdout.split('\n').filter(Boolean).pop());
     });
     return;
   }
 
-  res.writeHead(404);
-  res.end('not found');
+  json(res, 404, { error: 'not found' });
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`后台已启动：http://127.0.0.1:${PORT}  （账号见 ADMIN_USERS，默认 admin / admin123）`);
+  console.log(`后台：http://127.0.0.1:${PORT}`);
+  console.log(`  - 人：Basic Auth（ADMIN_USERS，默认 admin/admin123）`);
+  console.log(`  - agent：Bearer token（AGENT_TOKEN ${AGENT_TOKEN ? '已配置' : '未配置，agent 接口关闭'}）`);
+  console.log('  - 内容文件：content/items.json');
 });

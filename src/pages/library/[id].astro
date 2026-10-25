@@ -80,6 +80,16 @@ rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
               </div>
             </section>
           )}
+          {item.extra?.pitfalls && (
+            <section>
+              <h2>常见错误</h2>
+              <ul class="pitfalls">
+                {item.extra.pitfalls.map((p) => (
+                  <li>{p}</li>
+                ))}
+              </ul>
+            </section>
+          )}
           {item.extra?.usage && (
             <section>
               <h2>我们自己的使用记录</h2>
@@ -165,16 +175,6 @@ rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
         <section>
           <h2>复盘</h2>
           <p>{item.extra.recap}</p>
-        </section>
-      )}
-
-      {!item.extra?.outline && !item.extra?.recap && (
-        <section>
-          <h2>这件事是什么</h2>
-          <p>{item.summary}</p>
-          <p style="color:var(--muted);">
-            详细过程、踩坑记录和可复用的材料，整理后补到这里。当前的条目信息以右侧为准。
-          </p>
         </section>
       )}
 

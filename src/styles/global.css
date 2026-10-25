@@ -949,6 +949,23 @@ kbd {
   font-size: 11px;
 }
 
+.pitfalls { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pitfalls li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: var(--leading-relaxed);
+  color: var(--text-2);
+}
+.pitfalls li::before {
+  content: "×";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
 /* ---------------------------- 来源 ---------------------------- */
 
 .source-line {
