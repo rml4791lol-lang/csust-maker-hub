@@ -68,6 +68,22 @@ sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 sudo systemctl reload caddy
 ```
 
+### 线上后台与定时构建（2026-10-25 接入）
+
+- 源码在服务器 `~/csust-maker-hub`（rsync 快照，无 `.git`）。从本机更新代码时**必须排除 `.env.admin`**（含 AGENT_TOKEN，rsync `--delete` 会把它删掉）：
+
+  ```bash
+  rsync -az --delete --exclude node_modules --exclude dist --exclude .astro \
+    --exclude .git --exclude screenshots --exclude .env.admin \
+    -e "ssh -i ~/.ssh/tencent_hk_hermes.pem" \
+    ./ ubuntu@43.161.198.195:~/csust-maker-hub/
+  ```
+
+- `csust-admin.service`：后台常驻，监听 `127.0.0.1:3210`；环境文件 `~/csust-maker-hub/.env.admin`（AGENT_TOKEN / DEPLOY_TARGET / ADMIN_PORT）。
+- Caddy 路由：`an520.xin/admin/` 剥前缀反代 3210（备份：`Caddyfile.bak-20261025-csust-admin`）。agent 调用走 `https://an520.xin/admin/api/*`，带 `Authorization: Bearer $AGENT_TOKEN`。
+- `csust-build-daily.timer`：每天 03:30 在服务器上 `pnpm build` + rsync 到 `/var/www/csust-maker/`，让过期标注和内容更新自动生效。
+- 注意：后台写入的是**服务器上**的 `content/items.json`，本机仓库不会自动同步回来；定期把服务器的 `content/`、`src/data/` 拉回本机提交。
+
 ### 回滚
 
 本次上线前备份：`/etc/caddy/Caddyfile.bak-20261024-csust-maker`
