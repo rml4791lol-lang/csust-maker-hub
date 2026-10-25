@@ -825,5 +825,40 @@
       ],
       "usage": "通用工程实践，本项目自身即按此流程执行（密钥只在服务器 env 文件，不入 git）。本站成员事故案例，[待补充]。"
     }
+  },
+  {
+    "id": "g14",
+    "type": "guide",
+    "publishState": "published",
+    "title": "免费把网站上线：从只有自己能开，到发链接别人就能看",
+    "summary": "g09 做的东西只在你电脑上。Cloudflare Pages 连一次仓库，以后 git push 就自动上线，自带 HTTPS。",
+    "date": "2026-10-26",
+    "status": "可照做",
+    "people": [],
+    "tags": [
+      "部署",
+      "上线",
+      "vibe coding"
+    ],
+    "author": "安大王",
+    "extra": {
+      "scene": "照着《第一次用 AI 写代码》做出了东西，但它只活在你电脑的 localhost。同学问「发我看看」，你只能录屏。上线这步听着吓人，实际免费方案连服务器都不用租：把仓库连给托管平台，push 即上线。",
+      "path": [
+        "先把代码推上 GitHub（见《AI 改崩了怎么办》第 6 步），确认仓库里有能构建的完整项目。",
+        "打开 Cloudflare Pages（pages.cloudflare.com），用 GitHub 账号登录，选「连接 Git 仓库」→ 选你的仓库。",
+        "构建配置：框架选 Astro 时构建命令是 npm run build，产物目录填 dist；纯静态 HTML 项目选「无框架」，构建命令留空、产物目录填根目录。第一次不确定就让 AI 看着仓库帮你填（提示词见下）。",
+        "点部署，两三分钟后拿到一个 https://xxx.pages.dev 的网址，手机开 4G（别连同一 WiFi）打开验收一遍。",
+        "要用自己的域名：Cloudflare Pages 项目设置里 Custom domains 添加，按提示去域名商处加一条 CNAME 记录，HTTPS 证书自动配。",
+        "以后更新 = git push。push 上去平台自动重新构建上线，回滚在部署历史里点一下就行。"
+      ],
+      "prompt": "我的仓库要部署到 Cloudflare Pages，帮我确定构建配置：\n1) 读仓库结构（package.json / astro.config / 纯 HTML？），告诉我构建命令和产物目录该填什么；\n2) 检查有没有只能在本地跑的假设（写死的 localhost、缺失的环境变量），列出来；\n3) 环境变量和密钥必须走平台的环境变量设置，绝不写进代码（安全红线见《Vibe coding 安全红线》）；\n4) 给出第一次部署失败的排查顺序。",
+      "pitfalls": [
+        "GitHub Pages 免费版只支持公开仓库——私有仓库要么公开、要么升级 Pro（学生认证 GitHub Student Developer Pack 免费 Pro），或者直接用 Cloudflare Pages（私有仓库免费）。",
+        "密钥写进前端代码会跟着部署一起公开——部署前过一遍《Vibe coding 安全红线》的自查提示词。",
+        "构建命令里的产物目录填错（dist / build / out 各框架不同）是第一次部署失败的头名原因：看构建日志的最后几行，找不到输出目录它会明说。",
+        "Cloudflare 国内访问速度有波动，主要给校内同学看的可以接受；追求稳定就放自己的服务器（本站的做法）。"
+      ],
+      "usage": "本站自身经历完整部署链路（构建 → rsync 上线，见 README）。Cloudflare Pages 学生实测数据，[待补充]——照做的人请在底部反馈「照做出来了」。"
+    }
   }
 ]

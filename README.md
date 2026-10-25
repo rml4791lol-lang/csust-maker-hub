@@ -71,6 +71,8 @@ sudo systemctl reload caddy
 
 ### 线上后台与定时构建（2026-10-25 接入）
 
+> 定期同步服务器运营数据：`bash scripts/sync-from-server.sh`（拉回内容/状态/开关/指标，见 docs/contributing.md「双真源」）
+
 - 源码在服务器 `~/csust-maker-hub`（rsync 快照，无 `.git`）。从本机更新代码时**必须排除 `.env.admin`**（含 AGENT_TOKEN，rsync `--delete` 会把它删掉）：
 
   ```bash
@@ -135,5 +137,4 @@ sudo systemctl reload caddy
 - [ ] 内容替换：现有数据是演示用的占位，等真实成员和项目信息
 - [ ] 需求表单：目前提交走 `mailto:`，建议换成飞书表单 / 多维表格
 - [ ] 数据源：成员和内容改为从飞书多维表格同步（现在是本地 TS 文件）
-- [ ] 404 页面：目前未知路径会回落到首页
 - [ ] 品牌名确认：域名此前是「安芯跃动」，现站名为「长理创客」

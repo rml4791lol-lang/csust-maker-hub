@@ -130,5 +130,5 @@ sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 ## 5. 站长的责任边界
 
 - 加 collaborator、发 AGENT_TOKEN、加服务器公钥、改后台密码（服务器 `.env.admin` 的 `ADMIN_USERS`）。
-- 定期把服务器的 `content/`、`src/data/`、`metrics.json` 拉回本机提交（分歧防护）。
+- 定期把服务器的运营数据拉回本机提交（分歧防护）：`bash scripts/sync-from-server.sh`。
 - 审核内容发布（后台点发布，或授权 agent 代审）。
