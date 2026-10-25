@@ -38,6 +38,15 @@ const FLAGS_FILE = join(ROOT, 'content/flags.json');
 const TOOLS_FILE = join(ROOT, 'content/tools.json');
 const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
+/** 多 agent token：AGENT_TOKENS="token:loong333,token2:Qiu-Py"——日志与审核记录按名字区分操作人 */
+const AGENT_TOKENS: { token: string; name: string }[] = [
+  ...(AGENT_TOKEN ? [{ token: AGENT_TOKEN, name: '站长' }] : []),
+  ...(process.env.AGENT_TOKENS || '')
+    .split(',')
+    .map((pair) => pair.split(':'))
+    .filter(([token]) => (token || '').trim())
+    .map(([token, name]) => ({ token: token.trim(), name: (name || 'agent').trim() })),
+];
 /** 部署目标目录。设置后 /api/build 构建成功会 rsync 过去（服务器本机路径，如 /var/www/csust-maker/） */
 const DEPLOY_TARGET = process.env.DEPLOY_TARGET || '';
 /** 复核周期天数：超过该天数未复核的已发布内容进「待复核」清单（issue #13） */
@@ -67,11 +76,12 @@ function writeJson(file: string, data: unknown) {
   writeFileSync(file, JSON.stringify(data, null, 2) + '\n', 'utf8');
 }
 
-type Who = { role: 'human'; user: string } | { role: 'agent' } | null;
+type Who = { role: 'human'; user: string } | { role: 'agent'; user: string } | null;
 
 function identify(req: http.IncomingMessage): Who {
   const header = req.headers.authorization || '';
-  if (AGENT_TOKEN && header === `Bearer ${AGENT_TOKEN}`) return { role: 'agent' };
+  const agentHit = AGENT_TOKENS.find((t) => header === `Bearer ${t.token}`);
+  if (agentHit) return { role: 'agent', user: agentHit.name };
   if (header.startsWith('Basic ')) {
     const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
     const idx = decoded.indexOf(':');
@@ -525,7 +535,7 @@ const server = http.createServer(async (req, res) => {
     return res.end('需要登录');
   }
 
-  const actor = who.role === 'agent' ? 'agent' : who.user;
+  const actor = who.role === 'agent' ? `agent:${who.user}` : who.user;
 
   // 页面
   if (req.method === 'GET' && (url === '/' || url === '/index.html')) {
@@ -749,6 +759,6 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`后台：http://127.0.0.1:${PORT}`);
   console.log(`  - 人：Basic Auth（ADMIN_USERS，默认 admin/admin123）`);
-  console.log(`  - agent：Bearer token（AGENT_TOKEN ${AGENT_TOKEN ? '已配置' : '未配置，agent 接口关闭'}）`);
+  console.log(`  - agent：Bearer token（${AGENT_TOKENS.length} 枚已配置${AGENT_TOKENS.length ? '：' + AGENT_TOKENS.map((t) => t.name).join('、') : '，未配置则 agent 接口关闭'}）`);
   console.log('  - 内容文件：content/items.json');
 });

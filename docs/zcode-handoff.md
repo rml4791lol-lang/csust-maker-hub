@@ -1,115 +1,36 @@
-# 交接指令：长理创客内部知识站（交给 ZCode 继续开发）
+# 工作区上下文：长理创客内部知识站（2026-10-26）
 
-把下面整段直接粘给 ZCode。
+> 本文档是**活的状态快照**：任何 agent / 新会话 / 协作者接手前先读完。上手操作见 `docs/contributing.md`，领域词汇见根 `GLOSSARY.md`，设计约束见根 `AGENTS.md`。
 
----
+## 站点现状（全部已上线并验证）
 
-## 任务
+- **地址**：https://an520.xin · 后台 https://an520.xin/admin/（admin/admin123，建议尽快改）
+- **内容**：32 条（content/items.json），攻略 g01-g14 + skill ×3 + 模板/外链/培训/项目/竞赛/活动/课程/视频
+- **内容线**：工具实测与省钱（g04-g08，收录自 ai.an520.xin）· 入门与 vibe coding 全生命周期（g09-g14：第一次写代码 → 验收 → git 回滚 → 部署上线 → 学习姿势 → 安全红线）
+- **功能开关**：content/flags.json，9 个开关控制首页六区块 + 数据页两面板 + 工具导航。后台「功能开关」区点切换 → 点重新构建生效（静态站构建时应用）。受众标注：全员/核心/四部门——静态站无登录，受众是管理侧标注
+- **工具/API 目录**：content/tools.json，/tools 页三分组展示（含状态与受众）
+- **数据回路**：详情页浏览打点 + 有用/没用/照做三态反馈 → 服务器 metrics.json（gitignore）→ 后台汇总 + 数据页实时排行
+- **保鲜机制**：90 天复核（REVIEW_DAYS 可配）+ 后台待复核清单 + /api/review
+- **推送**：发布即推 IM 卡片（飞书签名/企微双通道）+ 每天 03:30 运营简报——**当前 dry-run，等站长给 webhook**（scripts/im-push.ts）
+- **基础设施**：404 页（Caddy handle_errors）· csust-admin.service · csust-build-daily.timer · sync-from-server.sh（双真源同步）
 
-继续开发「长理创客内部知识站」。项目已上线，现在要把内容和后台做完整。
+## 架构事实（改代码前必读）
 
-**项目路径**：`/Users/an/Desktop/Atlas/长理创客/技术分享网站`
-**线上地址**：https://an520.xin
-**代码仓库**：https://github.com/rml4791lol-lang/csust-maker-hub（main 分支）
+1. **双真源**：内容条目的运营真源在**服务器** `~/csust-maker-hub/content/`（后台与 agent API 写它）；代码真源在 **git main**。本机 `bash scripts/sync-from-server.sh` 拉回，rsync 上线前必须先拉，否则互相覆盖
+2. **push ≠ 上线**：上线 = 本机 rsync（contributing.md 第 4 节有完整命令与排除清单——漏排除 `.env.admin` / `metrics.json` 会出事故，已发生过一次）
+3. **验证链**：`pnpm test`（23 个）→ `pnpm build`（37 页）→ `pnpm test:smoke`。**后台 UI 改动必须真的 curl 一次页面**——曾有 import 缺失导致线上崩溃循环而六轮本地验证全绿
+4. **服务器红线**：同机还有十几个别的站点（/var/www/an520-*、Caddy 其他块），只碰 csust 相关；改 Caddyfile 前备份、validate 后 reload
+5. **多 agent token**：服务器 `.env.admin` 的 `AGENT_TOKENS="token:名字,…"`，日志按 `agent:名字` 留痕；`AGENT_TOKEN` 是站长本人的
 
-## 先做的事（不要跳过）
+## 工单与协作
 
-1. 读 `AGENTS.md`、`README.md`、`docs/specs/0001-internal-knowledge-site-v2.md`
-2. 读 `src/data/items.ts` 的类型定义，理解 Item 结构
-3. 读 `content/items.json` 里 `g01`（用 AI 把部门周报自动化）这条，它是**内容标准样板**
-4. 跑起来：`pnpm dev --port 4321`，打开 http://localhost:4321
+- GitHub：rml4791lol-lang/csust-maker-hub。#9-#14 已关闭（评论带证据），#1 是总 spec（等运营成功标准再关）
+- 协作入口：docs/contributing.md（人 + agent 双轨）· 工单技能配置在 docs/agents/（mattpocock 全套）· 领域词表 GLOSSARY.md
+- 协作者：loong333、Qiu-Py（collaborator 邀请已发待接受；agent token 已按人签发）
 
-## 技术栈与命令
+## 下一步（按优先级）
 
-- Astro 5 + Tailwind 4，纯静态输出，包管理用 `pnpm`
-- `pnpm dev --port 4321` 本地开发
-- `pnpm build` 构建到 `dist/`
-- `pnpm test` 内容校验（Vitest，11 条）
-- `pnpm test:smoke` 构建烟雾检查（需先 build）
-- `pnpm admin` 启动后台（http://127.0.0.1:3210，默认 admin/admin123）
-
-## 架构要点
-
-- **内容真源是 `content/items.json`**，`src/data/items.ts` 读取它并加类型
-- **发布状态**在 `src/data/publish-state.json`（覆盖 JSON 里的默认值），审核日志在 `review-log.json`
-- **后台** `scripts/admin-server.ts`：人用 Basic Auth 点按钮；agent 用 `Authorization: Bearer $AGENT_TOKEN` 调 API
-- **agent 可用接口**：`GET/PUT/DELETE /api/items[/:id]`、`POST /api/state`、`POST /api/build`
-- 五类内容：`guide`（攻略）/ `skill`（技能指令）/ `template`（模板）/ `link`（外部项目）/ `training`（培训）；另有 5 个历史类型 `project/competition/activity/course/video` 保留兼容（`items.json` 里还有这些条目），一切以 `src/data/items.ts` 的类型定义为准
-- 过期：`expiresAt` 字段，过期不隐藏，列表标「已截止」、详情页顶部提示
-- 部署：`rsync -az --delete --chmod=D755,F644 --exclude '.DS_Store' -e "ssh -i ~/.ssh/tencent_hk_hermes.pem" dist/ ubuntu@43.161.198.195:/var/www/csust-maker/`
-
-## 要做的事（按优先级）
-
-### P0：把剩余内容按标准重写
-
-现在只有 `g01`、`g02` 两条攻略是完整版。`g04`/`g06`/`g07`/`g08` 是半完整攻略（有部分字段但不够标准），其余 18 条（skill/template/training 等）太浅（3 行步骤）。先重写 4 条攻略，再充实其他类型，都按 `g01` 的标准：
-
-**每条攻略必须有：**
-
-1. `extra.scene`：具体场景。要写到「周五 17:00 要交」「平均花 90 分钟」这种程度，不写「提高效率」这种空话
-2. `extra.path`：4~6 步，每步要能照着做。写清用什么工具、点什么、说什么
-3. `extra.prompt`：完整可复制的提示词，带硬性要求（禁止空话、保留数字、不确定标 `[待补充]`）
-4. `extra.pitfalls`：3 条真实容易踩的坑，不要写「注意安全」这种废话
-5. `extra.usage`：谁用过、用了多久、效果如何，有数字
-
-**判断标准**：一个没做过的人照着做完，能产出东西。
-
-### P1：把后台部署到线上
-
-现在后台只跑在本机。要求：
-
-- 服务器 `ubuntu@43.161.198.195` 上放源码（或至少 Node 能跑的产物）
-- systemd 服务守护 `pnpm admin`
-- Caddy 加路由：`an520.xin/admin` 反代到 `127.0.0.1:3210`
-- 注意：这台服务器还跑着其他服务（tryon、buy、ai、info-tech 等），**不要动其他站点的 Caddy 配置**
-
-### P2：定时构建
-
-内容改完要重新构建才生效。加一个每天凌晨的定时构建（cron 或 systemd timer），让过期标注、内容更新自动生效。
-
-### P3：真实数据替换
-
-现在成员和部分内容是示例数据。等用户提供真实名单后替换 `src/data/members.ts`。
-
-## 硬约束（违反就是做错）
-
-1. **设计风格**：白底、黑字、单一蓝色点缀（`#1a56db`）。不做渐变、不做紫色、不做营销卡片、不做轮播
-2. **不做搜索框**：一期内容少，靠浏览
-3. **不做提需求 / 服务台 / 工单**：已整体移除，不要加回来
-4. **不做账号注册**：后台只有 2 个管理员 + 1 个 agent token
-5. **不做视频托管**：视频只存外部链接
-6. **内容必须具体真实可用**：不写方法论空话，每条要有可执行步骤和产出
-7. **合规红线**：不涉政治宗教民族敏感；不发他人隐私与未公开数据；不转载未授权付费内容与破解教程
-8. **全站 noindex**：内部使用，不被搜索引擎收录
-9. **中文排版**：标题 `text-wrap: balance`，正文 `text-wrap: pretty`，数字统一 `tabular-nums`，字号用 `var(--text-*)` token
-10. **不做滚动隐藏**：内容始终可见
-
-## 验收标准
-
-改完必须全部通过：
-
-```bash
-pnpm test        # 内容校验 11 条通过
-pnpm test:smoke  # 构建烟雾检查通过
-pnpm build       # 构建成功
-```
-
-然后部署，用浏览器验证：
-
-- https://an520.xin/ 首页正常
-- https://an520.xin/library 内容库能筛五类
-- 任选一条攻略详情页，检查是否包含：场景 / 路径 / 提示词 / 常见错误 / 使用记录
-- 手机宽度（390px）下不横向溢出
-
-## 交付物
-
-1. 改完的代码，提交到 main 分支并 push
-2. 部署到线上
-3. 汇报时给出：改了哪些内容、测试结果、线上截图
-
-## 不要做的事
-
-- 不要重构已有的构建/部署流程
-- 不要引入新框架、新依赖（除了测试相关）
-- 不要改动 `/Users/an/Desktop/Atlas/长理创客/技术分享网站` 以外的文件
-- 不要碰服务器上其他站点的配置（`/var/www/an520-*`、其他 Caddy 路由）
+1. **#10 webhook**：站长给飞书群机器人（URL + 签名 secret）或企微机器人地址 → 写进服务器 .env.admin → restart → dry-run 变实发
+2. **真实数据替换（P3）**：成员/项目还是占位名（林知/陈屿…），等真实名单
+3. **spec #1 关闭条件**：上线一个月验证成功标准（3 个非技术成员打开过；1 人照做产出——看 metrics 的 confirmed；有人催更）
+4. 可能的下一步：GitHub Actions 自动部署（push main 即上线，需站长配 SSH secret）· 反馈周报推管理员 · 内容条目的使用记录回填（confirmed 数据攒起来后）

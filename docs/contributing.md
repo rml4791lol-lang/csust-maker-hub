@@ -36,7 +36,7 @@ pnpm admin      # 本地后台 http://127.0.0.1:3210（admin/admin123）
 
 ### 线上 agent API（Bearer token）
 
-向站长要 `AGENT_TOKEN`（存服务器 `~/csust-maker-hub/.env.admin`，**绝不入仓库**）。所有请求带 `Authorization: Bearer <token>`，地址前缀 `https://an520.xin/admin/api`：
+向站长要 **AGENT_TOKEN**（存服务器 `~/csust-maker-hub/.env.admin`，**绝不入仓库**）。token 按人独立签发（服务器 `AGENT_TOKENS="token:你的名字,…"`），日志与审核记录会标 `agent:你的名字`。所有请求带 `Authorization: Bearer <token>`，地址前缀 `https://an520.xin/admin/api`：
 
 | 端点 | 用途 |
 |---|---|
