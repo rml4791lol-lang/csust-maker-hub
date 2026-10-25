@@ -22,7 +22,14 @@ function read(rel) {
   return readFileSync(p, 'utf8');
 }
 
-// 1. 关键页面存在
+// 1. 关键页面存在（/tools 取决于功能开关）
+let flagTools = true;
+let flagHomeEntries = true;
+try {
+  const flags = JSON.parse(readFileSync('content/flags.json', 'utf8'));
+  flagTools = flags.find((f) => f.key === 'tools')?.enabled ?? true;
+  flagHomeEntries = flags.find((f) => f.key === 'home.entries')?.enabled ?? true;
+} catch { /* 无开关文件按全开 */ }
 const pages = [
   'index.html',
   'library/index.html',
@@ -31,12 +38,15 @@ const pages = [
   'about/index.html',
   'stats/index.html',
 ];
+if (flagTools) pages.push('tools/index.html');
 for (const p of pages) must(existsSync(join(DIST, p)), `缺关键页面：dist/${p}`);
 
-// 2. 首页包含五类入口
+// 2. 首页包含五类入口（受功能开关 home.entries 控制）
 const home = read('index.html');
-for (const label of ['攻略', '技能指令', '模板素材', '外部项目', '培训']) {
-  must(home.includes(label), `首页缺少分类入口：${label}`);
+if (flagHomeEntries) {
+  for (const label of ['攻略', '技能指令', '模板素材', '外部项目', '培训']) {
+    must(home.includes(label), `首页缺少分类入口：${label}`);
+  }
 }
 
 // 3. 首页出现至少一条内容标题（从 library 目录反查一条详情页）

@@ -47,6 +47,8 @@ pnpm admin      # 本地后台 http://127.0.0.1:3210（admin/admin123）
 | `POST /review` | `{"id":"..."}` 完成复核 |
 | `GET /metrics` | 浏览量 / 有用没用 / 照做数聚合 |
 | `GET /scaffold?type=<类型>` | 十类内容骨架 + 写作标准提示 |
+| `GET/PUT /flags` | 功能开关（首页区块 / 数据页面板 / 工具导航）。PUT `{"key":"home.cta","enabled":false}`，**重新构建后生效** |
+| `GET/PUT /tools` | 工具站与 API 目录（PUT 整表替换，字段校验见接口报错提示），**重新构建后生效** |
 
 写完内容默认 `publishState: "draft"`，让人在后台确认后发布（后台：https://an520.xin/admin/）。
 

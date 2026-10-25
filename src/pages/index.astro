@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import { site, stats } from '../data/site';
 import { items, typeMeta, sortedByDate } from '../data/items';
 import { members } from '../data/members';
+import { flagEnabled } from '../data/flags';
 import { publishedItems, isExpired } from '../data/validate';
 
 const latest = publishedItems(sortedByDate).slice(0, 8);
@@ -10,6 +11,7 @@ const working = publishedItems(sortedByDate)
   .filter((i) => i.status === '进行中' || i.status === '备赛中' || i.status === '报名中')
   .slice(0, 3);
 const people = members.slice(0, 8);
+const show = (k: string) => flagEnabled(k);
 ---
 
 <Base>
@@ -40,6 +42,7 @@ const people = members.slice(0, 8);
         </div>
       </div>
 
+      {show('home.workbench') && (
       <aside class="workbench" aria-label="本周工作台">
         <div class="wb-head">
           <span class="wb-title">本周工作台</span>
@@ -58,8 +61,10 @@ const people = members.slice(0, 8);
         </div>
         <a href="/library" class="wb-more">全部内容 <span>→</span></a>
       </aside>
+      )}
     </div>
 
+    {show('home.strip') && (
     <div class="strip">
       <div class="wrap strip-inner">
         {stats.map((s) => (
@@ -73,9 +78,11 @@ const people = members.slice(0, 8);
         </div>
       </div>
     </div>
+    )}
   </section>
 
   <!-- ================= 三入口 ================= -->
+  {show('home.entries') && (
   <section class="section" style="padding-top:40px;">
     <div class="wrap">
       <div class="entries reveal">
@@ -90,8 +97,10 @@ const people = members.slice(0, 8);
       </div>
     </div>
   </section>
+  )}
 
   <!-- ================= 最近内容 ================= -->
+  {show('home.latest') && (
   <section class="section" style="border-top:1px solid var(--line);">
     <div class="wrap">
       <div class="section-head reveal">
@@ -121,8 +130,10 @@ const people = members.slice(0, 8);
       </div>
     </div>
   </section>
+  )}
 
   <!-- ================= 成员 ================= -->
+  {show('home.people') && (
   <section class="section" style="border-top:1px solid var(--line);">
     <div class="wrap">
       <div class="section-head reveal">
@@ -150,8 +161,10 @@ const people = members.slice(0, 8);
       </div>
     </div>
   </section>
+  )}
 
   <!-- ================= CTA ================= -->
+  {show('home.cta') && (
   <section class="section" style="border-top:1px solid var(--line);padding-bottom:96px;">
     <div class="wrap reveal">
       <div style="max-width:720px;">
@@ -169,4 +182,5 @@ const people = members.slice(0, 8);
       </div>
     </div>
   </section>
+  )}
 </Base>

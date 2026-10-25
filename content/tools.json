@@ -1,0 +1,9 @@
+[
+  { "name": "PPT 工作台", "url": "https://ppt.an520.xin", "kind": "tool", "desc": "AI 驱动的 PPT 生成与编辑工作台", "audience": "all", "status": "正常" },
+  { "name": "AI 攻略站", "url": "https://ai.an520.xin", "kind": "tool", "desc": "站长的 AI 工具实测与省钱攻略，本站多条攻略收录自这里", "audience": "all", "status": "正常" },
+  { "name": "湘教版信息科技互动课堂", "url": "https://an520.xin/info-tech/", "kind": "tool", "desc": "湘教版信息科技教学互动页", "audience": "all", "status": "正常" },
+  { "name": "AI 变现导航", "url": "https://an520.xin/channels/", "kind": "tool", "desc": "AI 工具变现渠道导航", "audience": "all", "status": "正常" },
+  { "name": "ICC 赛事评分", "url": "https://an520.xin/icc/", "kind": "tool", "desc": "科创赛事智能评分系统", "audience": "竞赛部", "status": "正常" },
+  { "name": "API 中转", "url": "https://api.an520.xin", "kind": "api", "desc": "API 网关与模型中转，恢复时间以公告为准", "audience": "core", "status": "维护中" },
+  { "name": "内容后台", "url": "https://an520.xin/admin/", "kind": "internal", "desc": "内容审核与功能开关（管理员）", "audience": "core", "status": "正常" }
+]

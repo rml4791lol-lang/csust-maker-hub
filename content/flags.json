@@ -1,0 +1,65 @@
+[
+  {
+    "key": "home.strip",
+    "label": "首页·数据带",
+    "audience": "all",
+    "enabled": true,
+    "note": "首页底部的成员/条目统计条"
+  },
+  {
+    "key": "home.workbench",
+    "label": "首页·本周工作台",
+    "audience": "all",
+    "enabled": true,
+    "note": "右侧进行中内容面板"
+  },
+  {
+    "key": "home.entries",
+    "label": "首页·五类入口",
+    "audience": "all",
+    "enabled": true,
+    "note": "攻略/指令/模板/外部项目/培训五张入口卡"
+  },
+  {
+    "key": "home.latest",
+    "label": "首页·最近更新",
+    "audience": "all",
+    "enabled": true,
+    "note": ""
+  },
+  {
+    "key": "home.people",
+    "label": "首页·谁在做",
+    "audience": "all",
+    "enabled": true,
+    "note": ""
+  },
+  {
+    "key": "home.cta",
+    "label": "首页·行动引导",
+    "audience": "all",
+    "enabled": true,
+    "note": ""
+  },
+  {
+    "key": "stats.duty",
+    "label": "数据页·内容值班",
+    "audience": "core",
+    "enabled": true,
+    "note": "轮换排班面板"
+  },
+  {
+    "key": "stats.views",
+    "label": "数据页·浏览量排行",
+    "audience": "all",
+    "enabled": true,
+    "note": "实时面板"
+  },
+  {
+    "key": "tools",
+    "label": "工具站与 API 导航",
+    "audience": "all",
+    "enabled": true,
+    "note": "导航入口 + /tools 页"
+  }
+]

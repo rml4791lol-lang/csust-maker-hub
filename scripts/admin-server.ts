@@ -33,6 +33,9 @@ const STATE_FILE = join(ROOT, 'src/data/publish-state.json');
 const LOG_FILE = join(ROOT, 'src/data/review-log.json');
 /** 运行时指标：浏览量 + 反馈。线上服务器持有，gitignore，构建时被 src/data/metrics.ts 读走 */
 const METRICS_FILE = join(ROOT, 'metrics.json');
+/** 功能开关与工具目录：构建时被 src/data/flags.ts、tools.ts 读走，后台切换后需重新构建 */
+const FLAGS_FILE = join(ROOT, 'content/flags.json');
+const TOOLS_FILE = join(ROOT, 'content/tools.json');
 const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 /** 部署目标目录。设置后 /api/build 构建成功会 rsync 过去（服务器本机路径，如 /var/www/csust-maker/） */
@@ -236,6 +239,32 @@ function page(actor: string): string {
   </div>`
       : '';
 
+  // 功能开关与工具目录（issue: 功能开关/工具导航；构建时生效）
+  const flagsNow = readJson<any[]>(FLAGS_FILE, []);
+  const audText = (a: string) => (a === 'all' ? '全员' : a === 'core' ? '核心' : a);
+  const flagsHtml = flagsNow.length
+    ? `<div class="cfgbox"><b>功能开关</b><span>切换后要点一次下方「重新构建」才生效（静态站，构建时应用）。受众是标注说明——静态站无登录，不做按人隔离。</span>
+    ${flagsNow
+      .map(
+        (f) =>
+          `<div class="cfgrow"><span class="cfg-label">${f.label}</span><span class="cfg-aud">面向${audText(f.audience)}</span>${
+            f.note ? `<span class="cfg-note">${f.note}</span>` : ''
+          }<button class="op flagtoggle" data-key="${f.key}" data-on="${f.enabled ? 1 : 0}">${
+            f.enabled ? '已启用 · 停用' : '已停用 · 启用'
+          }</button></div>`
+      )
+      .join('')}
+  </div>`
+    : '';
+  const toolsNow = readJson<any[]>(TOOLS_FILE, []);
+  const toolsHtml = toolsNow.length
+    ? `<div class="cfgbox"><b>工具站目录</b><span>${toolsNow.length} 条，展示在 /tools。编辑走 <code>PUT /api/tools</code>（整表替换），改完重新构建。</span>
+    ${toolsNow
+      .map((t) => `<div class="cfgrow"><span class="cfg-label">${t.name}</span><span class="cfg-aud">面向${audText(t.audience)}</span><span class="cfg-note">${t.status ?? '正常'} · ${t.url}</span></div>`)
+      .join('')}
+  </div>`
+    : '';
+
   // IM 推送状态（issue #10）
   const imChannelNow = imChannel();
   const imStatus = imChannelNow
@@ -287,6 +316,15 @@ function page(actor: string): string {
   .api h2{font-size:13px;margin:0 0 8px}
   .api code{font-family:ui-monospace,monospace;font-size:11.5px;background:#fafafa;border:1px solid #e9e9e9;border-radius:4px;padding:1px 5px}
   .api p{margin:6px 0}
+  .cfgbox{border:1px solid #e9e9e9;background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:12.5px;display:grid;gap:8px}
+  .cfgbox>b{font-weight:600}
+  .cfgbox>span{color:#8a8a8a;font-size:12px}
+  .cfgbox code{font-family:ui-monospace,monospace;font-size:11px;background:#fafafa;border:1px solid #e9e9e9;border-radius:4px;padding:1px 5px}
+  .cfgrow{display:grid;grid-template-columns:150px 90px 1fr 130px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid #f0f0f0}
+  .cfg-label{font-weight:500}
+  .cfg-aud{color:#1a56db;font-size:11.5px;white-space:nowrap}
+  .cfg-note{color:#8a8a8a;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cfgrow .op{justify-self:end}
 </style></head>
 <body>
 <header><h1>内容后台</h1><span class="who">${actor}</span></header>
@@ -295,6 +333,8 @@ function page(actor: string): string {
   ${noAuthorHtml}
   ${reviewHtml}
   ${fbHtml}
+  ${flagsHtml}
+  ${toolsHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>
     <label><input type="checkbox" class="rule"> 不涉政治、宗教、民族敏感内容</label>
@@ -360,6 +400,28 @@ function page(actor: string): string {
         if (!r.ok) throw new Error(d.error || '操作失败');
         toast('已记录复核');
         setTimeout(()=>location.reload(), 500);
+      } catch (e) {
+        toast('失败：' + e.message);
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // 功能开关切换：保存后提示重新构建（静态站构建时生效）
+  document.querySelectorAll('.flagtoggle').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const key = btn.dataset.key, on = btn.dataset.on === '1';
+      btn.disabled = true;
+      try {
+        const r = await fetch('api/flags', {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ key, enabled: !on }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '操作失败');
+        toast('已切换，点「重新构建」生效');
+        setTimeout(()=>location.reload(), 600);
       } catch (e) {
         toast('失败：' + e.message);
         btn.disabled = false;
@@ -525,6 +587,48 @@ const server = http.createServer(async (req, res) => {
       标准: '判断标准：一个没做过的人照着做完，能产出东西。完整样板见 content/items.json 的 g01',
       scaffold: sk,
     });
+  }
+
+  // GET /api/flags — 功能开关读取；PUT — 切换单个开关
+  if (url === '/api/flags') {
+    if (req.method === 'GET') return json(res, 200, readJson(FLAGS_FILE, []));
+    if (req.method === 'PUT') {
+      const p = JSON.parse((await body(req)) || '{}');
+      const flags = readJson<any[]>(FLAGS_FILE, []);
+      const f = flags.find((x) => x.key === p?.key);
+      if (!f) return json(res, 400, { error: 'unknown key', allowed: flags.map((x) => x.key) });
+      const prev = f.enabled;
+      f.enabled = !!p.enabled;
+      writeJson(FLAGS_FILE, flags);
+      logTransition({ id: `flags:${p.key}`, from: prev, to: f.enabled, actor, method: who.role === 'agent' ? 'agent' : 'human', note: '功能开关切换' });
+      return json(res, 200, { ok: true, key: p.key, enabled: f.enabled, note: '重新构建后生效' });
+    }
+    return json(res, 405, { error: 'method not allowed' });
+  }
+
+  // GET /api/tools — 工具目录读取；PUT — 整表替换（带校验）
+  if (url === '/api/tools') {
+    const KINDS = ['tool', 'api', 'internal'];
+    const AUDIENCES = ['all', 'core', '技术部', '宣传部', '竞赛部', '创新创业部'];
+    if (req.method === 'GET') return json(res, 200, readJson(TOOLS_FILE, []));
+    if (req.method === 'PUT') {
+      let list: any[];
+      try {
+        list = JSON.parse((await body(req)) || 'null');
+      } catch {
+        return json(res, 400, { error: 'bad json' });
+      }
+      if (!Array.isArray(list)) return json(res, 400, { error: 'body 必须是工具数组' });
+      for (const [i, t] of list.entries()) {
+        if (!t?.name || !t?.url || !KINDS.includes(t.kind) || !AUDIENCES.includes(t.audience) || !/^https?:\/\//.test(t.url)) {
+          return json(res, 400, { error: `第 ${i} 条不合法`, 要求: 'name/url(http开头)/kind(tool|api|internal)/audience/desc 必填，audience 取 ' + AUDIENCES.join('|') });
+        }
+      }
+      writeJson(TOOLS_FILE, list);
+      logTransition({ id: 'tools', from: '-', to: `${list.length} 条`, actor, method: who.role === 'agent' ? 'agent' : 'human', note: '工具目录整表替换' });
+      return json(res, 200, { ok: true, count: list.length, note: '重新构建后生效' });
+    }
+    return json(res, 405, { error: 'method not allowed' });
   }
 
   // GET /api/items

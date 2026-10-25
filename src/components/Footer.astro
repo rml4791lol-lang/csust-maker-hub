@@ -1,6 +1,9 @@
 ---
 import { site } from '../data/site';
+import { flagEnabled } from '../data/flags';
 const year = new Date().getFullYear();
+// 与 Nav 同一开关规则：tools 关闭时页脚也不出现该入口
+const navItems = site.nav.filter((n) => flagEnabled('tools') || n.href !== '/tools');
 ---
 
 <footer class="footer">
@@ -17,7 +20,7 @@ const year = new Date().getFullYear();
       <div>
         <h5>站内</h5>
         <ul>
-          {site.nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+          {navItems.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
         </ul>
       </div>
 

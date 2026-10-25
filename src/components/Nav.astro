@@ -1,8 +1,11 @@
 ---
 import { site } from '../data/site';
+import { flagEnabled } from '../data/flags';
 const path = Astro.url.pathname;
 const isActive = (href: string) =>
   href === '/' ? path === '/' : path.startsWith(href);
+// 功能开关：tools 关闭时导航不出现该入口
+const navItems = site.nav.filter((n) => flagEnabled('tools') || n.href !== '/tools');
 ---
 
 <header class="nav">
@@ -13,7 +16,7 @@ const isActive = (href: string) =>
     </a>
 
     <nav class="nav-links" aria-label="主导航">
-      {site.nav.map((n) => (
+      {navItems.map((n) => (
         <a href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>{n.label}</a>
       ))}
     </nav>

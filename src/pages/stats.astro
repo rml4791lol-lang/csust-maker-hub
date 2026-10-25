@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import { items, typeMeta } from '../data/items';
 import { members, depts } from '../data/members';
 import { stats, dutyRota } from '../data/site';
+import { flagEnabled } from '../data/flags';
 
 // 类型分布：实际存在的类型，按数量降序；颜色取 typeMeta 单一来源
 const byType = [...new Set(items.map((i) => i.type))]
@@ -168,8 +169,8 @@ const dutyNow =
         </div>
       </section>
 
-      <!-- 内容值班（配置在 site.ts 的 dutyRota，空数组则不渲染） -->
-      {dutyShifts.length > 0 && dutyNow && (
+      <!-- 内容值班（配置在 site.ts 的 dutyRota，空数组则不渲染；受功能开关 stats.duty 控制） -->
+      {flagEnabled('stats.duty') && dutyShifts.length > 0 && dutyNow && (
         <section class="panel panel-wide">
           <div class="panel-head">
             <h3>内容值班</h3>
@@ -205,7 +206,8 @@ const dutyNow =
         </section>
       )}
 
-      <!-- 浏览量排行（实时，来自后台 metrics） -->
+      <!-- 浏览量排行（实时，来自后台 metrics；受功能开关 stats.views 控制） -->
+      {flagEnabled('stats.views') && (
       <section class="panel panel-wide">
         <div class="panel-head">
           <h3>浏览量排行</h3>
@@ -215,6 +217,7 @@ const dutyNow =
           <div class="views-empty">正在从后台读取浏览数据…</div>
         </div>
       </section>
+      )}
 
     </div>
   </div>
@@ -222,47 +225,51 @@ const dutyNow =
   <script type="application/json" id="item-index" set:html={JSON.stringify(itemIndex).replace(/</g, '\\u003c')}></script>
 
   <script>
-    const box = document.getElementById('viewsBox')!;
-    const meta = document.getElementById('viewsMeta')!;
+    const box = document.getElementById('viewsBox');
+    const meta = document.getElementById('viewsMeta');
+
     const esc = (s: string) =>
       String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 
-    fetch('/admin/api/metrics')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: any) => {
-        let titles: Record<string, { t: string; h: string }> = {};
-        try {
-          titles = JSON.parse(document.getElementById('item-index')?.textContent || '{}');
-        } catch { /* 索引缺失就用 id 兜底 */ }
+    // 功能开关关闭时面板不渲染，box/meta 为空则整段跳过
+    if (box && meta) {
+      fetch('/admin/api/metrics')
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((d: any) => {
+          let titles: Record<string, { t: string; h: string }> = {};
+          try {
+            titles = JSON.parse(document.getElementById('item-index')?.textContent || '{}');
+          } catch { /* 索引缺失就用 id 兜底 */ }
 
-        const fb = d.feedback || {};
-        const fbTotal = Object.values(fb).reduce(
-          (s: number, f: any) => s + (f.useful || 0) + (f.useless || 0) + (f.confirmed || 0),
-          0
-        );
-        const fbConfirmed = Object.values(fb).reduce((s: number, f: any) => s + (f.confirmed || 0), 0);
-        meta.textContent = `总浏览 ${d.total ?? 0} 次 · 反馈 ${fbTotal} 条 · 照做 ${fbConfirmed} 次`;
+          const fb = d.feedback || {};
+          const fbTotal = Object.values(fb).reduce(
+            (s: number, f: any) => s + (f.useful || 0) + (f.useless || 0) + (f.confirmed || 0),
+            0
+          );
+          const fbConfirmed = Object.values(fb).reduce((s: number, f: any) => s + (f.confirmed || 0), 0);
+          meta.textContent = `总浏览 ${d.total ?? 0} 次 · 反馈 ${fbTotal} 条 · 照做 ${fbConfirmed} 次`;
 
-        const rows = (Object.entries(d.views || {}) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 8);
-        if (!rows.length) {
-          box.innerHTML = '<div class="views-empty">还没有浏览数据——有人打开攻略后，这里就会长出来。</div>';
-          return;
-        }
-        const max = rows[0][1] || 1;
-        box.innerHTML = rows
-          .map(([id, n]) => {
-            const t = titles[id] || { t: id, h: `/library/${id}` };
-            const w = Math.max(4, Math.round((n / max) * 100));
-            const conf = fb[id]?.confirmed || 0;
-            // confirmed>0 时在浏览数旁带出「· K 照做」；总览行的合计见上方 viewsMeta
-            const extra = conf > 0 ? `<span class="hbar-confirmed">· ${conf} 照做</span>` : '';
-            return `<div class="hbar-row${extra ? ' hbar-row-extra' : ''}"><a href="${esc(t.h)}" title="${esc(t.t)}"><span class="hbar-label">${esc(t.t)}</span></a><div class="hbar-track"><div class="hbar" style="width:${w}%"></div></div><span class="hbar-num">${n}</span>${extra}</div>`;
-          })
-          .join('');
-      })
-      .catch(() => {
-        meta.textContent = '实时';
-        box.innerHTML = '<div class="views-empty">读不到后台服务（本地开发常见）。部署后这里会显示实时浏览数据。</div>';
-      });
+          const rows = (Object.entries(d.views || {}) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 8);
+          if (!rows.length) {
+            box.innerHTML = '<div class="views-empty">还没有浏览数据——有人打开攻略后，这里就会长出来。</div>';
+            return;
+          }
+          const max = rows[0][1] || 1;
+          box.innerHTML = rows
+            .map(([id, n]) => {
+              const t = titles[id] || { t: id, h: `/library/${id}` };
+              const w = Math.max(4, Math.round((n / max) * 100));
+              const conf = fb[id]?.confirmed || 0;
+              // confirmed>0 时在浏览数旁带出「· K 照做」；总览行的合计见上方 viewsMeta
+              const extra = conf > 0 ? `<span class="hbar-confirmed">· ${conf} 照做</span>` : '';
+              return `<div class="hbar-row${extra ? ' hbar-row-extra' : ''}"><a href="${esc(t.h)}" title="${esc(t.t)}"><span class="hbar-label">${esc(t.t)}</span></a><div class="hbar-track"><div class="hbar" style="width:${w}%"></div></div><span class="hbar-num">${n}</span>${extra}</div>`;
+            })
+            .join('');
+        })
+        .catch(() => {
+          meta.textContent = '实时';
+          box.innerHTML = '<div class="views-empty">读不到后台服务（本地开发常见）。部署后这里会显示实时浏览数据。</div>';
+        });
+    }
   </script>
 </Base>
