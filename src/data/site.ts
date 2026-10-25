@@ -45,3 +45,19 @@ export const stats = [
   { k: '攻略收录', v: live.filter((i) => i.type === 'guide').length, unit: '篇' },
   { k: '进行中', v: live.filter((i) => ACTIVE_STATES.includes(i.status)).length, unit: '项' },
 ];
+
+/** 内容值班：一期排班（「双周」只是示例排法，区间长度完全由配置决定） */
+export interface DutyShift {
+  /** 值班人（成员名） */
+  name: string;
+  /** 起始日期 YYYY-MM-DD（含） */
+  from: string;
+  /** 结束日期 YYYY-MM-DD（含） */
+  to: string;
+}
+
+/** 值班轮换表：人工维护，按时间顺序追加。空数组则数据页不显示值班面板。 */
+export const dutyRota: DutyShift[] = [
+  { name: '林知', from: '2026-10-13', to: '2026-10-26' },
+  { name: '陈屿', from: '2026-10-27', to: '2026-11-09' },
+];
