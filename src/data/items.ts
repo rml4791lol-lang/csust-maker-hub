@@ -29,6 +29,8 @@ export interface Item {
   reviewedAt?: string;
   /** 审核方式 */
   reviewMethod?: ReviewMethod;
+  /** 过期时间（YYYY-MM-DD）。到期自动从列表下架，详情页标注已截止。 */
+  expiresAt?: string;
   title: string;
   summary: string;
   /** YYYY-MM-DD */
@@ -117,30 +119,6 @@ const rawItems: Item[] = [
     },
   },
   {
-    id: 'g03',
-    type: 'guide',
-    publishState: 'published',
-    title: 'AI Agent 选型地图：三维判断法',
-    summary: '选型先别管框架，先回答三个问题：本地还是云端、单 Agent 还是多 Agent、写代码还是低代码。',
-    date: '2026-10-25',
-    status: '可照做',
-    people: [],
-    tags: ['Agent', '选型', '框架'],
-    author: '安大王',
-    extra: {
-      scene: '20 多个 Agent 框架，看一圈下来还是不知道选哪个。',
-      path: [
-        '第一维：跑在哪 —— 本地 / 云端',
-        '第二维：几个 Agent —— 单个 / 多 Agent 协作',
-        '第三维：怎么写 —— 直接写代码 / 低代码编排',
-        '三个答案交叉，落到具体 2~3 个框架再对比',
-      ],
-      usage: '先在纸上把三个问题答完，再打开任何框架文档。',
-      sourceUrl: 'https://ai.an520.xin/p/agent-map',
-      sourceName: 'ai.an520.xin',
-    },
-  },
-  {
     id: 'g04',
     type: 'guide',
     publishState: 'published',
@@ -150,6 +128,7 @@ const rawItems: Item[] = [
     status: '可照做',
     people: [],
     tags: ['省钱', 'OpenCode', '实测'],
+    expiresAt: '2026-12-31',
     author: '安大王',
     extra: {
       scene: '想用便宜的模型额度，但不想踩充值的坑。',
@@ -164,29 +143,6 @@ const rawItems: Item[] = [
     },
   },
   {
-    id: 'g05',
-    type: 'guide',
-    publishState: 'published',
-    title: 'OpenCode Go 里跑得最多的模型是哪个',
-    summary: '10 美元套餐月跑 15 万次请求，常规模型里小米的用得最多。',
-    date: '2026-10-25',
-    status: '参考',
-    people: [],
-    tags: ['模型', '实测', 'OpenCode'],
-    author: '安大王',
-    extra: {
-      scene: '套餐买回来，不知道把哪个模型设成默认最划算。',
-      path: [
-        '看实际请求量分布，而不是看跑分',
-        '常规任务交给高频低成本的模型',
-        '关键任务再切更强的模型',
-      ],
-      usage: '结论有时效，新模型上线后要重新看分布。',
-      sourceUrl: 'https://ai.an520.xin/p/mimo-go',
-      sourceName: 'ai.an520.xin',
-    },
-  },
-  {
     id: 'g06',
     type: 'guide',
     publishState: 'published',
@@ -196,6 +152,7 @@ const rawItems: Item[] = [
     status: '时效',
     people: [],
     tags: ['免费额度', '小米', '内测'],
+    expiresAt: '2026-12-31',
     author: '安大王',
     extra: {
       scene: '想白嫖额度做实验，但常规渠道要么贵要么慢。',

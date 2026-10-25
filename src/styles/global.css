@@ -480,16 +480,6 @@ kbd {
   text-align: center;
   white-space: nowrap;
 }
-.data-type[data-type="project"] { color: #b45309; border-color: #fcd9a8; background: #fffaf0; }
-.data-type[data-type="competition"] { color: #a16207; border-color: #fde68a; background: #fefce8; }
-.data-type[data-type="activity"] { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }
-.data-type[data-type="course"] { color: #15803d; border-color: #bbf7d0; background: #f0fdf4; }
-.data-type[data-type="video"] { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
-.data-type[data-type="guide"] { color: #1a56db; border-color: #c7d7fb; background: #f1f5fd; }
-.data-type[data-type="skill"] { color: #7c3aed; border-color: #ddd6fe; background: #f5f3ff; }
-.data-type[data-type="template"] { color: #0f766e; border-color: #99f6e4; background: #f0fdfa; }
-.data-type[data-type="link"] { color: #b45309; border-color: #fcd9a8; background: #fffaf0; }
-.data-type[data-type="training"] { color: #be185d; border-color: #fbcfe8; background: #fdf2f8; }
 .data-main { min-width: 0; }
 .data-main b {
   display: block;
@@ -927,6 +917,30 @@ kbd {
 }
 .kv-list span { color: var(--text-3); }
 .kv-list b { font-weight: 500; }
+
+/* ---------------------------- 过期标注 ---------------------------- */
+
+.expired-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-sub);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 20px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.expired-banner b {
+  font-weight: 600;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 11px;
+}
 
 /* ---------------------------- 来源 ---------------------------- */
 

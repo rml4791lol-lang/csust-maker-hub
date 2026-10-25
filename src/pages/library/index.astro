@@ -1,10 +1,10 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { items, typeMeta as meta, sortedByDate } from '../../data/items';
-import { publishedItems } from '../../data/validate';
+import { visibleItems } from '../../data/validate';
 
 const types = ['project', 'competition', 'activity', 'course', 'video'] as const;
-const visible = publishedItems(items);
+const visible = visibleItems(items);
 const counts = Object.fromEntries(
   types.map((t) => [t, visible.filter((i) => i.type === t).length])
 ) as Record<(typeof types)[number], number>;

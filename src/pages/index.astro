@@ -3,10 +3,10 @@ import Base from '../layouts/Base.astro';
 import { site, stats } from '../data/site';
 import { items, typeMeta, sortedByDate } from '../data/items';
 import { members } from '../data/members';
-import { publishedItems } from '../data/validate';
+import { visibleItems } from '../data/validate';
 
-const latest = publishedItems(sortedByDate).slice(0, 8);
-const working = publishedItems(sortedByDate)
+const latest = visibleItems(sortedByDate).slice(0, 8);
+const working = visibleItems(sortedByDate)
   .filter((i) => i.status === '进行中' || i.status === '备赛中' || i.status === '报名中')
   .slice(0, 3);
 const people = members.slice(0, 8);

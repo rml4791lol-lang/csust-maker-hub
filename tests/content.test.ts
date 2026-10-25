@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateContent, validateCurrentContent, publishedItems } from '../src/data/validate';
+import { validateContent, validateCurrentContent, publishedItems, visibleItems, isExpired } from '../src/data/validate';
 import type { Item } from '../src/data/items';
 import type { Member } from '../src/data/members';
 
@@ -90,5 +90,31 @@ describe('可见性', () => {
       baseItem({ id: 'd', publishState: 'unpublished' }),
     ];
     expect(publishedItems(list).map((i) => i.id)).toEqual(['a']);
+  });
+});
+
+describe('过期自动下架', () => {
+  const now = new Date('2026-10-25T12:00:00');
+
+  it('未过期内容留在列表', () => {
+    const list = [baseItem({ id: 'a', expiresAt: '2026-12-31' })];
+    expect(visibleItems(list).map((i) => i.id)).toEqual(['a']);
+  });
+
+  it('已过期内容从列表移除', () => {
+    const list = [baseItem({ id: 'a', expiresAt: '2026-10-01' })];
+    expect(visibleItems(list)).toEqual([]);
+    expect(isExpired(list[0], now)).toBe(true);
+  });
+
+  it('没有过期时间的内容不受影响', () => {
+    const list = [baseItem({ id: 'a' })];
+    expect(visibleItems(list).map((i) => i.id)).toEqual(['a']);
+    expect(isExpired(list[0], now)).toBe(false);
+  });
+
+  it('未发布但未过期也不可见', () => {
+    const list = [baseItem({ id: 'a', publishState: 'draft', expiresAt: '2026-12-31' })];
+    expect(visibleItems(list)).toEqual([]);
   });
 });

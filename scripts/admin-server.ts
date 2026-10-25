@@ -13,6 +13,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { exec, execFileSync } from 'node:child_process';
 import { items } from '../src/data/items';
+import { expiringSoon } from '../src/data/validate';
 
 const ROOT = process.cwd();
 const STATE_FILE = join(ROOT, 'src/data/publish-state.json');
@@ -128,6 +129,9 @@ function page(actor: string): string {
   .op:hover{border-color:#1a56db;color:#1a56db}
   #msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;display:none}
   .note{color:#8a8a8a;font-size:12px;margin:0 0 16px}
+  .soon{border:1px solid #e9e9e9;background:#fafafa;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12.5px;display:flex;gap:10px;flex-wrap:wrap}
+  .soon b{color:#b45309;font-weight:600}
+  .soon span{color:#8a8a8a}
   .rules{border:1px solid #fde2b8;background:#fffbf2;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:grid;gap:6px;font-size:12.5px}
   .rules b{font-size:12px;color:#b45309;margin-bottom:2px}
   .rules label{display:flex;gap:8px;align-items:center;color:#525252;cursor:pointer}
@@ -141,7 +145,12 @@ function page(actor: string): string {
     <label><input type="checkbox" class="rule"> 不含他人隐私与未公开数据</label>
     <label><input type="checkbox" class="rule"> 不转载未授权付费内容与破解教程</label>
   </div>
-  <p class="note">改状态会写入发布记录。发布/下架后需要重新构建部署才会在线上生效。</p>
+  ${(() => {
+    const soon = expiringSoon(items);
+    if (!soon.length) return '';
+    return `<div class="soon"><b>${soon.length} 条即将到期</b><span>${soon.map((i) => `${i.title}（${i.expiresAt}）`).join('、')}</span></div>`;
+  })()}
+  <p class="note">改状态会写入发布记录。过期内容会自动从列表下架，详情页标注已截止。</p>
   <table>
     <thead><tr><th>ID</th><th>标题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>${rows}</tbody>

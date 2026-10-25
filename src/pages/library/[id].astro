@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { items, typeMeta } from '../../data/items';
 import { members } from '../../data/members';
-import { publishedItems } from '../../data/validate';
+import { publishedItems, isExpired } from '../../data/validate';
 
 export async function getStaticPaths() {
   // 外部项目没有详情页，列表直接跳转原文
@@ -33,6 +33,15 @@ if (item.author) rows.push({ k: '作者', v: item.author });
 rows.push({ k: '审核', v: item.reviewer ? `${item.reviewer} · ${item.reviewedAt ?? ''}` : '待审核' });
 rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
 ---
+
+{item.expiresAt && isExpired(item) && (
+  <div class="wrap">
+    <div class="expired-banner">
+      <b>已截止</b>
+      <span>有效期到 {item.expiresAt}，内容仅供参考。</span>
+    </div>
+  </div>
+)}
 
 <Base title={item.title} description={item.summary}>
   <div class="wrap page-header">

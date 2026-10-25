@@ -132,3 +132,25 @@ export function validateCurrentContent(): ValidationIssue[] {
 export function publishedItems(list: Item[] = items): Item[] {
   return list.filter((i) => i.publishState === 'published');
 }
+
+/** 是否已过期 */
+export function isExpired(item: Item, now = new Date()): boolean {
+  if (!item.expiresAt) return false;
+  return new Date(item.expiresAt + 'T23:59:59') < now;
+}
+
+/** 列表里可见的内容：已发布且未过期（过期自动下架） */
+export function visibleItems(list: Item[] = items): Item[] {
+  return publishedItems(list).filter((i) => !isExpired(i));
+}
+
+/** 即将到期的内容（14 天内），用于后台提醒 */
+export function expiringSoon(list: Item[] = items, days = 14): Item[] {
+  const now = new Date();
+  const limit = new Date(now.getTime() + days * 864e5);
+  return publishedItems(list).filter((i) => {
+    if (!i.expiresAt) return false;
+    const d = new Date(i.expiresAt + 'T23:59:59');
+    return d >= now && d <= limit;
+  });
+}
