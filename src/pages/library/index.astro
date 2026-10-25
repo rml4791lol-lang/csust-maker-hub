@@ -1,20 +1,24 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { items, typeMeta as meta, sortedByDate } from '../../data/items';
+import { items, typeMeta as meta, type ItemType, sortedByDate } from '../../data/items';
 import { publishedItems, isExpired } from '../../data/validate';
 
-const types = ['project', 'competition', 'activity', 'course', 'video'] as const;
+const typeOrder: ItemType[] = [
+  'guide', 'skill', 'template', 'link', 'training',
+  'project', 'competition', 'activity', 'course', 'video',
+];
 const visible = publishedItems(items);
+const types = typeOrder.filter((t) => visible.some((i) => i.type === t));
 const counts = Object.fromEntries(
   types.map((t) => [t, visible.filter((i) => i.type === t).length])
-) as Record<(typeof types)[number], number>;
+) as Record<ItemType, number>;
 ---
 
-<Base title="内容库" description="项目、竞赛、活动、课程，每条都有参与人、状态和可复用的产出。">
+<Base title="内容库" description="攻略、技能指令、模板、外部项目、培训、项目、竞赛、活动、课程、视频，每条都有参与人、状态和可复用的产出。">
   <div class="wrap page-header">
     <span class="crumb">LIBRARY / 内容库</span>
     <h1>内容库</h1>
-    <p>项目、竞赛、活动、课程。每条记录都有参与人、当前状态和能拿走用的产出。</p>
+    <p>按类型浏览全部内容。每条记录都有参与人、当前状态和能拿走用的产出。</p>
   </div>
 
   <div class="wrap" style="padding-bottom:80px;">
@@ -39,7 +43,7 @@ const counts = Object.fromEntries(
            rel={i.type === 'link' ? 'noopener' : undefined}
            class="data-row" data-type={i.type}
            data-search={`${i.title} ${i.summary} ${i.tags.join(' ')} ${i.people.join(' ')}`}>
-          <span class="data-type" data-type={i.type}>{meta[i.type].label}</span>
+          <span class="data-type" data-type={i.type} aria-label={meta[i.type].label}><i>{meta[i.type].glyph}</i><span class="t-label">{meta[i.type].label}</span></span>
           <span class="data-main">
             <b>{i.title}</b>
             <i>{i.summary}</i>

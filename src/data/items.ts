@@ -88,10 +88,10 @@ export const typeMeta: Record<ItemType, { label: string; glyph: string; color: s
   course: { label: '课程', glyph: '课', color: '#6bb08a' },
   video: { label: '视频', glyph: '播', color: '#dc2626' },
   guide: { label: '攻略', glyph: '攻', color: '#1a56db' },
-  skill: { label: '技能指令', glyph: '令', color: '#7c3aed' },
+  skill: { label: '技能指令', glyph: '令', color: '#0e7490' },
   template: { label: '模板素材', glyph: '模', color: '#0f766e' },
   link: { label: '外部项目', glyph: '链', color: '#b45309' },
-  training: { label: '培训', glyph: '训', color: '#be185d' },
+  training: { label: '培训', glyph: '训', color: '#475569' },
 };
 
 const rawItems: Item[] = content as Item[];

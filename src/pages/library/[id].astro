@@ -30,7 +30,14 @@ if (item.extra?.difficulty) rows.push({ k: '难度', v: item.extra.difficulty })
 if (item.extra?.duration) rows.push({ k: '时长', v: item.extra.duration });
 rows.push({ k: '参与人', v: item.people.join('、') });
 if (item.author) rows.push({ k: '作者', v: item.author });
-rows.push({ k: '审核', v: item.reviewer ? `${item.reviewer} · ${item.reviewedAt ?? ''}` : '待审核' });
+rows.push({
+  k: '审核',
+  v: item.reviewer
+    ? `${item.reviewer} · ${item.reviewedAt ?? ''}`
+    : item.publishState === 'published'
+      ? '已发布'
+      : '待审核',
+});
 rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
 ---
 
@@ -46,7 +53,7 @@ rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
 <Base title={item.title} description={item.summary}>
   <div class="wrap page-header">
     <a href="/library" class="crumb" style="display:inline-block;">← 返回内容库</a>
-    <span class="type-tag" style="position:static;display:inline-block;margin-bottom:16px;">{meta.label}</span>
+    <span class="type-tag" data-type={item.type} style="position:static;display:inline-flex;margin-bottom:16px;"><i>{meta.glyph}</i>{meta.label}</span>
     <h1>{item.title}</h1>
     <p>{item.summary}</p>
   </div>
@@ -178,21 +185,21 @@ rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
         </section>
       )}
 
-      <section>
-        <h2>参与人</h2>
-        <div class="people" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
-          {involved.length
-            ? involved.map((m) => (
-                <div class="person">
-                  <div class="avatar">{m.name.slice(0, 1)}</div>
-                  <h4>{m.name}{m.role ? ` · ${m.role}` : ''}</h4>
-                  <div class="dept">{m.dept} / {m.grade}</div>
-                  <div class="skills">{m.skills.slice(0, 2).map((s) => <span class="tag">{s}</span>)}</div>
-                </div>
-              ))
-            : <p style="color:var(--muted)">参与人信息待补。</p>}
-        </div>
-      </section>
+      {item.people.length > 0 && (
+        <section>
+          <h2>参与人</h2>
+          <div class="people" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
+            {involved.map((m) => (
+              <div class="person">
+                <div class="avatar">{m.name.slice(0, 1)}</div>
+                <h4>{m.name}{m.role ? ` · ${m.role}` : ''}</h4>
+                <div class="dept">{m.dept} / {m.grade}</div>
+                <div class="skills">{m.skills.slice(0, 2).map((s) => <span class="tag">{s}</span>)}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section class="feedback" data-item={item.id}>
         <h2>这篇有用吗</h2>

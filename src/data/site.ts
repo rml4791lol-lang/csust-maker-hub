@@ -1,3 +1,7 @@
+import { items } from './items';
+import { members } from './members';
+import { publishedItems } from './validate';
+
 export const site = {
   name: '长理创客',
   nameEn: 'CSUST MAKER SPACE',
@@ -30,9 +34,12 @@ export const site = {
   ],
 };
 
+/** 数据带：从真实内容推导，不再手填 */
+const live = publishedItems(items);
+const ACTIVE_STATES = ['进行中', '备赛中', '报名中'];
 export const stats = [
-  { k: '在册成员', v: 32, unit: '人' },
-  { k: '内容条目', v: 12, unit: '条' },
-  { k: '收录条目', v: 19, unit: '条' },
-  { k: '竞赛获奖', v: 9, unit: '项' },
+  { k: '在册成员', v: members.length, unit: '人' },
+  { k: '内容条目', v: live.length, unit: '条' },
+  { k: '攻略收录', v: live.filter((i) => i.type === 'guide').length, unit: '篇' },
+  { k: '进行中', v: live.filter((i) => ACTIVE_STATES.includes(i.status)).length, unit: '项' },
 ];

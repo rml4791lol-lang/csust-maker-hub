@@ -48,7 +48,7 @@ const people = members.slice(0, 8);
         <div class="wb-list">
           {working.map((i) => (
             <a href={`/library/${i.id}`} class="wb-item">
-              <span class="wb-type" data-type={i.type}>{typeMeta[i.type].label}</span>
+              <span class="wb-type" data-type={i.type}><i>{typeMeta[i.type].glyph}</i>{typeMeta[i.type].label}</span>
               <span class="wb-text">
                 <b>{i.title}</b>
                 <i>{i.people[0]} · {i.status}</i>
@@ -108,7 +108,7 @@ const people = members.slice(0, 8);
       <div class="data-list reveal">
         {latest.map((i) => (
           <a href={`/library/${i.id}`} class="data-row">
-            <span class="data-type" data-type={i.type}>{typeMeta[i.type].label}</span>
+            <span class="data-type" data-type={i.type} aria-label={typeMeta[i.type].label}><i>{typeMeta[i.type].glyph}</i><span class="t-label">{typeMeta[i.type].label}</span></span>
             <span class="data-main">
               <b>{i.title}</b>
               <i>{i.summary}</i>
