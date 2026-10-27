@@ -219,7 +219,7 @@ const CONSOLE_TABS = ['全部', '攻略', '指令', '模板', '培训'];
         {people.map((m, i) => (
           <a class="person-card" href={`/members/${m.id}`} data-reveal data-delay={i * 55}>
             <span class="avatar-ring">{m.name.slice(0, 1)}</span>
-            <h4>{m.name}{m.role ? <span>{m.role}</span> : null}</h4>
+            <h3>{m.name}{m.role ? <span>{m.role}</span> : null}</h4>
             <span class="person-dept">{m.dept} / {m.grade}</span>
             <span class="person-skills">
               {m.skills.slice(0, 3).map((s) => <span class="skill-chip">{s}</span>)}

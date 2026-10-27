@@ -77,11 +77,29 @@ const types = Object.entries(contributionTypeLabel).map(([value, label]) => ({ v
             <label for="evidence">佐证说明</label>
             <input id="evidence" name="evidence" maxlength="300" placeholder="谁可以证明、材料放在哪" />
           </div>
+
+          <div class="field full">
+            <label for="image">成果配图（可选）</label>
+            <input id="image" name="image" placeholder="https://…（现场照片 / 截图，公开可访问的图片地址）" />
+            <span class="hint">有图更容易被看见；没有就只展示文字。</span>
+          </div>
+
+          <div class="field full">
+            <label style="text-transform:none;letter-spacing:0;font-family:var(--font-sans);">
+              <span class="check-field">
+                <input type="checkbox" id="consent" name="consent" />
+                <span>
+                  我确认以上内容真实、不含他人隐私与未公开数据，并同意在协会内部页面公开展示（含成员档案与成果墙）；
+                  涉及第三方素材的，我已有授权。
+                </span>
+              </span>
+            </label>
+          </div>
         </div>
 
         <div class="form-actions">
           <button type="submit" class="btn btn-primary" id="submitBtn">提交审核 <span class="ar">→</span></button>
-          <span class="form-msg" id="formMsg">提交后会写入待审核列表，审核通过才公开展示。</span>
+          <span class="form-msg" id="formMsg" role="status" aria-live="polite">提交后会写入待审核列表，审核通过才公开展示。</span>
         </div>
       </form>
 
@@ -117,6 +135,9 @@ const types = Object.entries(contributionTypeLabel).map(([value, label]) => ({ v
       if (!data.title || data.title.trim().length < 4) local.push('标题至少 4 字');
       if (!data.description || data.description.trim().length < 30) local.push('描述至少 30 字');
       if (data.link && !/^https?:\/\//.test(data.link)) local.push('链接要以 http(s):// 开头');
+      if (data.image && !/^https?:\/\//.test(data.image)) local.push('配图要以 http(s):// 开头');
+      const consent = form.querySelector<HTMLInputElement>('#consent');
+      if (!consent?.checked) local.push('请先勾选「内容真实与公开授权」');
       if (local.length) {
         show(local.join('；'), 'err');
         return;

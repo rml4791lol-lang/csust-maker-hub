@@ -741,6 +741,7 @@ const server = http.createServer(async (req, res) => {
       description: String(p.description).trim(),
       outcome: p.outcome ? String(p.outcome).trim() : undefined,
       link: p.link ? String(p.link).trim() : undefined,
+      image: p.image ? String(p.image).trim() : undefined,
       evidence: p.evidence ? String(p.evidence).trim() : undefined,
       status: 'pending',
       submittedAt: new Date().toISOString(),

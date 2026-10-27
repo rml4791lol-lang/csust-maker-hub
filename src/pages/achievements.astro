@@ -1,0 +1,180 @@
+---
+import Base from '../layouts/Base.astro';
+import { publishedSubmissions, contributionTypeLabel, type ContributionType, type Submission } from '../data/contributions';
+import { members } from '../data/members';
+
+const subs = [...publishedSubmissions()].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+/** 同一内容回填会给每个参与人生成一条记录；成果墙上按「标题 + 日期」合并成一条团队成果 */
+interface Group {
+  key: string;
+  title: string;
+  date: string;
+  type: ContributionType;
+  description: string;
+  outcome?: string;
+  image?: string;
+  link?: string;
+  members: { id: string; name: string; dept?: string }[];
+  depts: string[];
+  ids: string[];
+}
+const groups: Group[] = [];
+const byKey = new Map<string, Group>();
+for (const s of subs) {
+  const key = `${s.title}||${s.date}`;
+  let g = byKey.get(key);
+  if (!g) {
+    g = {
+      key,
+      title: s.title,
+      date: s.date,
+      type: s.type,
+      description: s.description,
+      outcome: s.outcome,
+      image: s.image,
+      link: s.link,
+      members: [],
+      depts: [],
+      ids: [],
+    };
+    byKey.set(key, g);
+    groups.push(g);
+  }
+  if (!g.members.some((m) => m.id === s.memberId)) g.members.push({ id: s.memberId, name: s.memberName, dept: s.dept });
+  if (s.dept && !g.depts.includes(s.dept)) g.depts.push(s.dept);
+  g.ids.push(s.id);
+  if (!g.image && s.image) g.image = s.image;
+  if (!g.link && s.link) g.link = s.link;
+  if (!g.outcome && s.outcome) g.outcome = s.outcome;
+}
+groups.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+const typeKeys = Object.keys(contributionTypeLabel) as ContributionType[];
+const types = typeKeys
+  .map((k) => ({ key: k, label: contributionTypeLabel[k], n: groups.filter((g) => g.type === k).length }))
+  .filter((t) => t.n > 0);
+const allDepts = [...new Set(groups.flatMap((g) => g.depts))];
+const memberCount = new Set(subs.map((s) => s.memberId)).size;
+const latest = groups[0]?.date ?? '—';
+
+const memberPath = (id: string) => `/members/${id}`;
+const isExternal = (link?: string) => Boolean(link && /^https?:/.test(link));
+const cardSearch = (g: Group) => `${g.title} ${g.description} ${g.members.map((m) => m.name).join(' ')} ${g.depts.join(' ')}`;
+---
+
+<Base title="成果墙" description="长理创客（AI 创客协会）的成果与事迹展示：项目、竞赛、课程、实操与分享，按类型、部门、时间和关键词筛选。">
+  <div class="wrap page-header">
+    <span class="crumb">ACHIEVEMENTS / 成果墙</span>
+    <h1>协会做过的事，都在这。</h1>
+    <p>
+      项目、竞赛、课程、实操与分享按时间汇总，每条都能追到人和场合。成员可以自己提交成果，
+      审核后进入成果墙与个人能力档案。
+    </p>
+    <div class="hero-actions" style="margin-top:20px;">
+      <a href="/contribute" class="btn btn-primary">提交我的成果 <span class="ar">→</span></a>
+      <a href="/members" class="btn btn-ghost">看成员档案</a>
+    </div>
+  </div>
+
+  <div class="wrap" style="padding-bottom:96px;">
+    <div class="ach-stats" data-reveal>
+      <div class="ach-stat"><span class="stat-label">成果条目</span><b class="ach-num" data-count={groups.length}>{groups.length}</b></div>
+      <div class="ach-stat"><span class="stat-label">参与成员</span><b class="ach-num" data-count={memberCount}>{memberCount}</b></div>
+      <div class="ach-stat"><span class="stat-label">覆盖部门</span><b class="ach-num" data-count={allDepts.length}>{allDepts.length}</b></div>
+      <div class="ach-stat"><span class="stat-label">最近更新</span><b class="ach-num" style="font-size:20px;">{latest.replaceAll('-', '.')}</b></div>
+    </div>
+
+    <div class="filter-bar" id="filters">
+      <button class="chip active" data-filter-type="all">全部类型 <span class="count">{groups.length}</span></button>
+      {types.map((t) => (
+        <button class="chip" data-filter-type={t.key}>{t.label} <span class="count">{t.n}</span></button>
+      ))}
+      <div style="flex:1"></div>
+      <label class="search-box">
+        <span style="color:var(--text-3);font-size:13px;">⌕</span>
+        <input type="search" id="q" placeholder="搜标题、描述、成员…" aria-label="搜索成果" />
+      </label>
+    </div>
+
+    <div class="filter-bar" id="deptFilters" style="border-bottom:0;padding-top:0;margin-bottom:14px;">
+      <span class="mono" style="margin-right:6px;">部门</span>
+      <button class="chip active" data-filter-dept="all">全部</button>
+      {allDepts.map((d) => <button class="chip" data-filter-dept={d}>{d}</button>)}
+    </div>
+
+    <div class="ach-grid" id="grid">
+      {groups.map((g, i) => (
+        <article class="ach-card" id={g.ids[0]} data-type={g.type} data-dept={g.depts.join(',')} data-search={cardSearch(g)} data-reveal data-delay={Math.min(i * 40, 240)}>
+          <div class="ach-top">
+            <span class="ach-type">{contributionTypeLabel[g.type] ?? '成果'}</span>
+            <span class="ach-date">{g.date.replaceAll('-', '.')}</span>
+          </div>
+          {g.image ? <img class="ach-img" src={g.image} alt={`${g.title} 配图`} loading="lazy" /> : null}
+          <h2 class="ach-title">{g.title}</h2>
+          <p class="ach-desc">{g.description}</p>
+          {g.outcome ? <div class="ach-outcome">产出：{g.outcome}</div> : null}
+          <div class="ach-foot">
+            <span class="ach-member">
+              <span class="ach-avatar">{g.members[0]?.name.slice(0, 1) || '创'}</span>
+              {g.members.slice(0, 3).map((m, idx) => (
+                <a href={memberPath(m.id)}>{m.name}{idx < Math.min(g.members.length, 3) - 1 ? '、' : ''}</a>
+              ))}
+              {g.members.length > 3 ? <span style="color:var(--fg-4);">等 {g.members.length} 人</span> : null}
+            </span>
+            {g.link ? (
+              <a class="ach-link" href={g.link} target={isExternal(g.link) ? '_blank' : undefined} rel={isExternal(g.link) ? 'noopener' : undefined}>
+                {isExternal(g.link) ? '查看作品 ↗' : '查看内容 →'}
+              </a>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div class="ach-empty" id="empty" style="display:none;">没有匹配的成果。换个筛选条件或关键词试试。</div>
+    <div style="display:flex;justify-content:space-between;gap:16px;margin-top:18px;font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
+      <span id="resultCount"></span>
+      <span>数据来源：成员提交 + 内容库回填，审核后展示</span>
+    </div>
+  </div>
+
+  <script>
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('#grid .ach-card'));
+    const typeChips = Array.from(document.querySelectorAll<HTMLButtonElement>('#filters .chip'));
+    const deptChips = Array.from(document.querySelectorAll<HTMLButtonElement>('#deptFilters .chip'));
+    const q = document.querySelector<HTMLInputElement>('#q');
+    const empty = document.getElementById('empty');
+    const resultCount = document.getElementById('resultCount');
+    let type = 'all';
+    let dept = 'all';
+
+    function apply() {
+      const kw = (q?.value || '').trim().toLowerCase();
+      let visible = 0;
+      for (const card of cards) {
+        const okType = type === 'all' || card.dataset.type === type;
+        const okDept = dept === 'all' || (card.dataset.dept || '').split(',').includes(dept);
+        const okKw = !kw || (card.dataset.search || '').toLowerCase().includes(kw);
+        const show = okType && okDept && okKw;
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      }
+      if (empty) empty.style.display = visible ? 'none' : '';
+      if (resultCount) resultCount.textContent = `显示 ${visible} / ${cards.length} 条成果`;
+    }
+
+    typeChips.forEach((c) => c.addEventListener('click', () => {
+      type = c.dataset.filterType || 'all';
+      typeChips.forEach((x) => x.classList.toggle('active', x === c));
+      apply();
+    }));
+    deptChips.forEach((c) => c.addEventListener('click', () => {
+      dept = c.dataset.filterDept || 'all';
+      deptChips.forEach((x) => x.classList.toggle('active', x === c));
+      apply();
+    }));
+    q?.addEventListener('input', apply);
+    apply();
+  </script>
+</Base>
