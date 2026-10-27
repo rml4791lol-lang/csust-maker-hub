@@ -3,17 +3,23 @@ import Base from '../layouts/Base.astro';
 import { members, depts } from '../data/members';
 import { items } from '../data/items';
 import { publishedItems } from '../data/validate';
+import { profiles } from '../data/contributions';
 
 // 成员页的「参与项目」只显示已发布条目，草稿不能泄露标题
 const itemMap = new Map(publishedItems(items).map((i) => [i.id, i]));
+const profileMap = new Map(profiles.map((p) => [p.memberId, p]));
 const deptCounts = Object.fromEntries(depts.map((d) => [d, members.filter((m) => m.dept === d).length]));
 ---
 
-<Base title="成员" description="创客空间成员的能力、参与项目和成果，可按部门筛选和检索。">
+<Base title="成员" description="创客空间成员的能力、参与项目和成果档案，可按部门筛选和检索。">
   <div class="wrap page-header">
     <span class="crumb">PEOPLE / 成员</span>
     <h1>成员</h1>
-    <p>每个人的能力、参与项目和成果。按部门筛，或者直接搜技能。</p>
+    <p>每个人的能力、参与项目和成果档案。按部门筛，或者直接搜技能；点名字看个人档案。</p>
+    <div class="hero-actions" style="margin-top:20px;">
+      <a href="/contribute" class="btn btn-primary">提交我的成果 <span class="ar">→</span></a>
+      <a href="/library" class="btn btn-ghost">浏览内容库</a>
+    </div>
   </div>
 
   <div class="wrap" style="padding-bottom:80px;">
@@ -29,26 +35,29 @@ const deptCounts = Object.fromEntries(depts.map((d) => [d, members.filter((m) =>
       </label>
     </div>
 
-    <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
+    <div class="layer-card" style="overflow:hidden;">
       <table class="member-table" id="grid">
         <thead>
           <tr>
-            <th style="width:22%;">姓名</th>
-            <th style="width:16%;">部门</th>
+            <th style="width:24%;">姓名</th>
+            <th style="width:15%;">部门</th>
             <th style="width:10%;">年级</th>
-            <th style="width:30%;">技能</th>
-            <th style="width:22%;">参与项目</th>
+            <th style="width:28%;">技能</th>
+            <th style="width:23%;">参与项目</th>
           </tr>
         </thead>
         <tbody>
           {members.map((m) => {
             const projs = m.projects.map((id) => itemMap.get(id)).filter(Boolean);
+            const profile = profileMap.get(m.id);
+            const count = profile?.stats?.contributions ?? 0;
             return (
               <tr data-dept={m.dept}
                   data-search={`${m.name} ${m.dept} ${m.grade} ${m.skills.join(' ')} ${m.bio ?? ''}`}>
                 <td>
-                  <span class="m-name">{m.name}</span>
+                  <a href={`/members/${m.id}`} class="m-name" title="打开个人档案">{m.name} <span style="font-family:var(--font-mono);font-size:10px;color:var(--fg-4);">→</span></a>
                   {m.role ? <span class="m-role">{m.role}</span> : null}
+                  {count > 0 ? <span class="m-role" style="color:var(--fg-3);border-color:var(--line-2);background:rgba(255,255,255,.04);">{count} 条成果</span> : null}
                 </td>
                 <td class="m-dept">{m.dept}</td>
                 <td style="color:var(--text-3);font-size:12.5px;">{m.grade}</td>

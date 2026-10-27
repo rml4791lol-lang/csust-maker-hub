@@ -1,0 +1,152 @@
+---
+import Base from '../layouts/Base.astro';
+import { members } from '../data/members';
+import { contributionTypeLabel } from '../data/contributions';
+
+const today = new Date().toISOString().slice(0, 10);
+const memberOptions = members.map((m) => ({ id: m.id, name: m.name, dept: m.dept, grade: m.grade }));
+const types = Object.entries(contributionTypeLabel).map(([value, label]) => ({ value, label }));
+---
+
+<Base title="提交成果" description="协会成员提交自己的项目、竞赛、课程、实操与分享记录；审核后进入个人档案，由 AI 汇总。">
+  <div class="wrap page-header">
+    <span class="crumb">CONTRIBUTE / 提交成果</span>
+    <h1>把你做过的事，记下来。</h1>
+    <p>
+      项目、竞赛、课程、实操、分享都算。提交后进入审核，通过后会出现在你的个人档案里；
+      AI 会据此汇总你的关注方向和代表成果，让换届交接时不再靠回忆。
+    </p>
+  </div>
+
+  <div class="wrap" style="padding-bottom:100px;">
+    <div class="form-shell">
+      <div class="profile-stats" style="grid-template-columns:repeat(3,1fr);margin:0 0 22px;padding:16px 0 0;border-top:1px solid var(--line);">
+        <div class="profile-stat"><b>01</b><span>自己填写</span></div>
+        <div class="profile-stat"><b>02</b><span>审核后进档案</span></div>
+        <div class="profile-stat"><b>03</b><span>AI 汇总成长线</span></div>
+      </div>
+
+      <form class="form-panel" id="contributeForm" data-reveal novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="memberId">我 是<i>*</i></label>
+            <select id="memberId" name="memberId" required>
+              <option value="">选择你的名字</option>
+              {memberOptions.map((m) => (
+                <option value={m.id}>{m.name} · {m.dept} · {m.grade}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="type">成果类型<i>*</i></label>
+            <select id="type" name="type" required>
+              {types.map((t) => <option value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+
+          <div class="field full">
+            <label for="title">标题<i>*</i></label>
+            <input id="title" name="title" maxlength="80" placeholder="例：校园电子班车表小程序上线" />
+            <span class="hint">一句话说清做了什么，别人一眼能看懂。</span>
+          </div>
+
+          <div class="field">
+            <label for="date">完成时间<i>*</i></label>
+            <input id="date" name="date" type="date" value={today} max={today} />
+          </div>
+
+          <div class="field">
+            <label for="outcome">产出 / 结果</label>
+            <input id="outcome" name="outcome" maxlength="200" placeholder="例：上线 1 个版本，覆盖 200 名同学" />
+          </div>
+
+          <div class="field full">
+            <label for="description">做了什么、怎么做的、结果如何<i>*</i></label>
+            <textarea id="description" name="description" minlength="30" maxlength="2000"
+              placeholder="至少 30 字。建议写：背景 / 你的角色 / 关键步骤 / 可量化的结果 / 踩过的坑。"></textarea>
+            <span class="hint">会被 AI 汇总成档案里的代表成果，写具体比写漂亮重要。</span>
+          </div>
+
+          <div class="field">
+            <label for="link">相关链接</label>
+            <input id="link" name="link" placeholder="https://…（作品 / 仓库 / 推文 / 视频）" />
+          </div>
+
+          <div class="field">
+            <label for="evidence">佐证说明</label>
+            <input id="evidence" name="evidence" maxlength="300" placeholder="谁可以证明、材料放在哪" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">提交审核 <span class="ar">→</span></button>
+          <span class="form-msg" id="formMsg">提交后会写入待审核列表，审核通过才公开展示。</span>
+        </div>
+      </form>
+
+      <div class="layer-card" style="margin-top:18px;padding:18px 20px;display:grid;gap:10px;" data-reveal data-delay="80">
+        <span class="mono">提交前请确认</span>
+        <p style="font-size:12.5px;line-height:1.8;color:var(--fg-3);margin:0;">
+          ① 不涉政治、宗教、民族敏感内容；② 不含他人隐私与未公开数据；③ 不转载未授权付费内容与破解教程。
+          不确定的内容先别提交，问过站长再写。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="member-data" set:html={JSON.stringify(memberOptions).replace(/</g, '\\u003c')}></script>
+  <script>
+    const form = document.getElementById('contributeForm') as HTMLFormElement | null;
+    const msg = document.getElementById('formMsg');
+    const btn = document.getElementById('submitBtn') as HTMLButtonElement | null;
+
+    const show = (text: string, kind: 'ok' | 'err' | '' = '') => {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.className = 'form-msg' + (kind ? ' ' + kind : '');
+    };
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form || !btn) return;
+      const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+      // 前端先做一次轻校验，减少无效请求
+      const local: string[] = [];
+      if (!data.memberId) local.push('请选择你是谁');
+      if (!data.title || data.title.trim().length < 4) local.push('标题至少 4 字');
+      if (!data.description || data.description.trim().length < 30) local.push('描述至少 30 字');
+      if (data.link && !/^https?:\/\//.test(data.link)) local.push('链接要以 http(s):// 开头');
+      if (local.length) {
+        show(local.join('；'), 'err');
+        return;
+      }
+
+      btn.disabled = true;
+      show('正在提交…');
+      try {
+        const res = await fetch('/admin/api/contribute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const issues = Array.isArray(body.issues)
+            ? body.issues.map((i: any) => i.message).join('；')
+            : body.error || '提交失败';
+          throw new Error(issues);
+        }
+        form.reset();
+        show('已提交，等待审核。通过后会出现在你的成员档案里。', 'ok');
+      } catch (err: any) {
+        show(
+          '提交失败：' + (err.message || '网络错误') + '（本地开发时后台未启动是正常的，线上会正常提交）',
+          'err'
+        );
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</Base>
