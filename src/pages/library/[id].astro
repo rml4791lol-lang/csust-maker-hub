@@ -233,7 +233,7 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
 
     <aside class="detail-side">
       <div class="side-box">
-        <h5>条目信息</h5>
+        <h3>条目信息</h5>
         <dl class="meta-list">
           {rows.map((r) => (
             <div><dt>{r.k}</dt><dd>{r.v}</dd></div>
@@ -242,7 +242,7 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
       </div>
 
       <div class="side-box">
-        <h5>标签</h5>
+        <h3>标签</h5>
         <div class="tags">{item.tags.map((t) => <span class="tag">{t}</span>)}</div>
       </div>
 

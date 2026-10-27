@@ -3,12 +3,27 @@ import Base from '../layouts/Base.astro';
 import { members, depts } from '../data/members';
 import { items } from '../data/items';
 import { publishedItems } from '../data/validate';
-import { profiles } from '../data/contributions';
+import { profiles, publishedSubmissions, contributionTypeLabel } from '../data/contributions';
 
 // 成员页的「参与项目」只显示已发布条目，草稿不能泄露标题
 const itemMap = new Map(publishedItems(items).map((i) => [i.id, i]));
 const profileMap = new Map(profiles.map((p) => [p.memberId, p]));
 const deptCounts = Object.fromEntries(depts.map((d) => [d, members.filter((m) => m.dept === d).length]));
+
+// 能力与成果总览：部门产出 / 成果类型 / 高频能力标签 / 贡献榜
+const subs = publishedSubmissions();
+const byDept = depts.map((d) => ({ label: d, n: subs.filter((s) => s.dept === d).length }));
+const byType = Object.entries(contributionTypeLabel)
+  .map(([k, label]) => ({ key: k, label, n: subs.filter((s) => s.type === k).length }))
+  .filter((t) => t.n > 0)
+  .sort((a, b) => b.n - a.n);
+const maxDept = Math.max(...byDept.map((x) => x.n), 1);
+const maxType = Math.max(...byType.map((x) => x.n), 1);
+const skillFreq = new Map<string, number>();
+for (const p of profiles) for (const t of p.focusTags) skillFreq.set(t, (skillFreq.get(t) ?? 0) + 1);
+for (const m of members) for (const s of m.skills) skillFreq.set(s, (skillFreq.get(s) ?? 0) + 1);
+const topSkills = [...skillFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16);
+const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.contributions).slice(0, 5);
 ---
 
 <Base title="成员" description="创客空间成员的能力、参与项目和成果档案，可按部门筛选和检索。">
@@ -23,6 +38,62 @@ const deptCounts = Object.fromEntries(depts.map((d) => [d, members.filter((m) =>
   </div>
 
   <div class="wrap" style="padding-bottom:80px;">
+    <!-- 能力与成果总览 -->
+    <section class="section" style="padding-top:8px;">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>00</b><span class="rule"></span>能力总览</div>
+          <h2 class="sec-title">这个协会在做什么、谁会做什么。</h2>
+          <p class="sec-desc">按成果记录自动聚合：部门产出、成果类型、高频能力标签与贡献榜。数据随成员投稿更新。</p>
+        </div>
+        <a class="sec-more" href="/achievements">看成果墙 <span class="ar">→</span></a>
+      </div>
+
+      <div class="ability-grid" data-reveal>
+        <div class="ability-panel">
+          <h3>部门产出</h3>
+          {byDept.map((d) => (
+            <div class="ability-row">
+              <span class="hbar-label">{d.label}</span>
+              <div class="hbar-track"><div class="hbar" style={`width:${Math.round((d.n / maxDept) * 100)}%`}></div></div>
+              <span class="hbar-num">{d.n}</span>
+            </div>
+          ))}
+          <div class="hint" style="margin-top:10px;font-size:11px;color:var(--fg-4);">按成员成果的部门归属统计</div>
+        </div>
+        <div class="ability-panel">
+          <h3>成果类型分布</h3>
+          {byType.map((t) => (
+            <div class="ability-row">
+              <span class="hbar-label">{t.label}</span>
+              <div class="hbar-track"><div class="hbar hbar-neutral" style={`width:${Math.round((t.n / maxType) * 100)}%`}></div></div>
+              <span class="hbar-num">{t.n}</span>
+            </div>
+          ))}
+        </div>
+        <div class="ability-panel" style="grid-column:1 / -1;">
+          <h3>高频能力标签</h3>
+          <div class="ability-tags">
+            {topSkills.map(([k, n]) => <span class="skill-chip">{k} <b style="color:var(--fg-4);font-weight:400;">{n}</b></span>)}
+          </div>
+          <div class="hint" style="margin-top:12px;font-size:11px;color:var(--fg-4);">来自成员技能与 AI 档案的关注方向，数字为出现次数</div>
+        </div>
+        <div class="ability-panel" style="grid-column:1 / -1;">
+          <h3>贡献榜 · 成果记录 Top 5</h3>
+          <div class="ability-top">
+            {topPeople.map((p, i) => (
+              <a class="ability-person" href={`/members/${p.memberId}`}>
+                <span class="ach-avatar">{p.name.slice(0, 1)}</span>
+                <b>#{i + 1} {p.name}</b>
+                <span>{p.dept} · {p.role ?? p.grade}</span>
+                <span>{p.stats.contributions} 条成果</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="filter-bar" id="filters">
       <button class="chip active" data-filter="all">全部 <span class="count">{members.length}</span></button>
       {depts.map((d) => (

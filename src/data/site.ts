@@ -8,17 +8,21 @@ export const site = {
   short: '创客空间',
   /** 站点对外地址（脚本生成链接、部署说明共用，别在脚本里再硬编码） */
   url: 'https://an520.xin',
+  /** 是否允许搜索引擎收录：当前成员/项目仍是示例数据，先保持 false；换成真实名单后可改 true */
+  publicIndex: false,
+  /** 数据状态：demo = 示例数据（页面显示提示条）；real = 真实数据 */
+  dataStatus: 'demo' as 'demo' | 'real',
   tagline: ['把想法，', '做成东西。'],
   description:
-    '长沙理工大学创客空间的内部知识库。攻略、技能指令、模板、外部项目、培训，每条都留下能直接拿走用的东西。',
+    '长沙理工大学 AI 创客协会的成果展示与成员能力档案：项目、竞赛、课程、活动、实操与分享，成员自己提交，AI 汇总成可查的成长记录。',
   nav: [
     { href: '/', label: '首页' },
     { href: '/library', label: '内容库' },
+    { href: '/achievements', label: '成果墙' },
     { href: '/tools', label: '工具' },
     { href: '/members', label: '成员' },
     { href: '/resources', label: '资源' },
     { href: '/stats', label: '数据' },
-    { href: '/contribute', label: '提交成果' },
     { href: '/about', label: '关于' },
   ],
   /** 反馈收集端点（后台服务公开接口）。留空则只记录在本地。 */

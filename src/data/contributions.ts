@@ -21,6 +21,8 @@ export interface Submission {
   outcome?: string;
   /** 相关链接（作品、仓库、推文、视频等） */
   link?: string;
+  /** 成果配图（可选，http(s) 地址；没填就只展示文字） */
+  image?: string;
   /** 佐证说明（谁可以证明、材料在哪） */
   evidence?: string;
   status: SubmissionStatus;
@@ -126,6 +128,7 @@ export interface ContributionInput {
   description?: unknown;
   outcome?: unknown;
   link?: unknown;
+  image?: unknown;
   evidence?: unknown;
 }
 
@@ -166,6 +169,11 @@ export function validateSubmission(input: ContributionInput, now = new Date()): 
   const link = text(input.link);
   if (link && !/^https?:\/\//.test(link)) {
     issues.push({ field: 'link', message: '链接必须以 http(s):// 开头' });
+  }
+
+  const image = text(input.image);
+  if (image && !/^https?:\/\//.test(image)) {
+    issues.push({ field: 'image', message: '配图链接必须以 http(s):// 开头' });
   }
 
   const evidence = text(input.evidence);

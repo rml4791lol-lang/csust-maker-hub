@@ -40,6 +40,11 @@ describe('成员成果投稿', () => {
     expect(codes).toEqual(expect.arrayContaining(['memberId', 'title', 'description', 'date', 'link']));
   });
 
+  it('配图必须是 http(s) 地址', () => {
+    expect(validateSubmission({ ...valid, image: 'https://example.com/a.png' })).toEqual([]);
+    expect(validateSubmission({ ...valid, image: 'javascript:alert(1)' }).map((i) => i.field)).toContain('image');
+  });
+
   it('只有已发布投稿对外可见', () => {
     const list = [
       { ...valid, id: 'a', status: 'published' as const },

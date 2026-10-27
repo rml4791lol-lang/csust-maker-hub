@@ -3,21 +3,25 @@ import { site } from '../data/site';
 import { items, typeMeta } from '../data/items';
 import { publishedItems } from '../data/validate';
 import { members } from '../data/members';
+import { publishedSubmissions, contributionTypeLabel } from '../data/contributions';
 import '@fontsource-variable/inter';
 import '../styles/global.css';
 
 interface Props {
   title?: string;
   description?: string;
+  /** 成员档案等包含个人信息的页面强制 noindex */
+  noindex?: boolean;
 }
-const { title, description } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
 const pageTitle = title ? `${title} · ${site.name}` : `${site.name} · ${site.tagline.join('')}`;
 const desc = description ?? site.description;
 const path = Astro.url.pathname;
 const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 const navItems = site.nav;
+const robots = site.publicIndex && !noindex ? 'index, follow' : 'noindex, nofollow';
 
-/** 站内搜索索引：只索引已发布内容，草稿/下架不能出现在公开页面里 */
+/** 站内搜索索引：只索引已发布内容 / 成员 / 成果，草稿与个人信息不外泄 */
 const searchIndex = [
   ...publishedItems(items).map((i) => ({
     t: '内容',
@@ -32,8 +36,16 @@ const searchIndex = [
     k: m.dept,
     title: m.name + (m.role ? ` · ${m.role}` : ''),
     desc: `${m.grade} · ${m.skills.join(' / ')}`,
-    url: `/members#${m.id}`,
+    url: `/members/${m.id}`,
     q: [m.name, m.dept, m.grade, ...m.skills, m.bio ?? ''].join(' '),
+  })),
+  ...publishedSubmissions().map((s) => ({
+    t: '成果',
+    k: contributionTypeLabel[s.type] ?? '成果',
+    title: s.title,
+    desc: `${s.memberName} · ${s.date}`,
+    url: `/achievements#${s.id}`,
+    q: [s.title, s.description, s.memberName, s.type].join(' '),
   })),
 ];
 ---
@@ -46,7 +58,7 @@ const searchIndex = [
     <title>{pageTitle}</title>
     <meta name="description" content={desc} />
     <meta name="theme-color" content="#08090a" />
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content={robots} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={desc} />
     <meta property="og:type" content="website" />
@@ -54,6 +66,7 @@ const searchIndex = [
     <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
   <body class="tech">
+    <a class="skip-link" href="#main">跳到主要内容</a>
     <div class="page-glow" aria-hidden="true">
       <div class="grid"></div>
       <div class="aurora"></div>
@@ -84,7 +97,7 @@ const searchIndex = [
       </div>
     </header>
 
-    <main>
+    <main id="main" tabindex="-1">
       <slot />
     </main>
 
@@ -112,7 +125,10 @@ const searchIndex = [
         </div>
         <div class="tfoot-bottom">
           <span>© {new Date().getFullYear()} {site.name} · {site.nameEn}</span>
-          <span>MAKE SOMETHING REAL.</span>
+          <span class="foot-meta">
+            {site.dataStatus === 'demo' ? <span class="data-badge">示例数据 · 待替换为真实名单</span> : null}
+            <span>MAKE SOMETHING REAL.</span>
+          </span>
         </div>
       </div>
     </footer>
@@ -124,7 +140,7 @@ const searchIndex = [
       <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="站内搜索">
         <div class="cmdk-top">
           <span class="cmdk-icon">⌕</span>
-          <input id="cmdkInput" type="text" placeholder="搜索内容、成员…" autocomplete="off" spellcheck="false" />
+          <input id="cmdkInput" type="text" placeholder="搜索内容、成员、成果…" autocomplete="off" spellcheck="false" aria-label="搜索站内内容" />
           <kbd>ESC</kbd>
         </div>
         <div class="cmdk-body" id="cmdkBody">

@@ -21,7 +21,7 @@ const external = (s: Submission) => Boolean(s.link && /^https?:\/\//.test(s.link
 const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributionTypeLabel] ?? t;
 ---
 
-<Base title={`${member.name} · 成员档案`} description={profile?.aiSummary ?? `${member.name}的成果档案`}>
+<Base title={`${member.name} · 成员档案`} description={profile?.aiSummary ?? `${member.name}的成果档案`} noindex>
   <div class="wrap page-header">
     <a href="/members" class="crumb" style="display:block;width:fit-content;margin-bottom:16px;">← 返回成员</a>
     <span class="crumb">MEMBER / 成员档案</span>
@@ -106,6 +106,7 @@ const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributi
                   <b>{s.title}</b>
                   <span class="tl-type">{typeOf(s.type)}</span>
                   <p class="tl-desc">{s.description}</p>
+                  {s.image ? <img class="tl-img" src={s.image} alt={`${s.title} 配图`} loading="lazy" /> : null}
                   {s.outcome ? <div class="tl-outcome">产出：{s.outcome}</div> : null}
                   {s.link ? (
                     <a class="tl-link" href={href(s)} target={external(s) ? '_blank' : undefined} rel={external(s) ? 'noopener' : undefined}>
