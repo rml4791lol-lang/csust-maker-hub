@@ -26,6 +26,7 @@ import { expiringSoon, validateContent } from '../src/data/validate';
 import { SITE_BASE, sendIm, imChannel } from './im-push';
 import { overdueReviews } from '../src/data/review';
 import { voteLabel } from '../src/data/vote-labels';
+import { validateSubmission } from '../src/data/contributions';
 
 const ROOT = process.cwd();
 const CONTENT_FILE = join(ROOT, 'content/items.json');
@@ -36,6 +37,10 @@ const METRICS_FILE = join(ROOT, 'metrics.json');
 /** 功能开关与工具目录：构建时被 src/data/flags.ts、tools.ts 读走，后台切换后需重新构建 */
 const FLAGS_FILE = join(ROOT, 'content/flags.json');
 const TOOLS_FILE = join(ROOT, 'content/tools.json');
+/** 成员成果投稿（成员自己填，后台审核） */
+const SUBMISSIONS_FILE = join(ROOT, 'content/submissions.json');
+/** 成员 AI 档案（agent 读投稿后写入） */
+const PROFILES_FILE = join(ROOT, 'content/profiles.json');
 const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 /** 多 agent token：AGENT_TOKENS="token:loong333,token2:Qiu-Py"——日志与审核记录按名字区分操作人 */
@@ -58,6 +63,17 @@ const STATES: State[] = ['draft', 'reviewing', 'published', 'rejected', 'unpubli
 /** HTML 转义：后台页面所有动态内容都经过它，避免内容作者注入脚本 */
 const esc = (v: unknown) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+
+/** 成员投稿限流：同一 IP 10 分钟最多 5 条（进程内，够用） */
+const contributeHits = new Map<string, number[]>();
+function allowContribution(ip: string): boolean {
+  const now = Date.now();
+  const hits = (contributeHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
+  if (hits.length >= 5) return false;
+  hits.push(now);
+  contributeHits.set(ip, hits);
+  return true;
+}
 
 function accounts(): Map<string, string> {
   const raw = process.env.ADMIN_USERS || 'admin:admin123';
@@ -295,6 +311,29 @@ function page(actor: string): string {
   </div>`
     : '';
 
+  // 成员投稿（成员成果平台）
+  const subsNow = readJson<any[]>(SUBMISSIONS_FILE, []);
+  const pendingSubs = subsNow.filter((s) => s.status === 'pending');
+  const subsHtml = subsNow.length
+    ? `<div class="cfgbox"><b>成员投稿</b><span>共 ${subsNow.length} 条，待审核 ${pendingSubs.length} 条。发布后出现在成员档案与成果墙；退回可写原因。AI 汇总走 <code>PUT /api/profiles</code>。</span>
+    ${subsNow
+      .slice(0, 20)
+      .map(
+        (s) =>
+          `<div class="sub"><div class="sub-main"><span class="mono">${esc(s.id)}</span> <b>${esc(s.title)}</b><span class="sub-meta">${esc(s.memberName)} · ${esc(s.date)} · ${esc(s.type)} · ${esc(s.status)}</span><p>${esc(s.description)}</p></div><div class="ops">${
+            s.status !== 'published'
+              ? `<button class="op" data-sub="${esc(s.id)}" data-sub-state="published">发布</button>`
+              : ''
+          }${
+            s.status !== 'rejected'
+              ? `<button class="op" data-sub="${esc(s.id)}" data-sub-state="rejected">退回</button>`
+              : ''
+          }</div></div>`
+      )
+      .join('')}
+  </div>`
+    : '';
+
   // IM 推送状态（issue #10）
   const imChannelNow = imChannel();
   const imStatus = imChannelNow
@@ -371,6 +410,12 @@ function page(actor: string): string {
   .pv-sec p,.pv-sec li{color:#3f3f3f;line-height:1.75;font-size:13px;margin:0}
   .pv-sec ol,.pv-sec ul{margin:0;padding-left:20px;display:grid;gap:6px}
   .pv-sec pre{background:#fafafa;border:1px solid #e9e9e9;border-radius:8px;padding:12px;white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:12px;margin:0}
+  /* 成员投稿 */
+  .sub{display:flex;gap:14px;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid #f0f0f0;font-size:12.5px}
+  .sub-main{display:grid;gap:3px;min-width:0}
+  .sub-main b{font-size:13px;color:#0a0a0a}
+  .sub-meta{color:#8a8a8a;font-size:11.5px}
+  .sub-main p{margin:2px 0 0;color:#525252;font-size:12px;line-height:1.6;max-width:70ch}
 </style></head>
 <body>
 <header><h1>内容后台</h1><span class="who">${esc(actor)}</span></header>
@@ -381,6 +426,7 @@ function page(actor: string): string {
   ${fbHtml}
   ${flagsHtml}
   ${toolsHtml}
+  ${subsHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>
     <label><input type="checkbox" class="rule"> 不涉政治、宗教、民族敏感内容</label>
@@ -401,6 +447,7 @@ function page(actor: string): string {
     <p><code>DELETE /api/items/:id</code> 删除</p>
     <p><code>POST /api/state</code> body <code>{"id":"g01","state":"published"}</code></p>
     <p><code>POST /api/review</code> body <code>{"id":"g01"}</code> 完成复核（盖复核章，写 review-log）</p>
+    <p><b>成员成果平台：</b>公开 <code>POST /api/contribute</code>（成员投稿，待审核）；<code>GET /api/submissions</code> 投稿列表；<code>POST /api/submissions/:id/status</code> body <code>{"status":"published","note":""}</code> 审核；<code>GET /api/profiles</code> / <code>PUT /api/profiles</code>（agent 写 AI 汇总，整表替换）</p>
     <p><code>POST /api/build</code> 重新构建并部署</p>
   </div>
 </main>
@@ -495,6 +542,33 @@ function page(actor: string): string {
   }));
   document.querySelectorAll('[data-pv-close]').forEach(el => el.addEventListener('click', () => { pv.hidden = true; }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') pv.hidden = true; });
+
+  // ---- 成员投稿审核 ----
+  document.querySelectorAll('[data-sub]').forEach(btn => btn.addEventListener('click', async () => {
+    const id = btn.dataset.sub, state = btn.dataset.subState;
+    let note = '';
+    if (state === 'rejected') {
+      const reason = prompt('退回原因（会写入审核记录，可留空）：', '');
+      if (reason === null) return;
+      note = reason;
+    }
+    if (state === 'published' && !confirm('发布这条投稿？发布后出现在成员档案与成果墙。')) return;
+    btn.disabled = true;
+    try {
+      const r = await fetch('api/submissions/' + encodeURIComponent(id) + '/status', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ status: state, note: note }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || '操作失败');
+      toast('已处理，重新构建后前台可见');
+      setTimeout(()=>location.reload(), 500);
+    } catch (e) {
+      toast('失败：' + e.message);
+      btn.disabled = false;
+    }
+  }));
   document.querySelectorAll('[data-review]').forEach(btn => {
     btn.addEventListener('click', async () => {
       btn.disabled = true;
@@ -624,6 +698,57 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true }, CORS);
     }
     return json(res, 405, { error: 'method not allowed' }, CORS);
+  }
+
+  // ---------- 公开接口：成员成果投稿（成员自己填写，待审核） ----------
+  if (url === '/api/contribute') {
+    const CORS = { 'Access-Control-Allow-Origin': '*' };
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      return res.end();
+    }
+    if (req.method !== 'POST') return json(res, 405, { error: 'method not allowed' }, CORS);
+    const ip =
+      String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+      req.socket.remoteAddress ||
+      'unknown';
+    if (!allowContribution(ip)) return json(res, 429, { error: '提交太频繁，请 10 分钟后再试' }, CORS);
+    const raw = await body(req);
+    if (raw.length > 8192) return json(res, 413, { error: '内容过长' }, CORS);
+    let p: any;
+    try {
+      p = JSON.parse(raw);
+    } catch {
+      return json(res, 400, { error: 'bad json' }, CORS);
+    }
+    const issues = validateSubmission(p);
+    if (issues.length) return json(res, 400, { error: '提交未通过校验', issues }, CORS);
+    const member = members.find((m) => m.id === String(p.memberId))!;
+    const list = readJson<any[]>(SUBMISSIONS_FILE, []);
+    const id = 'c-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+    list.push({
+      id,
+      memberId: member.id,
+      memberName: member.name,
+      dept: member.dept,
+      type: p.type,
+      title: String(p.title).trim(),
+      date: p.date,
+      description: String(p.description).trim(),
+      outcome: p.outcome ? String(p.outcome).trim() : undefined,
+      link: p.link ? String(p.link).trim() : undefined,
+      evidence: p.evidence ? String(p.evidence).trim() : undefined,
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+      source: 'form',
+    });
+    writeJson(SUBMISSIONS_FILE, list);
+    logTransition({ id, from: '-', to: 'pending', actor: 'member', method: 'human', note: '成员投稿' });
+    return json(res, 200, { ok: true, id, note: '已提交，待审核' }, CORS);
   }
 
   const who = identify(req);
@@ -817,6 +942,73 @@ const server = http.createServer(async (req, res) => {
       method: who.role === 'agent' ? 'agent' : 'human',
     });
     return json(res, 200, { ok: true });
+  }
+
+  // GET /api/submissions — 成员投稿列表（agent / 管理员）
+  if (req.method === 'GET' && url === '/api/submissions') {
+    return json(res, 200, readJson<any[]>(SUBMISSIONS_FILE, []));
+  }
+
+  // POST /api/submissions/:id/status — 投稿审核：published / rejected（可带 note）
+  const subStatus = url.match(/^\/api\/submissions\/([\w-]+)\/status$/);
+  if (subStatus && req.method === 'POST') {
+    try {
+      const { status, note } = JSON.parse((await body(req)) || '{}');
+      if (!['published', 'rejected', 'pending'].includes(status)) throw new Error('状态不合法');
+      const list = readJson<any[]>(SUBMISSIONS_FILE, []);
+      const idx = list.findIndex((s) => s.id === subStatus[1]);
+      if (idx < 0) throw new Error('投稿不存在：' + subStatus[1]);
+      const prev = list[idx];
+      list[idx] = {
+        ...prev,
+        status,
+        note: note ? String(note).slice(0, 300) : prev.note,
+        reviewedAt: new Date().toISOString(),
+      };
+      writeJson(SUBMISSIONS_FILE, list);
+      logTransition({
+        id: prev.id,
+        from: prev.status,
+        to: status,
+        actor,
+        method: who.role === 'agent' ? 'agent' : 'human',
+        note: note || '',
+      });
+      return json(res, 200, { ok: true, id: prev.id, status });
+    } catch (e: any) {
+      return json(res, 400, { error: e.message });
+    }
+  }
+
+  // GET /api/profiles — 成员 AI 档案；PUT — agent 写分析结果（整表替换）
+  if (url === '/api/profiles') {
+    if (req.method === 'GET') return json(res, 200, readJson<any[]>(PROFILES_FILE, []));
+    if (req.method === 'PUT') {
+      let list: any[];
+      try {
+        list = JSON.parse((await body(req)) || 'null');
+      } catch {
+        return json(res, 400, { error: 'bad json' });
+      }
+      if (!Array.isArray(list)) return json(res, 400, { error: 'body 必须是档案数组' });
+      const bad = list.find(
+        (p) => !members.some((m) => m.id === p?.memberId) || !String(p?.aiSummary || '').trim()
+      );
+      if (bad) return json(res, 400, { error: '每条档案必须有合法 memberId 和非空 aiSummary' });
+      const today = new Date().toISOString().slice(0, 10);
+      const normalized = list.map((p) => ({ ...p, aiUpdatedAt: today }));
+      writeJson(PROFILES_FILE, normalized);
+      logTransition({
+        id: 'profiles',
+        from: '-',
+        to: `${normalized.length} 人`,
+        actor,
+        method: who.role === 'agent' ? 'agent' : 'human',
+        note: 'AI 档案整表替换',
+      });
+      return json(res, 200, { ok: true, count: normalized.length, note: '重新构建后生效' });
+    }
+    return json(res, 405, { error: 'method not allowed' });
   }
 
   // POST /api/state

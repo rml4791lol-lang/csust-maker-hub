@@ -18,6 +18,7 @@ export const site = {
     { href: '/members', label: '成员' },
     { href: '/resources', label: '资源' },
     { href: '/stats', label: '数据' },
+    { href: '/contribute', label: '提交成果' },
     { href: '/about', label: '关于' },
   ],
   /** 反馈收集端点（后台服务公开接口）。留空则只记录在本地。 */

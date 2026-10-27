@@ -5,6 +5,7 @@ import { items, typeMeta, sortedByDate } from '../data/items';
 import { publishedItems } from '../data/validate';
 import { members } from '../data/members';
 import { flagEnabled } from '../data/flags';
+import { profiles } from '../data/contributions';
 
 const live = publishedItems(items);
 const latestConsole = publishedItems(sortedByDate).slice(0, 5);
@@ -13,6 +14,7 @@ const working = publishedItems(sortedByDate)
   .filter((i) => ['进行中', '备赛中', '报名中'].includes(i.status))
   .slice(0, 3);
 const people = members.slice(0, 8);
+const topProfiles = [...profiles].sort((a, b) => b.stats.contributions - a.stats.contributions).slice(0, 3);
 const totalTags = new Set(live.flatMap((i) => i.tags)).size;
 const show = (k: string) => flagEnabled(k);
 
@@ -45,7 +47,7 @@ const CONSOLE_TABS = ['全部', '攻略', '指令', '模板', '培训'];
 
         <div class="cta-row">
           <a href="/library" class="btn btn-primary">浏览内容库 <span class="ar">→</span></a>
-          <a href="/resources" class="btn btn-ghost">找模板</a>
+          <a href="/contribute" class="btn btn-ghost">提交我的成果</a>
         </div>
 
         <div class="hero-meta">
@@ -215,7 +217,7 @@ const CONSOLE_TABS = ['全部', '攻略', '指令', '模板', '培训'];
 
       <div class="people-grid">
         {people.map((m, i) => (
-          <a class="person-card" href={`/members#${m.id}`} data-reveal data-delay={i * 55}>
+          <a class="person-card" href={`/members/${m.id}`} data-reveal data-delay={i * 55}>
             <span class="avatar-ring">{m.name.slice(0, 1)}</span>
             <h4>{m.name}{m.role ? <span>{m.role}</span> : null}</h4>
             <span class="person-dept">{m.dept} / {m.grade}</span>
@@ -229,11 +231,53 @@ const CONSOLE_TABS = ['全部', '攻略', '指令', '模板', '培训'];
   </section>
   )}
 
+  <!-- ================= 成员成果档案 ================= -->
+  <section class="section" id="profiles">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>04</b><span class="rule"></span>成员档案</div>
+          <h2 class="sec-title">每个人做过的事，都有记录。</h2>
+          <p class="sec-desc">成员自己提交成果，AI 汇总成档案：做过什么、擅长什么、下一步可以做什么。</p>
+        </div>
+        <a class="sec-more" href="/contribute">提交我的成果 <span class="ar">→</span></a>
+      </div>
+
+      <div class="profiles-grid">
+        {topProfiles.map((p, i) => (
+          <a class="archive-card" href={`/members/${p.memberId}`} data-reveal data-delay={i * 70}>
+            <span class="archive-top">
+              <span class="archive-avatar">{p.name.slice(0, 1)}</span>
+              <span>
+                <span class="archive-name">{p.name}{p.role ? ` · ${p.role}` : ''}</span>
+                <span class="archive-meta" style="display:block;">{p.dept} · {p.grade}</span>
+              </span>
+            </span>
+            <span class="archive-summary">{p.aiSummary}</span>
+            <span class="archive-tags">
+              {p.focusTags.slice(0, 3).map((t) => <span class="skill-chip">{t}</span>)}
+            </span>
+            <span class="archive-stats">
+              <span><b>{p.stats.contributions}</b> 条成果</span>
+              <span><b>{p.stats.projects}</b> 个项目</span>
+              <span><b>{p.highlights.length}</b> 个亮点</span>
+            </span>
+          </a>
+        ))}
+      </div>
+
+      <div class="mini-note" data-reveal data-delay="120" style="margin-top:14px;">
+        <span class="mn-key">怎么用</span>
+        <p>点成员名字打开个人档案；想让自己的记录更完整，就点右上角「提交我的成果」，审核后进入档案并参与 AI 汇总。</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= CTA ================= -->
   {show('home.cta') && (
   <section class="cta-band">
     <div class="wrap cta-inner" data-reveal>
-      <div class="sec-index"><b>04</b><span class="rule"></span>开始</div>
+      <div class="sec-index"><b>05</b><span class="rule"></span>开始</div>
       <h2>有一个具体的活，<br />或者一个模糊的想法，<span class="grad">都可以提。</span></h2>
       <p>每条都带现成路径和可复制的东西，看完能直接动手。</p>
       <div class="cta-row">
