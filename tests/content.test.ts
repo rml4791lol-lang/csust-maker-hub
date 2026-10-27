@@ -101,6 +101,14 @@ describe('内容校验', () => {
     });
     expect(issues.some((i) => i.code === 'invalid-date')).toBe(true);
   });
+
+  it('rejected 是合法的生命周期状态（退回留痕用）', () => {
+    const issues = validateContent({
+      items: [baseItem({ publishState: 'rejected' as any })],
+      members: [],
+    });
+    expect(issues.some((i) => i.code === 'invalid-publish-state')).toBe(false);
+  });
 });
 
 describe('类型专属字段校验（API 写入守卫）', () => {

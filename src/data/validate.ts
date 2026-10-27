@@ -13,7 +13,7 @@ export type ValidationIssue = {
 };
 
 const ITEM_TYPES = Object.keys(typeMeta) as ItemType[];
-const PUBLISH_STATES: PublishState[] = ['draft', 'reviewing', 'published', 'unpublished'];
+const PUBLISH_STATES: PublishState[] = ['draft', 'reviewing', 'published', 'rejected', 'unpublished'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface ContentInput {

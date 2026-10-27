@@ -52,8 +52,12 @@ const DEPLOY_TARGET = process.env.DEPLOY_TARGET || '';
 /** 复核周期天数：超过该天数未复核的已发布内容进「待复核」清单（issue #13） */
 const REVIEW_DAYS = Number(process.env.REVIEW_DAYS) > 0 ? Number(process.env.REVIEW_DAYS) : 90;
 
-type State = 'draft' | 'reviewing' | 'published' | 'unpublished';
-const STATES: State[] = ['draft', 'reviewing', 'published', 'unpublished'];
+type State = 'draft' | 'reviewing' | 'published' | 'rejected' | 'unpublished';
+const STATES: State[] = ['draft', 'reviewing', 'published', 'rejected', 'unpublished'];
+
+/** HTML 转义：后台页面所有动态内容都经过它，避免内容作者注入脚本 */
+const esc = (v: unknown) =>
+  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
 function accounts(): Map<string, string> {
   const raw = process.env.ADMIN_USERS || 'admin:admin123';
@@ -110,6 +114,22 @@ function setState(id: string, next: State, actor: string, method: 'human' | 'age
   overrides[id] = next;
   writeJson(STATE_FILE, overrides);
   logTransition({ id, from: prev, to: next, actor, method, note });
+
+  // 发布时把审核人/时间/方式写进条目本身，详情页要展示（spec：每条记录审核信息）
+  if (next === 'published') {
+    const list = readItems();
+    const idx = list.findIndex((i) => i.id === id);
+    if (idx >= 0) {
+      list[idx] = {
+        ...list[idx],
+        reviewer: actor,
+        reviewedAt: new Date().toISOString().slice(0, 10),
+        reviewMethod: method,
+      };
+      writeItems(list);
+    }
+  }
+
   if (next === 'published' && prev !== 'published') notifyPublished(id, actor, method);
 }
 
@@ -158,17 +178,17 @@ function page(actor: string): string {
       const actions = STATES.filter((s) => s !== st)
         .map(
           (s) =>
-            `<button class="op" data-id="${i.id}" data-state="${s}">${
-              { draft: '退回草稿', reviewing: '待审', published: '发布', unpublished: '下架' }[s]
+            `<button class="op" data-id="${esc(i.id)}" data-state="${s}">${
+              { draft: '退回草稿', reviewing: '待审', published: '发布', rejected: '退回', unpublished: '下架' }[s]
             }</button>`
         )
         .join('');
       return `<tr>
-        <td class="mono">${i.id}</td>
-        <td>${i.title}</td>
-        <td><span class="tag">${i.type}</span></td>
-        <td><span class="st st-${st}">${st}</span></td>
-        <td class="ops">${actions}</td>
+        <td class="mono">${esc(i.id)}</td>
+        <td>${esc(i.title)}</td>
+        <td><span class="tag">${esc(i.type)}</span></td>
+        <td><span class="st st-${st}">${esc(st)}</span></td>
+        <td class="ops"><button class="op" data-preview="${esc(i.id)}">预览</button>${actions}</td>
       </tr>`;
     })
     .join('');
@@ -176,7 +196,7 @@ function page(actor: string): string {
   const soon = expiringSoon(live as any);
   const soonHtml = soon.length
     ? `<div class="soon"><b>${soon.length} 条即将到期</b><span>${soon
-        .map((i) => `${i.title}（${i.expiresAt}）`)
+        .map((i) => `${esc(i.title)}（${esc(i.expiresAt)}）`)
         .join('、')}</span></div>`
     : '';
 
@@ -188,7 +208,7 @@ function page(actor: string): string {
     ? `<div class="soon noauthor"><b>${noAuthor.length} 条缺作者</b><span>${noAuthor
         .map((i) => {
           const it = live.find((x) => x.id === i.id);
-          return `${it?.title ?? ''}（<span class="mono">${i.id}</span>）`;
+          return `${esc(it?.title ?? '')}（<span class="mono">${esc(i.id)}</span>）`;
         })
         .join('、')}</span></div>`
     : '';
@@ -204,9 +224,9 @@ function page(actor: string): string {
     ? `<div class="soon overdue"><b>${dueReview.length} 条待复核（超 ${REVIEW_DAYS} 天未复核）</b>${dueReview
         .map(
           (i) =>
-            `<span>${i.title}（<span class="mono">${i.id}</span>）· 最近复核：${
-              i.lastReviewAt ? i.lastReviewAt.slice(0, 10) : '无记录'
-            } <button class="op" data-review="${i.id}">完成复核</button></span>`
+            `<span>${esc(i.title)}（<span class="mono">${esc(i.id)}</span>）· 最近复核：${
+              i.lastReviewAt ? esc(i.lastReviewAt.slice(0, 10)) : '无记录'
+            } <button class="op" data-review="${esc(i.id)}">完成复核</button></span>`
         )
         .join('')}</div>`
     : '';
@@ -219,7 +239,7 @@ function page(actor: string): string {
     .sort((a, b) => b[1].useful + b[1].useless + b[1].confirmed - (a[1].useful + a[1].useless + a[1].confirmed))
     .map(([id, c]) => {
       const it = live.find((i) => i.id === id);
-      return `<tr><td class="mono">${id}</td><td>${it?.title ?? id}</td><td>${c.useful}</td><td>${c.useless}</td><td>${c.confirmed}</td></tr>`;
+      return `<tr><td class="mono">${esc(id)}</td><td>${esc(it?.title ?? id)}</td><td>${c.useful}</td><td>${c.useless}</td><td>${c.confirmed}</td></tr>`;
     })
     .join('');
   const fbHtml =
@@ -239,9 +259,9 @@ function page(actor: string): string {
             .reverse()
             .map(
               (f) =>
-                `<li><span class="mono">${f.item}</span> · ${voteLabel[f.vote] ?? f.vote }${
-                  f.note ? ` · 「${f.note}」` : ''
-                } · ${f.at.slice(0, 10)}</li>`
+                `<li><span class="mono">${esc(f.item)}</span> · ${esc(voteLabel[f.vote] ?? f.vote)}${
+                  f.note ? ` · 「${esc(f.note)}」` : ''
+                } · ${esc(f.at.slice(0, 10))}</li>`
             )
             .join('')}</ul>`
         : ''
@@ -257,9 +277,9 @@ function page(actor: string): string {
     ${flagsNow
       .map(
         (f) =>
-          `<div class="cfgrow"><span class="cfg-label">${f.label}</span><span class="cfg-aud">面向${audText(f.audience)}</span>${
-            f.note ? `<span class="cfg-note">${f.note}</span>` : ''
-          }<button class="op flagtoggle" data-key="${f.key}" data-on="${f.enabled ? 1 : 0}">${
+          `<div class="cfgrow"><span class="cfg-label">${esc(f.label)}</span><span class="cfg-aud">面向${esc(audText(f.audience))}</span>${
+            f.note ? `<span class="cfg-note">${esc(f.note)}</span>` : ''
+          }<button class="op flagtoggle" data-key="${esc(f.key)}" data-on="${f.enabled ? 1 : 0}">${
             f.enabled ? '已启用 · 停用' : '已停用 · 启用'
           }</button></div>`
       )
@@ -270,7 +290,7 @@ function page(actor: string): string {
   const toolsHtml = toolsNow.length
     ? `<div class="cfgbox"><b>工具站目录</b><span>${toolsNow.length} 条，展示在 /tools。编辑走 <code>PUT /api/tools</code>（整表替换），改完重新构建。</span>
     ${toolsNow
-      .map((t) => `<div class="cfgrow"><span class="cfg-label">${t.name}</span><span class="cfg-aud">面向${audText(t.audience)}</span><span class="cfg-note">${t.status ?? '正常'} · ${t.url}</span></div>`)
+      .map((t) => `<div class="cfgrow"><span class="cfg-label">${esc(t.name)}</span><span class="cfg-aud">面向${esc(audText(t.audience))}</span><span class="cfg-note">${esc(t.status ?? '正常')} · ${esc(t.url)}</span></div>`)
       .join('')}
   </div>`
     : '';
@@ -301,6 +321,7 @@ function page(actor: string): string {
   .st{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #e9e9e9}
   .st-published{color:#16a34a;border-color:#bbe7c9;background:#f2fbf5}
   .st-reviewing{color:#1a56db;border-color:#c7d7fb;background:#f1f5fd}
+  .st-rejected{color:#b45309;border-color:#fde2b8;background:#fffbf2}
   .st-draft{color:#525252;background:#f5f5f5}
   .st-unpublished{color:#dc2626;border-color:#fecaca;background:#fef2f2}
   .ops{display:flex;gap:6px;flex-wrap:wrap}
@@ -335,9 +356,24 @@ function page(actor: string): string {
   .cfg-aud{color:#1a56db;font-size:11.5px;white-space:nowrap}
   .cfg-note{color:#8a8a8a;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cfgrow .op{justify-self:end}
+  /* 预览弹层 */
+  .pv{position:fixed;inset:0;z-index:50;display:grid;place-items:center}
+  .pv[hidden]{display:none}
+  .pv-bg{position:absolute;inset:0;background:rgba(10,10,10,.5)}
+  .pv-panel{position:relative;width:min(760px,92vw);max-height:84vh;display:flex;flex-direction:column;background:#fff;border:1px solid #e9e9e9;border-radius:12px;box-shadow:0 30px 80px -20px rgba(0,0,0,.4);overflow:hidden}
+  .pv-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e9e9e9}
+  .pv-head b{font-size:14px}
+  .pv-body{padding:18px;overflow:auto;font-size:13px}
+  .pv-body h1{font-size:20px;margin:0 0 6px}
+  .pv-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;color:#8a8a8a;font-size:11.5px}
+  .pv-sec{margin-top:16px}
+  .pv-sec h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a8a8a;margin:0 0 6px;font-weight:600}
+  .pv-sec p,.pv-sec li{color:#3f3f3f;line-height:1.75;font-size:13px;margin:0}
+  .pv-sec ol,.pv-sec ul{margin:0;padding-left:20px;display:grid;gap:6px}
+  .pv-sec pre{background:#fafafa;border:1px solid #e9e9e9;border-radius:8px;padding:12px;white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:12px;margin:0}
 </style></head>
 <body>
-<header><h1>内容后台</h1><span class="who">${actor}</span></header>
+<header><h1>内容后台</h1><span class="who">${esc(actor)}</span></header>
 <main>
   ${soonHtml}
   ${noAuthorHtml}
@@ -368,24 +404,37 @@ function page(actor: string): string {
     <p><code>POST /api/build</code> 重新构建并部署</p>
   </div>
 </main>
+<div class="pv" id="pv" hidden>
+  <div class="pv-bg" data-pv-close></div>
+  <div class="pv-panel" role="dialog" aria-modal="true" aria-label="内容预览">
+    <div class="pv-head"><b>内容预览</b><button class="op" data-pv-close>关闭</button></div>
+    <div class="pv-body" id="pvBody"></div>
+  </div>
+</div>
 <div id="msg"></div>
 <script>
   const msg = document.getElementById('msg');
   function toast(t){ msg.textContent=t; msg.style.display='block'; setTimeout(()=>msg.style.display='none',2200); }
-  document.querySelectorAll('.op').forEach(btn => {
+  document.querySelectorAll('.op[data-state]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id, state = btn.dataset.state;
+      let note = '';
       if (state === 'published') {
         const all = [...document.querySelectorAll('.rule')];
         if (!all.every(r => r.checked)) { toast('发布前先确认三条合规红线'); return; }
         if (!confirm('确认发布？三条合规红线已逐条核对。')) return;
+      }
+      if (state === 'rejected') {
+        const reason = prompt('退回原因（会写入 review-log，可留空）：', '');
+        if (reason === null) return;
+        note = reason;
       }
       btn.disabled = true;
       try {
         const r = await fetch('api/state', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ id, state }),
+          body: JSON.stringify({ id: id, state: state, note: note }),
         });
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || '操作失败');
@@ -397,6 +446,55 @@ function page(actor: string): string {
       }
     });
   });
+
+  // ---- 预览弹层（spec：后台四件事之一）----
+  const pv = document.getElementById('pv');
+  const pvBody = document.getElementById('pvBody');
+  const pvEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pvSec = (title, inner) => inner ? '<div class="pv-sec"><h3>' + pvEsc(title) + '</h3>' + inner + '</div>' : '';
+  const pvList = (arr) => Array.isArray(arr) && arr.length ? '<ol>' + arr.map(x => '<li>' + pvEsc(x) + '</li>').join('') + '</ol>' : '';
+  function renderPreview(it) {
+    const e = it.extra || {};
+    const typeLabel = {guide:'攻略',skill:'技能指令',template:'模板素材',link:'外部项目',training:'培训',project:'项目',competition:'竞赛',activity:'活动',course:'课程',video:'视频'}[it.type] || it.type;
+    let html = '<h1>' + pvEsc(it.title) + '</h1><div class="pv-meta">';
+    html += '<span class="mono">' + pvEsc(it.id) + '</span><span class="tag">' + pvEsc(typeLabel) + '</span>';
+    html += '<span>' + pvEsc(it.publishState) + '</span><span>' + pvEsc(it.date) + '</span>';
+    if (it.author) html += '<span>作者 ' + pvEsc(it.author) + '</span>';
+    if (it.reviewer) html += '<span>审核 ' + pvEsc(it.reviewer) + ' · ' + pvEsc(it.reviewedAt || '') + (it.reviewMethod ? ' · ' + pvEsc(it.reviewMethod) : '') + '</span>';
+    html += '</div><p>' + pvEsc(it.summary) + '</p>';
+    html += pvSec('问题场景', e.scene ? '<p>' + pvEsc(e.scene) + '</p>' : '');
+    html += pvSec('现成路径', pvList(e.path));
+    html += pvSec('可复制提示词', e.prompt ? '<pre>' + pvEsc(e.prompt) + '</pre>' : '');
+    html += pvSec('常见错误', e.pitfalls && e.pitfalls.length ? '<ul>' + e.pitfalls.map(p => '<li>' + pvEsc(p) + '</li>').join('') + '</ul>' : '');
+    html += pvSec('使用记录', e.usage ? '<p>' + pvEsc(e.usage) + '</p>' : '');
+    html += pvSec('来源', e.sourceUrl ? '<p>' + pvEsc(e.sourceName || e.sourceUrl) + ' · ' + pvEsc(e.sourceUrl) + '</p>' : '');
+    html += pvSec('指令', e.command ? '<pre>' + pvEsc(e.command) + '</pre>' : '');
+    html += pvSec('适用', e.appliesTo ? '<p>' + pvEsc(e.appliesTo) + '</p>' : '');
+    html += pvSec('下载', e.downloadUrl ? '<p>' + pvEsc(e.downloadUrl) + '</p>' : '');
+    html += pvSec('外部链接', e.url ? '<p>' + pvEsc(e.url) + '</p>' : '');
+    html += pvSec('培训信息', e.kind ? '<p>' + pvEsc(e.kind) + (e.deadline ? ' · 截止 ' + pvEsc(e.deadline) : '') + (e.materials ? ' · ' + pvEsc(e.materials) : '') + '</p>' : '');
+    html += pvSec('课程大纲', pvList(e.outline));
+    html += pvSec('复盘', e.recap ? '<p>' + pvEsc(e.recap) + '</p>' : '');
+    html += pvSec('交付形态', e.deliverable ? '<p>' + pvEsc(e.deliverable) + '</p>' : '');
+    const race = [e.level, e.team, e.award].filter(Boolean).join(' · ');
+    html += pvSec('竞赛信息', race ? '<p>' + pvEsc(race) + '</p>' : '');
+    html += pvSec('标签', it.tags && it.tags.length ? '<p>' + it.tags.map(t => '<span class="tag">' + pvEsc(t) + '</span>').join(' ') + '</p>' : '');
+    html += pvSec('参与人', it.people && it.people.length ? '<p>' + it.people.map(pvEsc).join('、') + '</p>' : '');
+    pvBody.innerHTML = html;
+    pv.hidden = false;
+  }
+  document.querySelectorAll('[data-preview]').forEach(btn => btn.addEventListener('click', async () => {
+    try {
+      const r = await fetch('api/items/' + encodeURIComponent(btn.dataset.preview));
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || '读取失败');
+      renderPreview(d);
+    } catch (e) {
+      toast('预览失败：' + e.message);
+    }
+  }));
+  document.querySelectorAll('[data-pv-close]').forEach(el => el.addEventListener('click', () => { pv.hidden = true; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') pv.hidden = true; });
   document.querySelectorAll('[data-review]').forEach(btn => {
     btn.addEventListener('click', async () => {
       btn.disabled = true;
