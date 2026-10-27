@@ -1,0 +1,199 @@
+---
+import { site } from '../data/site';
+import '@fontsource-variable/inter';
+import '../styles/tech.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title, description } = Astro.props;
+const pageTitle = title ? `${title} · ${site.name}` : `${site.name} · ${site.tagline.join('')}`;
+const desc = description ?? site.description;
+const path = Astro.url.pathname;
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+const navItems = site.nav;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={desc} />
+    <meta name="theme-color" content="#08090a" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2308090a'/%3E%3Cpath d='M9 22V10h3l8 8.2V10h3v12h-3l-8-8.2V22z' fill='%238fa4ff'/%3E%3C/svg%3E" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
+  </head>
+  <body class="tech">
+    <div class="page-glow" aria-hidden="true">
+      <div class="grid"></div>
+      <div class="aurora"></div>
+    </div>
+
+    <header class="tnav">
+      <div class="wrap tnav-inner">
+        <a href="/" class="brand" aria-label={site.name}>
+          <span class="brand-mark">创</span>
+          <span>{site.name}</span>
+          <span class="brand-sub">MAKER SPACE</span>
+        </a>
+
+        <nav class="tlinks" aria-label="主导航">
+          {navItems.map((n) => (
+            <a href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>{n.label}</a>
+          ))}
+        </nav>
+
+        <div class="tright">
+          <span class="status-pill"><i></i>内部知识库 · 在线</span>
+          <a class="btn btn-primary btn-sm" href="/library">进入内容库 <span class="ar">→</span></a>
+          <button class="tburger" aria-label="菜单" aria-expanded="false">≡</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="tfoot">
+      <div class="wrap">
+        <div class="tfoot-grid">
+          <div class="tfoot-brand">
+            <a href="/" class="brand"><span class="brand-mark">创</span><span>{site.name}</span></a>
+            <p>{site.description}</p>
+          </div>
+          <div>
+            <h5>站内</h5>
+            <ul>
+              {navItems.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+            </ul>
+          </div>
+          <div>
+            <h5>联系</h5>
+            <ul>
+              <li><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></li>
+              <li><span>{site.contact.group}</span></li>
+              <li><span>{site.contact.address}</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="tfoot-bottom">
+          <span>© {new Date().getFullYear()} {site.name} · {site.nameEn}</span>
+          <span>MAKE SOMETHING REAL.</span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // ---------- 滚动入场：默认可见，JS 才做渐进 ----------
+      const revealEls = document.querySelectorAll<HTMLElement>('[data-reveal]');
+      if (!reduce && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const e of entries) {
+              if (!e.isIntersecting) continue;
+              const el = e.target as HTMLElement;
+              const delay = Number(el.dataset.delay || 0);
+              el.style.setProperty('--d', `${delay}ms`);
+              el.classList.add('in');
+              io.unobserve(el);
+            }
+          },
+          { rootMargin: '0px 0px -10% 0px', threshold: 0.08 }
+        );
+        revealEls.forEach((el) => io.observe(el));
+      } else {
+        revealEls.forEach((el) => el.classList.add('in'));
+      }
+
+      // ---------- 数字滚动 ----------
+      const counters = document.querySelectorAll<HTMLElement>('[data-count]');
+      const animateCount = (el: HTMLElement) => {
+        const target = Number(el.dataset.count || 0);
+        if (reduce || !target) {
+          el.textContent = String(target);
+          return;
+        }
+        // 无 JS 时显示真实数字；有 JS 才从 0 滚到目标
+        el.textContent = '0';
+        const dur = 1200;
+        const t0 = performance.now();
+        const tick = (t: number) => {
+          const p = Math.min(1, (t - t0) / dur);
+          const eased = 1 - Math.pow(1 - p, 4);
+          el.textContent = String(Math.round(target * eased));
+          if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      };
+      if ('IntersectionObserver' in window) {
+        const cio = new IntersectionObserver(
+          (entries) => {
+            for (const e of entries) {
+              if (!e.isIntersecting) continue;
+              animateCount(e.target as HTMLElement);
+              cio.unobserve(e.target);
+            }
+          },
+          { threshold: 0.5 }
+        );
+        counters.forEach((el) => cio.observe(el));
+      } else {
+        counters.forEach(animateCount);
+      }
+
+      // ---------- Hero 光斑跟随 + 控制台倾斜 ----------
+      const hero = document.querySelector<HTMLElement>('.hero');
+      const consoleEl = document.querySelector<HTMLElement>('.console');
+      const hud = document.querySelector<HTMLElement>('.hero-visual');
+      if (hero && hud && !reduce) {
+        let raf = 0;
+        hero.addEventListener('pointermove', (ev) => {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => {
+            const r = hero.getBoundingClientRect();
+            const x = ((ev.clientX - r.left) / r.width) * 100;
+            const y = ((ev.clientY - r.top) / r.height) * 100;
+            hero.style.setProperty('--hx', `${x}%`);
+            hero.style.setProperty('--hy', `${y}%`);
+            if (consoleEl) {
+              const tx = (y - 50) / 50;
+              const ty = (x - 50) / 50;
+              consoleEl.style.setProperty('--tx', `${(-tx * 3).toFixed(2)}deg`);
+              consoleEl.style.setProperty('--ty', `${(ty * 4).toFixed(2)}deg`);
+            }
+          });
+        });
+        hero.addEventListener('pointerleave', () => {
+          if (consoleEl) {
+            consoleEl.style.setProperty('--tx', '0deg');
+            consoleEl.style.setProperty('--ty', '0deg');
+          }
+        });
+      }
+
+      // ---------- 卡片跟随鼠标的柔光 ----------
+      document.querySelectorAll<HTMLElement>('.entry-card').forEach((card) => {
+        card.addEventListener('pointermove', (ev) => {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty('--mx', `${((ev.clientX - r.left) / r.width) * 100}%`);
+          card.style.setProperty('--my', `${((ev.clientY - r.top) / r.height) * 100}%`);
+        });
+      });
+
+      // ---------- 移动端菜单 ----------
+      const burger = document.querySelector<HTMLButtonElement>('.tburger');
+      const links = document.querySelector<HTMLElement>('.tlinks');
+      burger?.addEventListener('click', () => {
+        links?.classList.toggle('open');
+        burger.setAttribute('aria-expanded', String(links?.classList.contains('open')));
+      });
+    </script>
+  </body>
+</html>
