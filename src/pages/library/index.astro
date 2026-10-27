@@ -8,6 +8,8 @@ const typeOrder: ItemType[] = [
   'project', 'competition', 'activity', 'course', 'video',
 ];
 const visible = publishedItems(items);
+/** 列表只渲染已发布内容，并按日期倒序（计数与列表必须同源，避免草稿泄露） */
+const visibleSorted = [...visible].sort((a, b) => (a.date < b.date ? 1 : -1));
 const types = typeOrder.filter((t) => visible.some((i) => i.type === t));
 const counts = Object.fromEntries(
   types.map((t) => [t, visible.filter((i) => i.type === t).length])
@@ -40,7 +42,7 @@ const counts = Object.fromEntries(
     </div>
 
     <div class="data-list" id="grid">
-      {sortedByDate.map((i) => (
+      {visibleSorted.map((i) => (
         <a href={i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}`}
            target={i.type === 'link' ? '_blank' : undefined}
            rel={i.type === 'link' ? 'noopener' : undefined}

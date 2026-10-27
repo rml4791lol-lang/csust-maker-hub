@@ -2,8 +2,10 @@
 import Base from '../layouts/Base.astro';
 import { members, depts } from '../data/members';
 import { items } from '../data/items';
+import { publishedItems } from '../data/validate';
 
-const itemMap = new Map(items.map((i) => [i.id, i]));
+// 成员页的「参与项目」只显示已发布条目，草稿不能泄露标题
+const itemMap = new Map(publishedItems(items).map((i) => [i.id, i]));
 const deptCounts = Object.fromEntries(depts.map((d) => [d, members.filter((m) => m.dept === d).length]));
 ---
 

@@ -1,24 +1,28 @@
 ---
 import Base from '../layouts/Base.astro';
 import { items, typeMeta } from '../data/items';
+import { publishedItems } from '../data/validate';
 import { members, depts } from '../data/members';
 import { stats, dutyRota } from '../data/site';
 import { flagEnabled } from '../data/flags';
 
+// 看板只统计已发布内容：草稿/下架不应出现在公开数据页
+const live = publishedItems(items);
+
 // 类型分布：实际存在的类型，按数量降序；颜色取 typeMeta 单一来源
-const byType = [...new Set(items.map((i) => i.type))]
+const byType = [...new Set(live.map((i) => i.type))]
   .map((t) => ({
     key: t,
     label: typeMeta[t].label,
     color: typeMeta[t].color,
-    n: items.filter((i) => i.type === t).length,
+    n: live.filter((i) => i.type === t).length,
   }))
   .sort((a, b) => b.n - a.n);
 const maxType = Math.max(...byType.map((x) => x.n), 1);
 
 // 月度更新
 const monthMap = new Map<string, number>();
-for (const i of items) {
+for (const i of live) {
   const m = i.date.slice(0, 7);
   monthMap.set(m, (monthMap.get(m) || 0) + 1);
 }
@@ -35,7 +39,7 @@ const maxDept = Math.max(...byDept.map((x) => x.n), 1);
 
 // 内容状态：从数据动态统计，不维护硬编码清单
 const byStatus = Object.entries(
-  items.reduce<Record<string, number>>((acc, i) => {
+  live.reduce<Record<string, number>>((acc, i) => {
     acc[i.status] = (acc[i.status] || 0) + 1;
     return acc;
   }, {})
@@ -46,7 +50,7 @@ const maxStatus = Math.max(...byStatus.map((x) => x.n), 1);
 
 // 浏览排行面板用的条目索引（id → 标题 + 链接）
 const itemIndex = Object.fromEntries(
-  items.map((i) => [i.id, { t: i.title, h: i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}` }])
+  live.map((i) => [i.id, { t: i.title, h: i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}` }])
 );
 
 // 内容值班：区间按 YYYY-MM-DD 字符串比较（字典序即时间序），条目按收录日期落入区间计数
@@ -56,7 +60,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0'
 const dutyShifts = [...dutyRota]
   .sort((a, b) => a.from.localeCompare(b.from))
   .map((s) => {
-    const collected = items
+    const collected = live
       .filter((i) => i.date >= s.from && i.date <= s.to)
       .map((i) => ({ id: i.id, title: i.title }));
     return {
@@ -116,7 +120,7 @@ const dutyNow =
       <section class="panel">
         <div class="panel-head">
           <h3>内容类型</h3>
-          <span>{items.length} 条</span>
+          <span>{live.length} 条</span>
         </div>
         <div class="hbar-list">
           {byType.map((t) => (

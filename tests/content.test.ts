@@ -103,6 +103,89 @@ describe('内容校验', () => {
   });
 });
 
+describe('类型专属字段校验（API 写入守卫）', () => {
+  const validGuide = (over: Partial<Item> = {}): Item =>
+    baseItem({
+      id: 'g9',
+      type: 'guide',
+      extra: {
+        scene: '周五 17:00 前要交周报，平均花 90 分钟',
+        path: ['第一步', '第二步', '第三步'],
+        prompt: '你是我的工作助理，禁止空话',
+        pitfalls: ['坑一', '坑二', '坑三'],
+        usage: '用了 4 周，90 分钟降到 15 分钟',
+      },
+      ...over,
+    });
+
+  const errorCodes = (item: Item) =>
+    validateContent({ items: [item], members: [] })
+      .filter((i) => i.level === 'error')
+      .map((i) => i.code);
+
+  it('完整攻略通过', () => {
+    expect(errorCodes(validGuide())).toEqual([]);
+  });
+
+  it('攻略缺五段中的任意一段 → error', () => {
+    const item = validGuide();
+    delete (item.extra as any).pitfalls;
+    expect(errorCodes(item)).toContain('missing-guide-section');
+  });
+
+  it('攻略路径不足 3 步 → error', () => {
+    const item = validGuide();
+    (item.extra as any).path = ['只有一步'];
+    expect(errorCodes(item)).toContain('bad-guide-path');
+  });
+
+  it('攻略常见错误不足 3 条 → error', () => {
+    const item = validGuide();
+    (item.extra as any).pitfalls = ['只有一条'];
+    expect(errorCodes(item)).toContain('bad-guide-pitfalls');
+  });
+
+  it('使用记录仍是 [待补充] → warn 不阻塞', () => {
+    const item = validGuide();
+    (item.extra as any).usage = '尚未实测，[待补充]';
+    const issues = validateContent({ items: [item], members: [] });
+    expect(issues.find((i) => i.code === 'placeholder-usage')?.level).toBe('warn');
+  });
+
+  it('技能指令缺 command / appliesTo → error', () => {
+    const item = baseItem({ id: 's9', type: 'skill', extra: {} });
+    expect(errorCodes(item)).toEqual(
+      expect.arrayContaining(['missing-skill-command', 'missing-skill-applies-to'])
+    );
+  });
+
+  it('模板缺 downloadUrl → error，非法地址 → error', () => {
+    const missing = baseItem({ id: 't9', type: 'template', extra: {} });
+    expect(errorCodes(missing)).toContain('missing-download-url');
+    const bad = baseItem({ id: 't8', type: 'template', extra: { downloadUrl: 'downloads/x.md' } });
+    expect(errorCodes(bad)).toContain('invalid-download-url');
+  });
+
+  it('外部项目缺 url / url 非 http → error', () => {
+    const missing = baseItem({ id: 'l9', type: 'link', extra: {} });
+    expect(errorCodes(missing)).toContain('missing-link-url');
+    const bad = baseItem({ id: 'l8', type: 'link', extra: { url: 'github.com/x' } });
+    expect(errorCodes(bad)).toContain('invalid-link-url');
+  });
+
+  it('培训通知缺 deadline → error；档案类不要求', () => {
+    const notice = baseItem({ id: 'tr9', type: 'training', extra: { kind: 'notice' } });
+    expect(errorCodes(notice)).toContain('missing-training-deadline');
+    const archive = baseItem({ id: 'tr8', type: 'training', extra: { kind: 'archive' } });
+    expect(errorCodes(archive)).toEqual([]);
+  });
+
+  it('sourceUrl 非法 → error', () => {
+    const item = validGuide({ extra: { ...(validGuide().extra as any), sourceUrl: 'ai.an520.xin/x' } });
+    expect(errorCodes(item)).toContain('invalid-source-url');
+  });
+});
+
 describe('可见性', () => {
   it('只返回已发布内容', () => {
     const list = [

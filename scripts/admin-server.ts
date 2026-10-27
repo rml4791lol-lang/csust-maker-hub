@@ -679,9 +679,21 @@ const server = http.createServer(async (req, res) => {
       id,
       publishState: data.publishState ?? prev?.publishState ?? 'draft',
     };
-    if (idx >= 0) list[idx] = next;
-    else list.push(next);
-    writeItems(list);
+
+    // 写入前校验：用与 pnpm test 同一套规则，坏内容不允许进库/进构建。
+    // 用「写入后的完整列表」校验（成员↔内容引用需要全量才能判断），只拦截这条条目自身的 error。
+    const candidate = idx >= 0 ? list.map((i, k) => (k === idx ? next : i)) : [...list, next];
+    const errors = validateContent({ items: candidate as any, members: members as any }).filter(
+      (issue) => issue.level === 'error' && issue.id === id
+    );
+    if (errors.length) {
+      return json(res, 400, {
+        error: '内容校验未通过，未写入',
+        issues: errors.map((issue) => ({ code: issue.code, field: issue.field, message: issue.message })),
+      });
+    }
+
+    writeItems(candidate);
     logTransition({
       id,
       from: prev ? 'update' : 'create',
@@ -714,7 +726,8 @@ const server = http.createServer(async (req, res) => {
     try {
       const { id, state, note } = JSON.parse((await body(req)) || '{}');
       if (!id || !STATES.includes(state)) throw new Error('参数不合法');
-      if (!items.some((i) => i.id === id)) throw new Error('内容不存在：' + id);
+      // 用磁盘上的最新内容判断存在性：PUT 新建的条目也要能直接发布，不需要重启后台
+      if (!readItems().some((i) => i.id === id)) throw new Error('内容不存在：' + id);
       setState(id, state, actor, who.role === 'agent' ? 'agent' : 'human', note || '');
       return json(res, 200, { ok: true, id, state });
     } catch (e: any) {

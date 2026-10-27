@@ -16,7 +16,10 @@ export async function getStaticPaths() {
 const { item } = Astro.props;
 const meta = typeMeta[item.type];
 const involved = members.filter((m) => item.people.includes(m.name));
-const related = items.filter((i) => i.id !== item.id && i.type === item.type).slice(0, 3);
+// 同类推荐只取已发布内容，避免把草稿标题带到公开详情页
+const related = publishedItems(items)
+  .filter((i) => i.id !== item.id && i.type === item.type)
+  .slice(0, 3);
 
 const rows: { k: string; v: string }[] = [
   { k: '类型', v: meta.label },

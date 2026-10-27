@@ -1,6 +1,7 @@
 ---
 import { site } from '../data/site';
 import { items, typeMeta } from '../data/items';
+import { publishedItems } from '../data/validate';
 import { members } from '../data/members';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
@@ -15,8 +16,9 @@ const { title, description } = Astro.props;
 const pageTitle = title ? `${title} · ${site.name}` : `${site.name} · ${site.tagline.join('')}`;
 const desc = description ?? site.description;
 
+/** 站内搜索索引：只索引已发布内容，草稿/下架不能出现在公开页面里 */
 const searchIndex = [
-  ...items.map((i) => ({
+  ...publishedItems(items).map((i) => ({
     t: '内容',
     k: typeMeta[i.type].label,
     title: i.title,
