@@ -7,6 +7,7 @@ import { flagEnabled } from '../data/flags';
 import { publishedItems, isExpired } from '../data/validate';
 
 const latest = publishedItems(sortedByDate).slice(0, 8);
+const liveCount = publishedItems(items).length;
 const working = publishedItems(sortedByDate)
   .filter((i) => i.status === '进行中' || i.status === '备赛中' || i.status === '报名中')
   .slice(0, 3);
@@ -109,14 +110,17 @@ const show = (k: string) => flagEnabled(k);
           <h2 class="section-title">最近更新</h2>
         </div>
         <div class="sh-right">
-          <span class="sh-count">{items.length} 条记录</span>
+          <span class="sh-count">{liveCount} 条记录</span>
           <a href="/library" class="more">全部 →</a>
         </div>
       </div>
 
       <div class="data-list reveal">
         {latest.map((i) => (
-          <a href={`/library/${i.id}`} class="data-row">
+          <a href={i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}`}
+             target={i.type === 'link' ? '_blank' : undefined}
+             rel={i.type === 'link' ? 'noopener' : undefined}
+             class="data-row">
             <span class="data-type" data-type={i.type} aria-label={typeMeta[i.type].label}><i>{typeMeta[i.type].glyph}</i><span class="t-label">{typeMeta[i.type].label}</span></span>
             <span class="data-main">
               <b>{i.title}</b>
