@@ -1,5 +1,9 @@
 # 长理创客 · 技术分享网站
 
+## Next.js 新版协作预览
+
+新版位于 [apps/association-os](apps/association-os/README.md)，在该目录独立安装和启动；[交接说明](apps/association-os/docs/HANDOFF.md) 包含分支协作、内容维护与部署边界。当前主站继续使用本目录的 Astro 工程，新版数据库与旧站运营内容尚未迁移。
+
 创客空间的技术分享与服务门户。静态站，Astro 构建，部署在 `an520.xin`。
 
 - 线上地址：https://an520.xin

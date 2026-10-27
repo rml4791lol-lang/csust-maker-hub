@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: website hero background (wide 16:9)
+Primary request: a dark, precision-machined abstract structure evoking an operating-system core — layered matte black anodized metal plates with thin precise ribs and subtle internal depth, floating in deep darkness
+Style/medium: high-end product-grade 3D render, photorealistic materials, studio quality
+Composition/framing: wide composition, the structure sits on the RIGHT third and bleeds off the right edge; the LEFT half is deep empty darkness reserved for a headline
+Lighting/mood: very low-key lighting, deep charcoal-to-black background, one restrained cool rim light tracing the edges, no ambient glow
+Color palette: near-black charcoal, cool steel gray, a single restrained cool indigo edge highlight
+Materials/textures: matte anodized aluminum, brushed micro-texture, thin precision edges
+Constraints: no text, no logo, no watermark, no human figures
+Avoid: glowing spheres, particles, neon lines, purple-blue gradients, circuit-board patterns, abstract line networks, stock sci-fi clichés, lens flares, bokeh
