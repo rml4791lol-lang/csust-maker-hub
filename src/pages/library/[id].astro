@@ -58,7 +58,7 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
 
 <Base title={item.title} description={item.summary}>
   <div class="wrap page-header">
-    <a href="/library" class="crumb" style="display:inline-block;">← 返回内容库</a>
+    <a href="/library" class="crumb" style="display:block;width:fit-content;margin-bottom:14px;">← 返回内容库</a>
     <span class="type-tag" data-type={item.type} style="position:static;display:inline-flex;margin-bottom:16px;"><i>{meta.glyph}</i>{meta.label}</span>
     <h1>{item.title}</h1>
     <p>{item.summary}</p>
