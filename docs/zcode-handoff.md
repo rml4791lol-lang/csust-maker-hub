@@ -4,7 +4,7 @@
 
 ## 站点现状（全部已上线并验证）
 
-- **地址**：https://an520.xin · 后台 https://an520.xin/admin/（admin/admin123，建议尽快改）
+- **地址**：https://an520.xin · 后台 https://an520.xin/admin/（账号见服务器 `~/csust-maker-hub/.env.admin` 的 `ADMIN_USERS`；若还是默认口令请立刻改）
 - **内容**：32 条（content/items.json），攻略 g01-g14 + skill ×3 + 模板/外链/培训/项目/竞赛/活动/课程/视频
 - **内容线**：工具实测与省钱（g04-g08，收录自 ai.an520.xin）· 入门与 vibe coding 全生命周期（g09-g14：第一次写代码 → 验收 → git 回滚 → 部署上线 → 学习姿势 → 安全红线）
 - **功能开关**：content/flags.json，9 个开关控制首页六区块 + 数据页两面板 + 工具导航。后台「功能开关」区点切换 → 点重新构建生效（静态站构建时应用）。受众标注：全员/核心/四部门——静态站无登录，受众是管理侧标注

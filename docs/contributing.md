@@ -12,7 +12,7 @@ cd csust-maker-hub && pnpm install
 pnpm dev        # http://localhost:4321
 pnpm test       # 内容校验（warn 不阻塞，error 阻塞）
 pnpm build && pnpm test:smoke   # 构建产物烟雾检查
-pnpm admin      # 本地后台 http://127.0.0.1:3210（admin/admin123）
+pnpm admin      # 本地后台 http://127.0.0.1:3210（本机开发默认账号见 scripts/admin-server.ts；线上口令在服务器 .env.admin，不要用默认值）
 ```
 
 ## 1. 必读顺序（agent 和人都读这个）
