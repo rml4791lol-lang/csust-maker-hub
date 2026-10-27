@@ -35,14 +35,15 @@ if (item.extra?.difficulty) rows.push({ k: '难度', v: item.extra.difficulty })
 if (item.extra?.duration) rows.push({ k: '时长', v: item.extra.duration });
 rows.push({ k: '参与人', v: item.people.join('、') });
 if (item.author) rows.push({ k: '作者', v: item.author });
-rows.push({
-  k: '审核',
-  v: item.reviewer
-    ? `${item.reviewer} · ${item.reviewedAt ?? ''}`
-    : item.publishState === 'published'
-      ? '已发布'
-      : '待审核',
-});
+const REVIEW_METHOD_LABEL: Record<string, string> = { agent: 'agent 初审', human: '人工终审', both: '双审' };
+const reviewText = item.reviewer
+  ? [item.reviewer, item.reviewedAt ?? '', item.reviewMethod ? REVIEW_METHOD_LABEL[item.reviewMethod] ?? item.reviewMethod : '']
+      .filter(Boolean)
+      .join(' · ')
+  : item.publishState === 'published'
+    ? '已发布'
+    : '待审核';
+rows.push({ k: '审核', v: reviewText });
 rows.push({ k: '更新', v: item.date.replaceAll('-', '.') });
 rows.push({ k: '浏览', v: String(viewCount(item.id)) });
 ---
@@ -166,7 +167,7 @@ rows.push({ k: '浏览', v: String(viewCount(item.id)) });
             <div class="video-placeholder">
               <span class="vp-icon">▶</span>
               <b>视频待上传</b>
-              <p>把播放器地址填到 <code>src/data/items.ts</code> 里这条记录的 <code>embedUrl</code>，这里就会直接播放。</p>
+              <p>把播放器地址填到 <code>content/items.json</code> 里这条记录的 <code>embedUrl</code>，这里就会直接播放。</p>
             </div>
           )}
           {item.extra?.duration && <div class="video-meta">时长 {item.extra.duration}</div>}

@@ -14,7 +14,7 @@ export type ItemType =
   | 'course'
   | 'video';
 
-export type PublishState = 'draft' | 'reviewing' | 'published' | 'unpublished';
+export type PublishState = 'draft' | 'reviewing' | 'published' | 'rejected' | 'unpublished';
 export type ReviewMethod = 'agent' | 'human' | 'both';
 
 export interface Item {
