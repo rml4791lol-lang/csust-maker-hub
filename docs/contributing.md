@@ -49,8 +49,22 @@ pnpm admin      # 本地后台 http://127.0.0.1:3210（本机开发默认账号�
 | `GET /scaffold?type=<类型>` | 十类内容骨架 + 写作标准提示 |
 | `GET/PUT /flags` | 功能开关（首页区块 / 数据页面板 / 工具导航）。PUT `{"key":"home.cta","enabled":false}`，**重新构建后生效** |
 | `GET/PUT /tools` | 工具站与 API 目录（PUT 整表替换，字段校验见接口报错提示），**重新构建后生效** |
+| `GET /submissions` | 成员成果投稿列表（pending / published / rejected） |
+| `POST /submissions/:id/status` | 审核投稿：`{"status":"published"}` 发布，或 `{"status":"rejected","note":"原因"}` 退回 |
+| `GET/PUT /profiles` | 成员 AI 档案（PUT 整表替换；每条必须有合法 `memberId` 和非空 `aiSummary`），**重新构建后生效** |
+
+公开接口（无需 token）：`POST /contribute` 成员成果投稿（同一 IP 10 分钟最多 5 条），写入 `content/submissions.json`，默认 pending。
 
 写完内容默认 `publishState: "draft"`，让人在后台确认后发布（后台：https://an520.xin/admin/）。
+
+### 成员成果平台（2026-10 新增）
+
+- 成员在 `/contribute` 自己填：我是谁、成果类型、标题、时间、做了什么、产出、链接、佐证。
+- 投稿落到 `content/submissions.json`（pending）→ 后台「成员投稿」区发布/退回（退回可写原因，写 review-log）→ 重新构建后进入：
+  - 成员个人档案页 `/members/<id>`（成果时间线 + 参与内容）
+  - 首页「成员档案」区（按成果数取 Top3）
+- AI 汇总：agent 读 `GET /submissions`，按成员归纳 `content/profiles.json` 的 `aiSummary / focusTags / highlights / nextStep`，用 `PUT /profiles` 整表写回，**重新构建后生效**。
+- 内容库已有条目可用 `pnpm backfill` 回填成成员成果（幂等；重算档案统计但保留 AI 文本）。
 
 ### 内容硬规则
 
