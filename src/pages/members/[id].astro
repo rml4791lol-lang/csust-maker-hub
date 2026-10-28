@@ -17,7 +17,7 @@ const external = (s: Submission) => Boolean(s.link && /^https?:\/\//.test(s.link
 const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributionTypeLabel] ?? t;
 ---
 
-<Base title={`${member.name} · 成员档案`} description={profile?.aiSummary ?? `${member.name}的成果档案`} noindex>
+<Base title={`${member.name} · 成员档案`} description={profile?.aiSummary ?? `${member.name}的成果档案`} noindex shareImage={`/share/member-${member.id}.jpg`}>
   <div class="wrap page-header">
     <a href="/members" class="crumb" style="display:block;width:fit-content;margin-bottom:16px;">← 返回成员</a>
     <span class="crumb">MEMBERS / 个人档案</span>
@@ -33,7 +33,7 @@ const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributi
           {member.name}
           {member.role ? <span class="profile-role">{member.role}</span> : null}
         </h2>
-        <div class="profile-meta">{member.dept} · {member.grade}{member.bio ? ` · ${member.bio}` : ''}</div>
+        <div class="profile-meta">{member.dept}{member.bio ? ` · ${member.bio}` : ''}</div>
         <div class="profile-skills">
           {member.skills.map((s) => <span class="tag">{s}</span>)}
         </div>
