@@ -32,7 +32,7 @@ for (const gone of ['library', 'tools', 'resources', 'stats', 'about']) {
 
 // 3. 首页包含核心模块与定位
 const home = read('index.html');
-for (const label of ['AI 创客协会', '云塘校区', '活动与成果', '成员能力', '提交我的记录', '活动记录', '部门与机制', '五个部门']) {
+for (const label of ['AI 创客协会', '云塘校区', '活动与成果', '成员能力', '提交我的记录', '活动记录', '科创港']) {
   must(home.includes(label), `首页缺少关键内容：${label}`);
 }
 must(home.includes('示例数据'), '首页缺少示例数据提示');
@@ -47,6 +47,8 @@ must(ach.includes('全部类型'), '成果页缺少类型筛选');
 const members = read('members/index.html');
 must(members.includes('能力总览'), '成员页缺少能力总览');
 must(members.includes('高频能力标签'), '成员页缺少能力标签');
+must(members.includes('五个部门'), '成员页缺少部门介绍');
+must(members.includes('协会怎么分工'), '成员页缺少部门分工');
 
 const contribute = read('contribute/index.html');
 must(contribute.includes('提交审核'), '提交页缺少提交按钮');

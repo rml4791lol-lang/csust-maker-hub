@@ -32,14 +32,13 @@ export const site = {
     address: '长沙理工大学云塘校区 · 科创港',
   },
 
-  /** 首屏主图：第一次全体会议合影（协会真实照片） */
-  heroPhoto: {
-    src: '/photos/first-meeting-group.jpg',
-    alt: '长沙理工大学 AI 创客协会第一次全体会议合影',
-    label: '第一次全体会议',
-    date: '2026-10-23',
-    caption: 'AI 点亮新程，创客逐梦前行',
-  },
+  /** 首屏照片轮播：协会所在地「科创港」（翻页展示） */
+  heroSlides: [
+    { src: '/photos/innovation-port-aerial.jpg', label: '云塘校区 · 科创港' },
+    { src: '/photos/innovation-port-2.jpg', label: '科创港 · 主楼' },
+    { src: '/photos/innovation-port-3.jpg', label: '科创港 · 园区' },
+    { src: '/photos/innovation-port-visit.jpg', label: '科创港 · 概念验证与中试平台' },
+  ],
 
   /** 协会简介（首页「关于协会」区与页脚共用） */
   about: {

@@ -3078,3 +3078,149 @@ p { margin: 0; }
   .about-photo-sub { width: 58%; }
   .dept-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   2026-10-28 首页改版：科创港照片翻页 + 字体可读性下限
+   ============================================================ */
+
+/* 首屏照片轮播 */
+.hero-port .hero-inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
+.hero-carousel {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #0b0d10;
+  box-shadow: 0 40px 110px -50px rgba(0, 0, 0, 1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.carousel-track { display: flex; transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
+.carousel-slide { position: relative; flex: 0 0 100%; margin: 0; }
+.carousel-slide img { display: block; width: 100%; aspect-ratio: 16 / 11; object-fit: cover; }
+.carousel-slide figcaption {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  font-size: 12.5px;
+  color: #f2f4f8;
+  background: rgba(8, 9, 10, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(8, 9, 10, 0.55);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s var(--ease-out);
+}
+.carousel-arrow:hover { background: rgba(94, 106, 210, 0.6); }
+.carousel-prev { left: 12px; }
+.carousel-next { right: 12px; }
+.carousel-dots { position: absolute; right: 16px; bottom: 18px; display: flex; gap: 6px; }
+.carousel-dots button {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  padding: 0;
+  transition: width 0.2s var(--ease-out), background 0.2s var(--ease-out);
+}
+.carousel-dots button.is-active { background: #fff; width: 22px; border-radius: 5px; }
+
+/* 首页活动三列、成果紧凑列表、成员简卡 */
+.activity-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.activity-grid-3 .activity-cover img { aspect-ratio: 4 / 3; }
+.activity-grid-3 .activity-body { gap: 4px; padding: 16px 18px 18px; }
+.activity-grid-3 .activity-body b { font-size: 15px; }
+
+.mini-list {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.006));
+}
+.mini-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 96px;
+  gap: 16px;
+  align-items: center;
+  padding: 15px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.18s var(--ease-out);
+}
+.mini-row:first-child { border-top: 0; }
+.mini-row:hover { background: rgba(255, 255, 255, 0.03); }
+.mini-row b { font-size: 15px; font-weight: 520; color: #eef1f6; line-height: 1.5; }
+.mini-type { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent-hi); }
+.mini-date { font-family: var(--font-mono); font-size: 12.5px; color: var(--fg-4); text-align: right; }
+
+.member-simple-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.member-simple {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.006));
+  transition: transform 0.25s var(--ease-out), border-color 0.25s var(--ease-out);
+}
+.member-simple:hover { transform: translateY(-3px); border-color: rgba(143, 164, 255, 0.3); }
+.member-simple-head { display: flex; align-items: center; gap: 10px; }
+.member-simple-head b { font-size: 15px; font-weight: 540; color: #eef1f6; }
+.member-simple-dept { margin-left: auto; font-family: var(--font-mono); font-size: 12.5px; color: var(--fg-4); }
+.member-simple-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* 首页更紧凑的分节间距 */
+.hero-port + .section { padding-top: 72px; }
+#activities.section { padding-bottom: 56px; }
+
+/* ---------------- 全站字体下限 ----------------
+   正文 15px，描述 14px，标签/元信息 12.5px，不再出现微型字 */
+body { font-size: 15px; }
+p, li, dd, dt { font-size: 15px; }
+.sec-desc, .lead, .ach-desc, .activity-body p, .dept-duty, .archive-summary,
+.ai-summary, .tl-desc, .about-fact b, .about-fact a, .form-msg, .compliance p,
+.hint, .foot-lead { font-size: 14px; line-height: 1.75; }
+.mono, .crumb, .sec-index, .tag, .skill-chip, .ach-type, .ach-date, .ach-avatar,
+.ach-link, .activity-kind, .activity-meta, .hero-photo-badge, .hero-photo-count,
+.data-badge, .foot-meta, .brand-sub, .brand-mark, .stat-k, .stat-label, .count,
+.hbar-num, .archive-meta, .mech-k, .profile-role, .tl-date, .tl-type, .ai-tag,
+.ai-sub, .m-role, figcaption, .tl-outcome, .tl-link, .panel-head, .member-table th,
+.search-box input, .chip, .carousel-slide figcaption, .mini-type, .mini-date,
+.member-simple-dept, .sec-more, .tfoot h5, .tfoot a, .tfoot p,
+.field label, .field .hint, .form-label, .compliance span, .view-toggle,
+.data-row .data-type, .data-row .data-date, .filter-bar .mono, .ability-person span,
+.views-empty, .archive-stats span, .profile-stat span, .ai-list li {
+  font-size: 12.5px;
+}
+.btn, .btn-sm { font-size: 14px; }
+input, select, textarea, button { font-size: 15px; }
+.ach-title { font-size: 16px; }
+
+/* 2026-10-28 字体下限补漏（旧样式特异度更高，用 !important 兜底） */
+.page-header .crumb,
+.page-header a.crumb,
+.crumb { font-size: 12.5px !important; }
+.chip .count,
+.filter-bar .count { font-size: 12.5px !important; }
+.tfoot-bottom,
+.tfoot-bottom span { font-size: 12.5px !important; }
+.list-head,
+.list-head span,
+.list-head .dot-live { font-size: 12.5px !important; }
