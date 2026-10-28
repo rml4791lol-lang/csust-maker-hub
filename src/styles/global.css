@@ -3224,3 +3224,150 @@ input, select, textarea, button { font-size: 15px; }
 .list-head,
 .list-head span,
 .list-head .dot-live { font-size: 12.5px !important; }
+
+/* ============================================================
+   2026-10-28 AI 感装饰层（程序化生成的抽象视觉，纯装饰，aria-hidden）
+   - orbit  发光轨道：首页首屏背景
+   - mesh   线框波纹：首屏底部 / 页脚
+   - neural 神经网络：页头 / CTA
+   - aurora 极光柔光：首页首屏
+   全部 pointer-events:none，尊重 prefers-reduced-motion
+   ============================================================ */
+
+.hero-port { position: relative; overflow: hidden; }
+.hero-port::before {
+  content: "";
+  position: absolute;
+  right: -300px;
+  top: -240px;
+  width: 900px;
+  height: 900px;
+  background-image: url('/decor/orbit.webp');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+  animation: decor-spin 150s linear infinite;
+}
+.hero-port::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 300px;
+  background-image: url('/decor/mesh.webp');
+  background-size: cover;
+  background-position: center bottom;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: linear-gradient(180deg, transparent, #000 32%, #000 72%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 32%, #000 72%, transparent);
+}
+.hero-port .hero-inner { position: relative; z-index: 1; }
+/* 极光柔光在文案后面，别盖住字 */
+.hero-port .hero-copy { position: relative; }
+.hero-port .hero-copy::before {
+  content: "";
+  position: absolute;
+  left: -180px;
+  top: -160px;
+  width: 620px;
+  height: 620px;
+  background-image: url('/decor/aurora.webp');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.26;
+  mix-blend-mode: screen;
+  filter: blur(6px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes decor-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 轮播上的扫描线（很轻） */
+.hero-carousel { position: relative; }
+.hero-carousel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: linear-gradient(180deg, transparent 0%, rgba(143, 164, 255, 0.16) 48%, transparent 54%);
+  background-size: 100% 46%;
+  background-repeat: no-repeat;
+  animation: decor-scan 9s linear infinite;
+  mix-blend-mode: screen;
+}
+@keyframes decor-scan {
+  0% { background-position: 0 -46%; }
+  100% { background-position: 0 146%; }
+}
+
+/* 页头 / CTA / 页脚：用「暗色遮罩 + 图片」做低对比装饰 */
+.page-header {
+  background-image:
+    linear-gradient(rgba(8, 9, 10, 0.9), rgba(8, 9, 10, 0.97)),
+    url('/decor/neural.webp');
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat;
+  border-radius: 18px;
+}
+.cta-band {
+  background-image:
+    linear-gradient(rgba(8, 9, 10, 0.9), rgba(8, 9, 10, 0.97)),
+    url('/decor/neural.webp');
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat;
+}
+.tfoot {
+  background-image:
+    linear-gradient(rgba(8, 9, 10, 0.92), rgba(8, 9, 10, 0.99)),
+    url('/decor/mesh.webp');
+  background-size: cover, cover;
+  background-position: center, center bottom;
+  background-repeat: no-repeat;
+}
+
+/* 小尺寸设备收敛装饰，避免干扰阅读 */
+@media (max-width: 860px) {
+  .hero-port::before {
+    width: 520px;
+    height: 520px;
+    right: -230px;
+    top: -170px;
+    opacity: 0.38;
+  }
+  .hero-port::after { height: 190px; opacity: 0.38; }
+  .hero-port .hero-copy::before { display: none; }
+  .page-header, .cta-band, .tfoot { background-image: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-port::before,
+  .hero-carousel::after { animation: none; }
+}
+
+/* 轮播圆点：加暗色胶囊底，保证在亮照片上也看得清 */
+.carousel-dots {
+  background: rgba(8, 9, 10, 0.5);
+  padding: 7px 10px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+/* 活动成果页统计条改为三列 */
+.ach-stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+@media (max-width: 620px) {
+  .ach-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .ach-stat:nth-child(3) { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+}
