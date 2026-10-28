@@ -59,6 +59,11 @@ for (const photo of ['first-meeting-group.jpg', 'president-lecture.jpg', 'member
   must(existsSync(join(DIST, 'photos', photo)), `缺少照片：dist/photos/${photo}`);
 }
 
+// 4.6 AI 感装饰图存在
+for (const decor of ['orbit.webp', 'mesh.webp', 'neural.webp', 'aurora.webp']) {
+  must(existsSync(join(DIST, 'decor', decor)), `缺少装饰图：dist/decor/${decor}`);
+}
+
 // 5. noindex 与 robots
 must(home.includes('noindex'), '首页缺少 noindex');
 must(existsSync(join(DIST, 'robots.txt')), '缺少 robots.txt');
