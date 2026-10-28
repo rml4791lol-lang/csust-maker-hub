@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { recordHref } from "@/lib/content-modules";
 import { ArrowRight, BookOpen, CalendarDays, FolderKanban, Footprints, Trophy } from "lucide-react";
 import { Hero } from "@/components/hero";
 import { StatusTag } from "@/components/ui/status-tag";
@@ -35,7 +36,7 @@ export function Dashboard() {
           <SectionHeader title="项目进展" href="/projects" />
           {data.projects.length ? <ul className="divide-y divide-border">
             {data.projects.slice(0, 4).map((project) => (
-              <li key={project.name}><Link href="/projects" className="flex min-h-[76px] items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2">
+              <li key={project.id}><Link href={recordHref("projects", project.id)} className="flex min-h-[76px] items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2">
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1"><p className="text-base font-medium">{project.name}</p><p className="mt-1 text-sm text-foreground-secondary">{project.owner} · {project.updated}</p></div>
                 <StatusTag label={project.status} tone={project.tone} />
@@ -46,29 +47,29 @@ export function Dashboard() {
         <section className="panel overflow-hidden">
           <SectionHeader title="公开足迹" href="/footprints" />
           {data.footprints.length ? <ul className="divide-y divide-border">
-            {data.footprints.map((footprint) => <li key={footprint.id}><Link href="/footprints" className="flex gap-3 px-5 py-4 transition-colors hover:bg-surface-2">
+            {data.footprints.map((footprint) => <li key={footprint.id}><Link href={recordHref("footprints", footprint.id)} className="flex gap-3 px-5 py-4 transition-colors hover:bg-surface-2">
               <Footprints className="mt-1 h-4 w-4 shrink-0 text-accent" />
               <div className="min-w-0 flex-1"><p className="line-clamp-2 text-base leading-relaxed">{footprint.content}</p><p className="mt-2 text-sm leading-relaxed text-foreground-secondary">{footprint.member} · {footprint.date}{footprint.project ? ` · ${footprint.project}` : ""}</p></div>
             </Link></li>)}
           </ul> : <Empty>暂无公开足迹，欢迎记录一次实践。</Empty>}
-          <Link href="/footprints" className="flex min-h-12 items-center justify-between border-t border-border px-5 text-sm text-primary hover:bg-primary/5">写下新的足迹<ArrowRight className="h-4 w-4" /></Link>
+          <Link href="/footprints" className="flex min-h-12 items-center justify-between border-t border-border px-5 text-sm text-primary hover:bg-primary/5">浏览更多足迹<ArrowRight className="h-4 w-4" /></Link>
         </section>
       </div>
       <section className="mt-7">
-        <div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold">内容精选</h2><Link href="/library" className="flex min-h-11 items-center gap-1 text-sm text-foreground-secondary hover:text-primary">浏览内容库<ArrowRight className="h-4 w-4" /></Link></div>
+        <div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold">社区文章</h2><Link href="/library" className="flex min-h-11 items-center gap-1 text-sm text-foreground-secondary hover:text-primary">进入社区<ArrowRight className="h-4 w-4" /></Link></div>
         {data.resources.length ? <div className="grid gap-4 lg:grid-cols-3">
-          {data.resources.map((resource) => <Link key={resource.id} href="/library" className="group panel p-5 transition-colors hover:border-border-strong hover:bg-surface-2">
+          {data.resources.map((resource) => <Link key={resource.id} href={recordHref("library", resource.id)} className="group panel p-5 transition-colors hover:border-border-strong hover:bg-surface-2">
             <div className="flex items-center justify-between"><BookOpen className="h-4 w-4 text-primary" /><ArrowRight className="h-4 w-4 text-foreground-muted transition-transform group-hover:translate-x-0.5" /></div>
             <h3 className="mt-4 text-lg font-semibold leading-relaxed">{resource.title}</h3><p className="mt-2 line-clamp-2 text-base leading-relaxed text-foreground-secondary">{resource.summary}</p><p className="mt-4 text-sm text-foreground-secondary">{resource.author} · {resource.updated}</p>
           </Link>)}
-        </div> : <Empty>内容库等待收录。</Empty>}
+        </div> : <Empty>社区内容等待收录。</Empty>}
       </section>
       <div className="mt-6 grid items-start gap-5 lg:grid-cols-2">
         <section className="panel overflow-hidden">
           <SectionHeader title="活动与竞赛" href="/activities" />
           <ul className="divide-y divide-border">
-            {data.events.slice(0, 2).map((event) => <li key={event.id}><Link href="/activities" className="flex items-center gap-3 px-5 py-4 hover:bg-surface-2"><CalendarDays className="h-4 w-4 shrink-0 text-foreground-muted" /><div className="min-w-0 flex-1"><p className="text-base">{event.title}</p><p className="mt-1 text-sm text-foreground-secondary">{event.date} · {event.place}</p></div><span className="shrink-0 text-sm text-foreground-secondary">{event.status}</span></Link></li>)}
-            {data.competitions.slice(0, 1).map((competition) => <li key={competition.id}><Link href="/competitions" className="flex items-center gap-3 px-5 py-4 hover:bg-surface-2"><Trophy className="h-4 w-4 shrink-0 text-foreground-muted" /><div className="min-w-0 flex-1"><p className="text-base">{competition.name}</p><p className="mt-1 text-sm text-foreground-secondary">截止日期 {competition.deadline}</p></div><span className="shrink-0 text-sm text-foreground-secondary">{competition.status}</span></Link></li>)}
+            {data.events.slice(0, 2).map((event) => <li key={event.id}><Link href={recordHref("activities", event.id)} className="flex items-center gap-3 px-5 py-4 hover:bg-surface-2"><CalendarDays className="h-4 w-4 shrink-0 text-foreground-muted" /><div className="min-w-0 flex-1"><p className="text-base">{event.title}</p><p className="mt-1 text-sm text-foreground-secondary">{event.date} · {event.place}</p></div><span className="shrink-0 text-sm text-foreground-secondary">{event.status}</span></Link></li>)}
+            {data.competitions.slice(0, 1).map((competition) => <li key={competition.id}><Link href={recordHref("competitions", competition.id)} className="flex items-center gap-3 px-5 py-4 hover:bg-surface-2"><Trophy className="h-4 w-4 shrink-0 text-foreground-muted" /><div className="min-w-0 flex-1"><p className="text-base">{competition.name}</p><p className="mt-1 text-sm text-foreground-secondary">截止日期 {competition.deadline}</p></div><span className="shrink-0 text-sm text-foreground-secondary">{competition.status}</span></Link></li>)}
           </ul>
           {!data.events.length && !data.competitions.length && <Empty>暂无活动与竞赛记录。</Empty>}
         </section>

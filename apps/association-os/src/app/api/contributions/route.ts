@@ -1,4 +1,5 @@
 import { ensureDynamic, json } from "@/lib/api";
+import { adminWriteError } from "@/lib/admin-auth";
 import {
   createFootprint,
   footprintRetryAfter,
@@ -14,6 +15,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   await ensureDynamic();
+  const denied = await adminWriteError(request);
+  if (denied) return json({ error: denied.error }, { status: denied.status, headers: { "Cache-Control": "private, no-store" } });
   const retryAfter = footprintRetryAfter(request);
   if (retryAfter) {
     return json(

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1"],
   distDir: process.env.AI_ASSOCIATION_BUILD_DIR || ".next",
   // Preserve the actual loopback origin for login redirects and CSRF checks.
   skipProxyUrlNormalize: true,

@@ -1,13 +1,11 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { ArrowRight, Search } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Search } from "lucide-react";
 import { PageHeader, FilterChip, EmptyState } from "@/components/page-header";
-import { Reveal } from "@/components/reveal";
 import { contentTypes, topics } from "@/lib/mock-data";
 import type { ItemRow } from "@/lib/queries";
-import { cn } from "@/lib/utils";
-
+import { recordHref } from "@/lib/content-modules";
 export default function LibraryPage() {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,178 +13,18 @@ export default function LibraryPage() {
   const [type, setType] = useState<string | null>(null);
   const [topic, setTopic] = useState<string | null>(null);
   const [q, setQ] = useState("");
-
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    fetch("/api/items", { cache: "no-store" })
-      .then((r) => {
-        if (!r.ok) throw new Error("Unable to load resources");
-        return r.json();
-      })
-      .then((data: unknown) => {
-        setItems(Array.isArray(data) ? (data as ItemRow[]) : []);
-        setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
-  }, []);
-
-  const filtered = items.filter(
-    (i) =>
-      (!type || i.type === type) &&
-      (!topic || i.topic === topic) &&
-      (!q ||
-        i.title.toLowerCase().includes(q.toLowerCase()) ||
-        i.summary.toLowerCase().includes(q.toLowerCase()) ||
-        i.tags.some((t) => t.toLowerCase().includes(q.toLowerCase()))),
-  );
-
-  const featured = items[0];
-
-  return (
-    <div className="mx-auto w-full max-w-[1560px] px-4 py-8 md:px-8">
-      <PageHeader
-        title="内容库"
-      />
-
-      {/* Small screens keep the same categories within reach of the results. */}
-      <div aria-label="内容类型" className="mb-6 flex flex-wrap gap-2 md:grid md:grid-cols-5 md:gap-px md:overflow-hidden md:rounded-lg md:border md:border-border md:bg-border">
-        {contentTypes.map((ct) => {
-          const active = type === ct.key;
-          return (
-            <button
-              key={ct.key}
-              aria-pressed={active}
-              onClick={() => setType(active ? null : ct.key)}
-              className={cn(
-                "group relative flex min-h-12 items-center gap-2 rounded-md border border-border bg-surface-2 px-3 py-2 text-left transition-colors duration-fast md:block md:rounded-none md:border-0 md:px-5 md:py-5",
-                active ? "bg-primary/10" : "hover:bg-surface-3",
-              )}
-            >
-              <div
-                className={cn(
-                  "hidden font-display text-[40px] font-bold leading-none transition-colors md:block",
-                  active
-                    ? "text-primary"
-                    : "text-foreground/12 group-hover:text-primary/35",
-                )}
-              >
-                {ct.plate}
-              </div>
-              <div className="text-base font-semibold text-foreground md:mt-3">
-                {ct.label}
-              </div>
-              <div className="text-sm tabular-nums text-foreground-secondary md:mt-1">
-                {items.filter((item) => item.type === ct.key).length} 条
-              </div>
-              {active && (
-                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 精选大卡 */}
-      {featured && (
-        <Reveal>
-          <div className="mb-8 hidden overflow-hidden rounded-lg border border-primary/25 bg-[linear-gradient(100deg,rgba(61,123,253,0.12),transparent_60%)] md:block">
-          <div className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <h2 className="font-display text-[24px] font-bold leading-tight text-foreground">
-                {featured.title}
-              </h2>
-              <p className="prose-cn mt-2 max-w-xl text-foreground-secondary">
-                {featured.summary}
-              </p>
-              <div className="mt-4">
-                <span className="text-sm text-foreground-secondary">
-                  {featured.author} · {featured.updated}
-                </span>
-              </div>
-            </div>
-            <a href="#library-results" className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-base font-medium text-background transition-colors duration-fast hover:bg-primary-hover">
-              浏览条目
-              <ArrowRight className="h-3.5 w-3.5" />
-            </a>
-          </div>
-        </div>
-        </Reveal>
-      )}
-
-      {/* 搜索 + 筛选 */}
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="relative max-w-xs flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-muted" />
-          <input
-            value={q}
-            aria-label="搜索内容"
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="搜索标题、摘要、标签…"
-            className="h-12 w-full rounded-md border border-border bg-surface-2 pl-9 pr-3 text-base text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-primary/50"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <FilterChip
-            label="全部主题"
-            active={topic === null}
-            onClick={() => setTopic(null)}
-          />
-          {topics.map((t) => (
-            <FilterChip
-              key={t.key}
-              label={t.label}
-              active={topic === t.key}
-              onClick={() => setTopic(topic === t.key ? null : t.key)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 结果 */}
-      <div id="library-results" className="mb-3 flex scroll-mt-4 items-center justify-between">
-        <span aria-live="polite" className="text-sm text-foreground-secondary">
-          {filtered.length} 条结果
-        </span>
-      </div>
-
-      {loading ? (
-        <EmptyState text="正在加载内容…" />
-      ) : error ? (
-        <EmptyState text="内容加载失败，请刷新重试" />
-      ) : filtered.length === 0 ? (
-        <EmptyState text="没有匹配的内容，试试清空筛选" />
-      ) : (
-        <ul className="divide-y divide-border overflow-hidden panel">
-          {filtered.map((item) => {
-            const ct = contentTypes.find((c) => c.key === item.type);
-            return (
-              <li
-                key={item.id}
-                className="flex flex-wrap items-start gap-3 px-4 py-5 md:flex-nowrap md:gap-4 md:px-5"
-              >
-                <span aria-hidden="true" className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded border border-border bg-surface-3 font-display text-lg font-bold text-primary md:flex">
-                  {ct?.plate}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-lg font-medium leading-relaxed text-foreground">
-                    {item.title}
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-base leading-relaxed text-foreground-secondary">
-                    {item.summary}
-                  </p>
-                </div>
-                <div className="flex w-full shrink-0 items-center gap-3 text-sm text-foreground-secondary md:w-auto md:pt-1">
-                  <span>
-                    {item.author}
-                  </span>
-                  <span className="tabular-nums">
-                    {item.updated}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
+    const abort = new AbortController();
+    fetch("/api/items", { cache: "no-store", signal: abort.signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(data => { setItems(Array.isArray(data) ? data : []); setLoading(false); }).catch(() => { if (!abort.signal.aborted) { setError(true); setLoading(false); } });
+    return () => abort.abort();
+  }, [attempt]);
+  const query = q.trim().toLowerCase();
+  const filtered = items.filter(i => (!type || i.type === type) && (!topic || i.topic === topic) && (!query || [i.title, i.summary, ...i.tags].some(s => s.toLowerCase().includes(query))));
+  return <div className="official-page community-page"><PageHeader title="社区" description="分享工具与方法，记录探索与实践。" />
+    <div className="community-layout"><aside className="community-filters"><div className="community-mobile-filters"><label>内容分类<select value={type || ""} onChange={e => setType(e.target.value || null)}><option value="">全部内容</option>{contentTypes.map(ct => <option key={ct.key} value={ct.key}>{ct.label}</option>)}</select></label><label>探索主题<select value={topic || ""} onChange={e => setTopic(e.target.value || null)}><option value="">全部主题</option>{topics.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}</select></label></div><h2>内容分类</h2><div className="community-types"><button aria-pressed={!type} onClick={() => setType(null)}>全部内容<span>{items.length}</span></button>{contentTypes.map(ct => <button key={ct.key} aria-pressed={type === ct.key} onClick={() => setType(type === ct.key ? null : ct.key)}>{ct.label}<span>{items.filter(i => i.type === ct.key).length}</span></button>)}</div><div className="community-topic"><h2>探索主题</h2><div className="flex flex-wrap gap-2"><FilterChip label="全部" active={!topic} onClick={() => setTopic(null)} />{topics.map(t => <FilterChip key={t.key} label={t.label} active={topic === t.key} onClick={() => setTopic(topic === t.key ? null : t.key)} />)}</div></div></aside>
+    <section className="min-w-0" aria-label="社区文章"><div className="community-search"><div><Search size={19} aria-hidden /><input aria-label="搜索内容" value={q} onChange={e => setQ(e.target.value)} placeholder="搜索标题、摘要或标签" /></div><span aria-live="polite">{loading ? "正在读取" : `${filtered.length} 篇内容`}</span></div>
+      {error ? <div role="alert" className="py-12"><p>暂时无法加载社区内容。</p><button className="text-link mt-4" onClick={() => { setError(false); setLoading(true); setAttempt(v => v+1); }}>重新加载</button></div> : loading ? <p className="py-12 text-base text-foreground-secondary">正在加载内容…</p> : filtered.length === 0 ? <EmptyState text="暂无匹配内容，试试其他分类或关键词。" /> : <ul className="community-feed">{filtered.map(item => <li key={item.id}><div className="article-meta"><span>{contentTypes.find(t => t.key === item.type)?.label || item.type}</span><span>{item.author}</span><span>{item.updated}</span></div><Link className="community-title" href={recordHref("library", item.id)}><h2>{item.title}</h2><ArrowUpRight size={23} aria-hidden /></Link><p>{item.summary}</p>{item.tags.length > 0 && <div className="community-tags">{item.tags.join(" / ")}</div>}</li>)}</ul>}
+    </section></div>
+  </div>;
 }

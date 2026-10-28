@@ -8,13 +8,14 @@ import { cn } from "@/lib/utils";
 const commands = [
   { icon: LayoutDashboard, label: "首页", href: "/" },
   { icon: Footprints, label: "足迹", href: "/footprints" },
-  { icon: BookOpen, label: "内容库", href: "/library" },
+  { icon: BookOpen, label: "社区", href: "/library" },
   { icon: Users, label: "成员", href: "/members" },
   { icon: Trophy, label: "竞赛", href: "/competitions" },
   { icon: FolderKanban, label: "项目", href: "/projects" },
   { icon: CalendarDays, label: "活动", href: "/activities" },
   { icon: Award, label: "成果", href: "/achievements" },
   { icon: Info, label: "关于", href: "/about" },
+  { icon: BookOpen, label: "发布中心", href: "/publish" },
 ];
 
 export function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) {

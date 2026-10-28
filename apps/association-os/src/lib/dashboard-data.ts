@@ -26,7 +26,7 @@ export function getDashboardData() {
     metrics: [
       { label: "在册成员", value: stats.members, href: "/members", note: "当前成员档案" },
       { label: "进行中项目", value: activeProjectCount, href: "/projects", note: "开发中 / 答辩准备" },
-      { label: "内容库", value: items.length, href: "/library", note: "已收录内容" },
+      { label: "社区文章", value: items.length, href: "/library", note: "已收录内容" },
       { label: "公开足迹", value: contributions.length, href: "/footprints", note: "累计公开记录" },
     ],
     activeProjectCount,

@@ -1,6 +1,7 @@
 import { ensureDynamic, json } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
+import { adminWriteError } from "@/lib/admin-auth";
 
 const BUSINESS_TABLES = [
   // 先删除引用 departments 的成员，保持外键检查开启。
@@ -21,6 +22,8 @@ const BUSINESS_TABLES = [
  */
 export async function POST(request: Request) {
   await ensureDynamic();
+  const denied = await adminWriteError(request);
+  if (denied) return json({ error: denied.error }, { status: denied.status });
 
   let body: { confirm?: string };
   try {

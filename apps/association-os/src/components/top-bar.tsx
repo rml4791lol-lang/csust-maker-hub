@@ -1,10 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAdminAuth } from "@/components/admin-auth-provider";
 import { useEffect, useState } from "react";
 import { Menu, Search, Shield } from "lucide-react";
 
 export function TopBar({ onOpenCommand, onOpenMobile }: { onOpenCommand: () => void; onOpenMobile: () => void }) {
+  const router = useRouter();
+  const { requireAdmin } = useAdminAuth();
   const [sourceLabel, setSourceLabel] = useState("来源待核验");
   useEffect(() => {
     fetch("/api/meta", { cache: "no-store" }).then((response) => {
@@ -22,7 +25,7 @@ export function TopBar({ onOpenCommand, onOpenMobile }: { onOpenCommand: () => v
       </button>
       <div className="flex-1" />
       <span className="shrink-0 text-sm text-foreground-secondary">{sourceLabel}</span>
-      <Link href="/admin" prefetch={false} aria-label="管理后台" className="hidden min-h-11 shrink-0 items-center gap-2 rounded-md px-2 text-sm text-foreground-secondary hover:bg-surface-2 sm:flex"><Shield className="h-4 w-4" /><span className="hidden lg:inline">管理后台</span></Link>
+      <button onClick={() => void requireAdmin(() => router.push("/admin"))} aria-label="编辑内容" className="hidden min-h-11 shrink-0 items-center gap-2 rounded-md px-2 text-sm text-foreground-secondary hover:bg-surface-2 sm:flex"><Shield className="h-4 w-4" /><span className="hidden lg:inline">编辑内容</span></button>
     </header>
   );
 }

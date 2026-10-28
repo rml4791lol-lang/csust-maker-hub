@@ -16,8 +16,8 @@ type Row = Record<string, unknown>;
 async function adminFetch(url: string, init?: RequestInit) {
   const response = await fetch(url, init);
   if (response.status === 401) {
-    window.location.replace("/login");
-    throw new Error("登录已失效，请重新登录");
+    window.dispatchEvent(new Event("association:reauthenticate"));
+    throw new Error("登录已失效，已保留当前输入。重新登录后请再次保存。");
   }
   return response;
 }
@@ -128,7 +128,7 @@ export default function AdminPage() {
     try {
       const response = await fetch("/api/auth/logout", { method: "POST" });
       if (!response.ok) throw new Error("Logout failed");
-      window.location.replace("/login");
+      window.location.replace("/");
     } catch { setError("退出失败，请重试"); }
   }
 
@@ -435,7 +435,11 @@ function FormModal({
                 {f.label}
                 {f.required && <span className="text-danger"> *</span>}
               </span>
-              {f.type === "select" ? (
+              {f.key === "has_certificate" ? <select
+                value={String(values[f.key] || "0")}
+                onChange={(e) => setValues((v) => ({ ...v, [f.key]: Number(e.target.value) }))}
+                className="h-11 w-full rounded-md border border-border bg-surface-3 px-3 text-base text-foreground outline-none focus:border-primary/50"
+              ><option value="0">无</option><option value="1">有</option></select> : f.type === "select" ? (
                 <select
                   value={String(values[f.key] ?? "")}
                   onChange={(e) =>
@@ -454,8 +458,22 @@ function FormModal({
                   ))}
                 </select>
               ) : (
+                f.type === "textarea" ? <textarea
+                  value={String(values[f.key] ?? "")}
+                  placeholder={f.placeholder}
+                  required={f.required}
+                  maxLength={f.maxLength}
+                  rows={f.key === "body" ? 10 : 5}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  className="w-full resize-y rounded-md border border-border bg-surface-3 px-3 py-3 text-base leading-relaxed text-foreground outline-none placeholder:text-foreground-muted focus:border-primary/50"
+                /> :
                 <input
-                  type={f.type === "number" ? "number" : "text"}
+                  type={f.type === "number" ? "number" : f.type === "url" ? "url" : "text"}
+                  required={f.required}
+                  maxLength={f.maxLength}
+                  min={f.type === "number" ? f.min ?? 0 : undefined}
+                  max={f.type === "number" ? f.max ?? 1000000 : undefined}
+                  step={f.type === "number" ? f.step ?? 1 : undefined}
                   value={String(values[f.key] ?? "")}
                   placeholder={f.placeholder}
                   onChange={(e) =>

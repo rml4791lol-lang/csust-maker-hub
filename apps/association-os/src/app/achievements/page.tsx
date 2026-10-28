@@ -1,4 +1,6 @@
 import { connection } from "next/server";
+import Link from "next/link";
+import { recordHref } from "@/lib/content-modules";
 import { FileCheck, FileWarning } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { listAwards } from "@/lib/queries";
@@ -36,13 +38,14 @@ export default async function AchievementsPage() {
   await connection();
   const awardList = listAwards();
   const certCount = awardList.filter((a) => a.has_certificate === 1).length;
+  const displayLevels = [...LEVELS, ...Array.from(new Set(awardList.map(a => a.level).filter(level => !LEVELS.includes(level))))];
 
   return (
     <div className="mx-auto w-full max-w-[1560px] px-4 py-8 md:px-8">
       <PageHeader
         title="成果"
-        description={`${awardList.length} 项获奖 · ${certCount} 项已归档`}
-      />
+        description={`${awardList.length} 项获奖 · ${certCount} 项登记有证书`}
+       />
 
       {/* 汇总带（补齐顶部空区） */}
       <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -78,16 +81,16 @@ export default async function AchievementsPage() {
             {certCount}
           </div>
           <div className="mt-2 text-[14px] text-success">
-            证书已归档
+            已登记有证书
           </div>
         </div>
       </div>
 
       <div className="space-y-6">
-        {LEVELS.map((level) => {
+        {displayLevels.map((level) => {
           const group = awardList.filter((a) => a.level === level);
           if (group.length === 0) return null;
-          const s = levelStyle[level];
+          const s = levelStyle[level] ?? levelStyle["校级"];
 
           return (
             <section key={level}>
@@ -100,7 +103,7 @@ export default async function AchievementsPage() {
                     s.text,
                   )}
                 >
-                  {level} · {group.length}
+                  {level || "待分类"} · {group.length}
                 </h2>
                 <span className={cn("h-px flex-1", s.bar, "opacity-40")} />
               </div>
@@ -129,7 +132,7 @@ export default async function AchievementsPage() {
                             {a.competition}
                           </div>
                           <h3 className="mt-1.5 text-[18px] font-semibold leading-snug text-foreground">
-                            {a.title}
+                            <Link className="inline-flex min-h-11 items-center hover:text-primary" href={recordHref("achievements", a.id)}>{a.title}</Link>
                           </h3>
                         </div>
                         <span
@@ -160,7 +163,7 @@ export default async function AchievementsPage() {
                           ) : (
                             <FileWarning className="h-4 w-4 shrink-0" />
                           )}
-                          {a.has_certificate === 1 ? "证书已归档" : "待补证书"}
+                          {a.has_certificate === 1 ? "已登记有证书" : "待补证书"}
                         </span>
                       </div>
                     </div>
@@ -171,6 +174,7 @@ export default async function AchievementsPage() {
           );
         })}
       </div>
+      {awardList.length === 0 && <p className="border-y border-border py-12 text-base text-foreground-secondary">尚未登记成果。</p>}
     </div>
   );
 }

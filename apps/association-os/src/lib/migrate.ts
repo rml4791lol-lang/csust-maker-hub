@@ -54,6 +54,57 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    version: 4,
+    name: "stable project links and optional public detail content",
+    up: (db) => {
+      // Preserve the legacy name primary key and all existing rows. A trigger
+      // also covers older importers which do not yet supply the new stable ID.
+      db.exec(`
+        ALTER TABLE projects ADD COLUMN id TEXT;
+        ALTER TABLE projects ADD COLUMN description TEXT NOT NULL DEFAULT '';
+        UPDATE projects SET id = 'p' || lower(hex(randomblob(16)));
+        CREATE UNIQUE INDEX idx_projects_id ON projects(id);
+        CREATE TRIGGER projects_fill_id AFTER INSERT ON projects
+        WHEN NEW.id IS NULL OR NEW.id = ''
+        BEGIN
+          UPDATE projects SET id = 'p' || lower(hex(randomblob(16)))
+          WHERE name = NEW.name;
+        END;
+        CREATE TRIGGER projects_immutable_id BEFORE UPDATE OF id ON projects
+        WHEN OLD.id IS NOT NULL AND OLD.id != '' AND NEW.id IS NOT OLD.id
+        BEGIN SELECT RAISE(ABORT, 'project id is immutable'); END;
+        ALTER TABLE items ADD COLUMN body TEXT NOT NULL DEFAULT '';
+        ALTER TABLE items ADD COLUMN source_url TEXT NOT NULL DEFAULT '';
+      `);
+    },
+  },
+  {
+    version: 5,
+    name: "article formats and private-by-default media",
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE items ADD COLUMN body_format TEXT NOT NULL DEFAULT 'plain'
+          CHECK (body_format IN ('plain', 'markdown'));
+        CREATE TABLE media_assets (
+          id TEXT PRIMARY KEY,
+          storage_name TEXT NOT NULL UNIQUE,
+          mime TEXT NOT NULL CHECK (mime IN ('image/png', 'image/jpeg', 'image/webp')),
+          size INTEGER NOT NULL CHECK (size > 0),
+          width INTEGER NOT NULL CHECK (width > 0),
+          height INTEGER NOT NULL CHECK (height > 0),
+          original_name TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+        CREATE TABLE item_media (
+          item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+          media_id TEXT NOT NULL REFERENCES media_assets(id) ON DELETE RESTRICT,
+          PRIMARY KEY (item_id, media_id)
+        );
+        CREATE INDEX idx_item_media_asset ON item_media(media_id);
+      `);
+    },
+  },
 ];
 
 /** 读取当前 schema 版本 */

@@ -15,7 +15,10 @@
 
 # next.js
 /.next/
+/.next-*/
 /.next-quality-review/
+/.next-metal-preview/
+/.next-chain-validation/
 /out/
 
 # production

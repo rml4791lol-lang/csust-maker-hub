@@ -1,5 +1,6 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
+import { readLocalAccount, usesEnvironmentAccount, verifyLocalAccount } from "@/lib/admin-account";
 
 export const ADMIN_COOKIE = "ai-association-admin";
 export const SESSION_SECONDS = 60 * 60;
@@ -8,7 +9,7 @@ const audience = "admin";
 const encoder = new TextEncoder();
 
 export function adminConfigured() {
-  return Boolean(process.env.ADMIN_USER && process.env.ADMIN_PASSWORD);
+  return usesEnvironmentAccount() ? Boolean(process.env.ADMIN_USER && process.env.ADMIN_PASSWORD) : Boolean(readLocalAccount());
 }
 
 async function equalSecret(actual: string, expected: string) {
@@ -21,6 +22,10 @@ async function equalSecret(actual: string, expected: string) {
 
 export async function checkAdminCredentials(username: string, password: string) {
   if (!adminConfigured()) return false;
+  if (!usesEnvironmentAccount()) {
+    const account = readLocalAccount();
+    return account ? verifyLocalAccount(account, username, password) : false;
+  }
   const [userOk, passwordOk] = await Promise.all([
     equalSecret(username, process.env.ADMIN_USER!),
     equalSecret(password, process.env.ADMIN_PASSWORD!),
@@ -34,7 +39,8 @@ export async function checkAdminCredentials(username: string, password: string) 
 let cachedKey: { input: string; key: Promise<Uint8Array> } | undefined;
 async function sessionKey() {
   if (!adminConfigured()) throw new Error("Admin unavailable");
-  const input = JSON.stringify([process.env.ADMIN_USER, process.env.ADMIN_PASSWORD, process.env.ADMIN_SESSION_SECRET ?? ""]);
+  const local = usesEnvironmentAccount() ? null : readLocalAccount();
+  const input = local ? JSON.stringify([local.username, local.passwordHash, local.sessionSecret]) : JSON.stringify([process.env.ADMIN_USER, process.env.ADMIN_PASSWORD, process.env.ADMIN_SESSION_SECRET ?? ""]);
   if (cachedKey?.input !== input) {
     const key = (async () => {
       const material = await crypto.subtle.importKey("raw", encoder.encode(input), "PBKDF2", false, ["deriveBits"]);
@@ -83,6 +89,15 @@ export async function hasBasicAdminAuth(request: Request) {
 
 export async function isAdminRequest(request: Request) {
   return await hasAdminSession(request) || await hasBasicAdminAuth(request);
+}
+
+/** Authentication happens before parsing uploads or making any data changes. */
+export async function adminWriteError(request: Request): Promise<{ error: string; status: number } | null> {
+  const cookieAuth = await hasAdminSession(request);
+  const basicAuth = await hasBasicAdminAuth(request);
+  if (!cookieAuth && !basicAuth) return { error: adminConfigured() ? "请先登录，再修改内容" : "管理员账号尚未配置", status: adminConfigured() ? 401 : 503 };
+  if (!sameOrigin(request) && !(basicAuth && !request.headers.has("origin"))) return { error: "请求来源不受信任", status: 403 };
+  return null;
 }
 
 // Next's internal request URL can use its listen hostname. Host is the browser's

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { ProductPreview, type PreviewProject } from "./product-preview";
@@ -18,6 +18,7 @@ function subscribe(callback: () => void) {
 
 export function Hero({ activeProjectCount, projects }: { activeProjectCount: number; projects: PreviewProject[] }) {
   const ref = useRef<HTMLElement>(null);
+  const [sceneActive, setSceneActive] = useState(true);
   const showScene = useSyncExternalStore(subscribe, () => window.matchMedia(sceneQuery).matches, () => false);
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
@@ -28,6 +29,17 @@ export function Hero({ activeProjectCount, projects }: { activeProjectCount: num
   const scroll = useMotionValue(0);
   const scrollY = useTransform(scroll, [0, 1], ["0%", "12%"]);
   const scale = useTransform(scroll, [0, 1], [1, 1.04]);
+
+  useEffect(() => {
+    const hero = ref.current;
+    if (!hero) return;
+    let inView = true;
+    const update = () => setSceneActive(inView && !document.hidden);
+    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; update(); });
+    observer.observe(hero);
+    document.addEventListener("visibilitychange", update);
+    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", update); };
+  }, []);
 
   useEffect(() => {
     const hero = ref.current;
@@ -50,7 +62,7 @@ export function Hero({ activeProjectCount, projects }: { activeProjectCount: num
     }} onPointerLeave={() => { pointerX.set(0); pointerY.set(0); }} className="hero-stage grain relative isolate -mx-4 -mt-6 overflow-hidden border-b border-border md:-mx-8 md:-mt-8">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         {showScene ? <motion.div className="absolute inset-0" style={{ y: scrollY, scale }}>
-          <motion.div className="absolute inset-0" style={{ x, y }}><HeroScene /></motion.div>
+          <motion.div className="absolute inset-0" style={{ x, y }}><HeroScene active={sceneActive} /></motion.div>
         </motion.div> : <GeometryMark className="absolute right-0 top-1/2 h-[360px] w-[360px] -translate-y-1/2 text-primary/70 md:right-[38%] md:h-[600px] md:w-[600px]" />}
         <div className="hero-halo absolute inset-0" />
         <div className="hero-grid absolute inset-0" />
@@ -61,8 +73,8 @@ export function Hero({ activeProjectCount, projects }: { activeProjectCount: num
           <h1 className="hero-reveal text-[32px] font-bold leading-[1.16] tracking-tight sm:text-[44px] xl:text-[52px]">把想法，<br />做成<span className="text-accent">下一件</span>作品。</h1>
           <p style={{ animationDelay: "60ms" }} className="hero-reveal mt-5 max-w-md text-base leading-relaxed text-foreground-secondary"><span className="text-foreground">{activeProjectCount} 个项目</span>正在推进，记录每一步探索。</p>
           <div style={{ animationDelay: "140ms" }} className="hero-reveal mt-4 flex flex-wrap items-center gap-4 md:mt-6">
-            <Link href="/projects" className="pointer-events-auto inline-flex min-h-12 items-center gap-3 rounded-md bg-foreground px-4 text-base font-semibold text-background transition-colors hover:bg-white">进入项目工作台<ArrowRight className="h-4 w-4" /></Link>
-            <Link href="/footprints" className="pointer-events-auto inline-flex min-h-12 items-center gap-2 rounded-md border border-white/20 bg-white/5 px-4 text-base text-foreground-secondary backdrop-blur-sm hover:border-primary/60 hover:text-foreground">记录足迹</Link>
+            <Link href="/projects" className="pointer-events-auto inline-flex min-h-12 items-center gap-3 rounded-md bg-foreground px-4 text-base font-semibold text-background transition-colors hover:bg-white">查看项目<ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/library" className="pointer-events-auto inline-flex min-h-12 items-center gap-2 rounded-md border border-white/20 bg-white/5 px-4 text-base text-foreground-secondary backdrop-blur-sm hover:border-primary/60 hover:text-foreground">探索社区</Link>
           </div>
         </div>
         <div style={{ animationDelay: "220ms" }} className="hero-reveal pointer-events-auto hidden xl:block"><ProductPreview projects={projects} activeProjectCount={activeProjectCount} /></div>

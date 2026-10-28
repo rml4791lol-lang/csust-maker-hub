@@ -1,4 +1,6 @@
 import { connection } from "next/server";
+import Link from "next/link";
+import { recordHref } from "@/lib/content-modules";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { StatusTag, type StatusTone } from "@/components/ui/status-tag";
 import { listCompetitions } from "@/lib/queries";
@@ -23,7 +25,7 @@ export default async function CompetitionsPage() {
       <PageHeader
         title="竞赛"
         description={`${competitions.length} 场赛事 · ${totalTeams} 支队伍`}
-      />
+       />
 
       {top ? (
         <>
@@ -31,7 +33,7 @@ export default async function CompetitionsPage() {
             <div className="h-1 bg-primary" />
             <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <h2 className="text-2xl font-bold leading-tight">{top.name}</h2>
+                <h2 className="text-2xl font-bold leading-tight"><Link className="inline-block min-h-11 hover:text-primary" href={recordHref("competitions", top.id)}>{top.name}</Link></h2>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <span className="text-base text-foreground-secondary">{top.level} · {top.host}</span>
                   <StatusTag label={top.status} tone={statusTone[top.status] ?? "neutral"} />
@@ -51,7 +53,7 @@ export default async function CompetitionsPage() {
             {competitions.slice(1).map((competition) => (
               <li key={competition.id} className="flex flex-wrap items-center gap-4 px-5 py-5">
                 <div className="min-w-0 flex-[1_1_240px]">
-                  <h2 className="text-lg font-semibold">{competition.name}</h2>
+                  <h2 className="text-lg font-semibold"><Link className="inline-flex min-h-11 items-center hover:text-primary" href={recordHref("competitions", competition.id)}>{competition.name}</Link></h2>
                   <p className="mt-2 text-sm leading-relaxed text-foreground-secondary">
                     {competition.level} · {competition.host} · {competition.teams} 支队伍
                   </p>

@@ -31,10 +31,17 @@ function fixture() {
       if (name === "next/server") return require(name);
       if (name === "jose") return {
         ...jose,
+        // Signing uses the real clock; slow hashing may cross a second boundary.
+        // Keep real-time verification current while allowing explicit expiry jumps.
         jwtVerify: (token: string, key: Uint8Array, options: jose.JWTVerifyOptions) =>
-          jose.jwtVerify(token, key, { ...options, currentDate: new Date(clock.now) }),
+          jose.jwtVerify(token, key, { ...options, currentDate: new Date(Math.max(clock.now, Date.now())) }),
       };
       if (name === "@/lib/admin-auth") return load("src/lib/admin-auth.ts");
+      if (name === "@/lib/admin-account") return {
+        usesEnvironmentAccount: () => Boolean(env.ADMIN_USER || env.ADMIN_PASSWORD),
+        readLocalAccount: () => null,
+        verifyLocalAccount: async () => false,
+      };
       throw new Error(`Unisolated dependency: ${name}`);
     };
     new Function("require", "module", "exports", "process", "Date", code)(resolve, loadedModule, loadedModule.exports, { env }, TestDate);

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAdminAuth } from "@/components/admin-auth-provider";
 import {
   Award,
   BookOpen,
@@ -40,6 +41,8 @@ export function Sidebar({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { requireAdmin } = useAdminAuth();
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -55,21 +58,19 @@ export function Sidebar({
       )}
     >
       {/* Logo */}
-      <div
+      <Link href="/" aria-label="AI 创客协会首页" onClick={onNavigate}
         className={cn(
-          "flex h-16 items-center gap-2.5 border-b border-border px-4",
+          "flex h-16 items-center border-b border-border px-5",
           collapsed && "md:justify-center md:px-0",
         )}
       >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-background">
-          <LayoutDashboard className="h-4 w-4" />
-        </div>
+        {collapsed && <span className="hidden text-lg font-semibold tracking-tight text-foreground md:block">AI</span>}
         <div className={cn("min-w-0", collapsed && "md:hidden")}>
-          <div className="truncate text-base font-semibold text-foreground">
+          <div className="truncate text-lg font-semibold tracking-tight text-foreground">
             AI 创客协会
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
@@ -116,19 +117,17 @@ export function Sidebar({
 
       {/* Footer */}
       <div className="border-t border-border p-2">
-        <Link
-          href="/admin"
-          prefetch={false}
-          onClick={onNavigate}
-          title={collapsed ? "管理后台" : undefined}
+        <button
+          onClick={() => { onNavigate?.(); void requireAdmin(() => router.push("/admin")); }}
+          title={collapsed ? "编辑内容" : undefined}
           className={cn(
-            "flex min-h-11 items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground-secondary transition-colors duration-fast hover:bg-surface-2 hover:text-foreground",
+            "flex min-h-11 w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground-secondary transition-colors duration-fast hover:bg-surface-2 hover:text-foreground",
             collapsed && "md:justify-center md:px-0",
           )}
         >
           <Settings className="h-4 w-4 shrink-0 text-foreground-muted" />
-          <span className={cn(collapsed && "md:hidden")}>管理后台</span>
-        </Link>
+          <span className={cn(collapsed && "md:hidden")}>编辑内容</span>
+        </button>
         <button
           aria-label={collapsed ? "展开导航" : "折叠导航"}
           onClick={() => onToggle(!collapsed)}

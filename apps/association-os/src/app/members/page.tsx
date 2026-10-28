@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { recordHref } from "@/lib/content-modules";
 import { Search } from "lucide-react";
 import { PageHeader, FilterChip, EmptyState } from "@/components/page-header";
 import type { DepartmentRow, MemberRow } from "@/lib/queries";
@@ -50,13 +52,14 @@ export default function MembersPage() {
       <PageHeader
         title="成员"
         description={`${members.length} 名在册成员 · ${departments.length} 个部门`}
-      />
+       />
 
       {/* 搜索 + 部门筛选 */}
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-muted" />
           <input
+            aria-label="搜索成员"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="搜索姓名、技能、部门…"
@@ -105,9 +108,9 @@ export default function MembersPage() {
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[18px] font-semibold text-foreground">
+                    <Link href={recordHref("members", m.id)} className="inline-flex min-h-11 items-center text-[18px] font-semibold text-foreground hover:text-primary">
                       {m.name}
-                    </span>
+                    </Link>
                     {m.role && (
                       <span className="rounded bg-primary/12 px-2 py-0.5 text-[14px] text-primary">
                         {m.role}

@@ -3,6 +3,7 @@
 // ============================================================
 
 import { getDb } from "./db";
+import { listPublicItems, PUBLIC_ITEM_STATUS_SQL } from "./public-records";
 
 /* ---------------- 类型 ---------------- */
 
@@ -25,13 +26,16 @@ export interface ItemRow {
   tags: string[];
   status: string;
   updated: string;
+  source_url: string;
 }
 
 export interface ProjectRow {
+  id: string;
   name: string;
   owner: string;
   status: string;
   updated: string;
+  description: string;
 }
 
 export interface CompetitionRow {
@@ -108,12 +112,7 @@ export function listMembers(): MemberRow[] {
 }
 
 export function listItems(): ItemRow[] {
-  const rows = all<Record<string, unknown>>(
-    "SELECT * FROM items ORDER BY updated DESC",
-  );
-  return rows.map(
-    (r) => ({ ...r, tags: parseJson<string[]>(r.tags, []) }) as ItemRow,
-  );
+  return listPublicItems() as unknown as ItemRow[];
 }
 
 export function listProjects(): ProjectRow[] {
@@ -144,7 +143,7 @@ export function listAwards(): AwardRow[] {
 
 export function listContributions(): ContributionRow[] {
   return all<ContributionRow>(
-    "SELECT * FROM contributions ORDER BY created_at DESC",
+    "SELECT * FROM contributions WHERE status = 'approved' ORDER BY created_at DESC",
   );
 }
 
@@ -166,7 +165,7 @@ export function getStats() {
   const one = (sql: string) => (db.prepare(sql).get() as { c: number }).c;
   return {
     members: one("SELECT COUNT(*) AS c FROM members"),
-    items: one("SELECT COUNT(*) AS c FROM items"),
+    items: one(`SELECT COUNT(*) AS c FROM items WHERE ${PUBLIC_ITEM_STATUS_SQL}`),
     projects: one("SELECT COUNT(*) AS c FROM projects"),
     competitions: one("SELECT COUNT(*) AS c FROM competitions"),
     activities: one("SELECT COUNT(*) AS c FROM activities"),
@@ -193,7 +192,7 @@ export function getProjectStatusFlow() {
 /** 内容类型分布：从 items 实际分组 */
 export function getContentTypeCounts() {
   const groups = all<{ type: string; c: number }>(
-    "SELECT type, COUNT(*) AS c FROM items GROUP BY type",
+    `SELECT type, COUNT(*) AS c FROM items WHERE ${PUBLIC_ITEM_STATUS_SQL} GROUP BY type`,
   );
   return (t: string) => groups.find((g) => g.type === t)?.c ?? 0;
 }
@@ -201,7 +200,7 @@ export function getContentTypeCounts() {
 /** 内容主题分布 */
 export function getTopicCounts() {
   const groups = all<{ topic: string; c: number }>(
-    "SELECT topic, COUNT(*) AS c FROM items GROUP BY topic",
+    `SELECT topic, COUNT(*) AS c FROM items WHERE ${PUBLIC_ITEM_STATUS_SQL} GROUP BY topic`,
   );
   return (t: string) => groups.find((g) => g.topic === t)?.c ?? 0;
 }

@@ -36,6 +36,7 @@ function createDepartmentFixture(t: TestContext) {
   runInNewContext(queriesCode, {
     exports: queryExports,
     require(specifier: string) {
+      if (specifier === "./public-records") return { PUBLIC_ITEM_STATUS_SQL: "1=1", listPublicItems: () => { throw new Error("items not used by department tests"); } };
       assert.equal(specifier, "./db", "查询测试只允许注入内存数据库依赖");
       return { getDb: () => db };
     },

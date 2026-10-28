@@ -1,5 +1,6 @@
 import { ensureDynamic, json } from "@/lib/api";
 import { MAX_SIZE, saveUpload } from "@/lib/uploads";
+import { adminWriteError } from "@/lib/admin-auth";
 import {
   createFootprint,
   footprintRetryAfter,
@@ -13,9 +14,11 @@ export async function GET() {
   return json(listPublicFootprints(), { headers: { "Cache-Control": "no-store" } });
 }
 
-/** 公开提交一条足迹（含可选附件），提交即公开。 */
+/** 管理员发布一条足迹（含可选附件），读取仍公开。 */
 export async function POST(request: Request) {
   await ensureDynamic();
+  const denied = await adminWriteError(request);
+  if (denied) return json({ error: denied.error }, { status: denied.status, headers: { "Cache-Control": "private, no-store" } });
   const retryAfter = footprintRetryAfter(request);
   if (retryAfter) {
     return json(

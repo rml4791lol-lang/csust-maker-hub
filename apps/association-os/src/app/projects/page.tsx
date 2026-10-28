@@ -1,4 +1,6 @@
 import { connection } from "next/server";
+import Link from "next/link";
+import { recordHref } from "@/lib/content-modules";
 import { PageHeader } from "@/components/page-header";
 import { StatusTag, type StatusTone } from "@/components/ui/status-tag";
 import { getProjectStatusFlow, listProjects } from "@/lib/queries";
@@ -37,7 +39,7 @@ export default async function ProjectsPage() {
       <PageHeader
         title="项目"
         description={`${projects.length} 个项目 · 5 个阶段`}
-      />
+       />
 
       {/* 状态轨道 */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
@@ -66,12 +68,12 @@ export default async function ProjectsPage() {
               ) : (
                 col.items.map((p) => (
                   <li
-                    key={p.name}
+                    key={p.id}
                     className="px-4 py-3 transition-colors duration-fast hover:bg-surface-3/50"
                   >
-                    <div className="text-[18px] font-medium leading-snug text-foreground">
+                    <Link href={recordHref("projects", p.id)} className="block min-h-11 break-words text-[18px] font-medium leading-snug text-foreground hover:text-primary">
                       {p.name}
-                    </div>
+                    </Link>
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                       <span className="text-[14px] text-foreground-muted">
                         {p.owner}
