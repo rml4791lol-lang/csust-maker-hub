@@ -30,6 +30,7 @@ import { overdueReviews } from '../src/data/review';
 import { voteLabel } from '../src/data/vote-labels';
 import { analyzeMemberProfiles, analyzeWithLLM } from '../src/data/analyze';
 import { validateSubmission } from '../src/data/contributions';
+import { canDirectUpload } from '../src/data/uploads';
 import {
   generateTempPassword,
   hashPassword,
@@ -76,6 +77,11 @@ const SESSION_SECRET = process.env.SESSION_SECRET || loadSessionSecret();
 const SESSION_COOKIE = 'csust_session';
 const ADMIN_COOKIE = 'csust_admin';
 const ADMIN_LOG_FILE = join(DATA_DIR, 'admin-log.json');
+/** 成员上传的照片记录（审核后展示） */
+const UPLOADS_FILE = join(ROOT, 'content/uploads.json');
+const UPLOADS_DIR = join(ROOT, 'public/photos/uploads');
+/** 成员档案数据（演示数据初始，管理端同步后变成真实账号资料） */
+const MEMBERS_FILE = join(ROOT, 'content/members.json');
 const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
 const SUPER_ADMIN_PASSWORD = process.env.SUPER_ADMIN_PASSWORD || '';
 const SUPER_ADMIN_NAME = process.env.SUPER_ADMIN_NAME || '技术部部长';
@@ -911,6 +917,7 @@ const server = http.createServer(async (req, res) => {
     url === '/api/auth/logout' ||
     url === '/api/auth/me' ||
     url === '/api/auth/password' ||
+    url === '/api/upload' ||
     url.startsWith('/api/my/')
   ) {
     if (req.method === 'OPTIONS') {
@@ -1020,6 +1027,61 @@ const server = http.createServer(async (req, res) => {
       target.passwordHash = hashPassword(String(p.newPassword));
       saveAccounts(list);
       return json(res, 200, { ok: true, note: '密码已更新' });
+    }
+
+    if (url === '/api/my/uploads' && req.method === 'GET') {
+      const list = readJson<any[]>(UPLOADS_FILE, []).filter((u) => u.uploaderId === account.id);
+      return json(res, 200, list);
+    }
+
+    if (url === '/api/upload' && req.method === 'POST') {
+      const raw = await body(req);
+      if (raw.length > 4_000_000) return json(res, 413, { error: '图片太大（压缩后不超过 2MB）' });
+      let p: any;
+      try {
+        p = JSON.parse(raw);
+      } catch {
+        return json(res, 400, { error: 'bad json' });
+      }
+      const dataUrl = String(p.dataBase64 || p.dataUrl || '');
+      const base64 = dataUrl.includes(',') ? dataUrl.slice(dataUrl.indexOf(',') + 1) : dataUrl;
+      let buf: Buffer;
+      try {
+        buf = Buffer.from(base64, 'base64');
+      } catch {
+        return json(res, 400, { error: '图片数据不合法' });
+      }
+      if (buf.length < 32 || buf.length > 2_500_000) return json(res, 413, { error: '图片大小需在 2MB 以内' });
+      const magic = buf.subarray(0, 12);
+      let ext = '';
+      if (magic[0] === 0xff && magic[1] === 0xd8 && magic[2] === 0xff) ext = 'jpg';
+      else if (magic[0] === 0x89 && magic[1] === 0x50 && magic[2] === 0x4e && magic[3] === 0x47) ext = 'png';
+      else if (magic.subarray(0, 4).toString() === 'RIFF' && magic.subarray(8, 12).toString() === 'WEBP') ext = 'webp';
+      if (!ext) return json(res, 400, { error: '只支持 JPG / PNG / WebP 图片' });
+      mkdirSync(UPLOADS_DIR, { recursive: true });
+      const fileName = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      writeFileSync(join(UPLOADS_DIR, fileName), buf);
+      const direct = canDirectUpload(account.identity);
+      const record = {
+        id: 'u-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+        url: '/photos/uploads/' + fileName,
+        uploaderId: account.id,
+        uploaderName: account.realName,
+        uploaderIdentity: account.identity,
+        activityId: p.activityId ? String(p.activityId) : undefined,
+        caption: p.caption ? String(p.caption).slice(0, 120) : undefined,
+        status: direct ? 'approved' : 'pending',
+        createdAt: new Date().toISOString(),
+      };
+      const list = readJson<any[]>(UPLOADS_FILE, []);
+      list.push(record);
+      writeJson(UPLOADS_FILE, list);
+      adminLog({ action: 'upload', actor: account.realName, target: record.id, note: direct ? '直接发布' : '待审核' });
+      return json(res, 200, {
+        ok: true,
+        upload: record,
+        note: direct ? '上传成功，已直接展示' : '已提交，管理员审核后展示',
+      });
     }
 
     if (url === '/api/my/submissions' && req.method === 'GET') {
@@ -1214,6 +1276,67 @@ const server = http.createServer(async (req, res) => {
       saveAccounts(list);
       adminLog({ action: bodyData.status === 'disabled' ? 'disable' : 'enable', actor: admin.realName, target: target.email });
       return json(res, 200, { ok: true, account: publicAccount(target) });
+    }
+
+    if (url.startsWith('/api/manage/uploads') && req.method === 'GET') {
+      const q = new URL('http://localhost' + url).searchParams;
+      const status = q.get('status') || '';
+      let list = readJson<any[]>(UPLOADS_FILE, []).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      if (status) list = list.filter((u) => u.status === status);
+      return json(res, 200, list);
+    }
+
+    const uploadReview = url.match(/^\/api\/manage\/uploads\/([\w-]+)\/review$/);
+    if (uploadReview && req.method === 'POST') {
+      const bodyData = JSON.parse((await body(req)) || '{}');
+      const list = readJson<any[]>(UPLOADS_FILE, []);
+      const target = list.find((u) => u.id === uploadReview[1]);
+      if (!target) return json(res, 404, { error: '照片不存在' });
+      if (!['approve', 'reject'].includes(bodyData.action)) return json(res, 400, { error: '操作不合法' });
+      target.status = bodyData.action === 'approve' ? 'approved' : 'rejected';
+      target.reviewedAt = new Date().toISOString();
+      target.reviewedBy = admin.realName;
+      if (bodyData.reason) target.rejectReason = String(bodyData.reason).slice(0, 200);
+      writeJson(UPLOADS_FILE, list);
+      adminLog({ action: 'upload-review', actor: admin.realName, target: target.id, note: target.status });
+      return json(res, 200, { ok: true, upload: target });
+    }
+
+    if (url === '/api/manage/sync-members' && req.method === 'POST') {
+      if (!isSuper) return json(res, 403, { error: '只有超级管理员可以同步成员档案' });
+      const accounts = loadAccounts().filter((a) => a.status === 'approved');
+      if (!accounts.length) return json(res, 400, { error: '还没有审核通过的成员，无法同步' });
+      const identityRole = (a: Account) => {
+        if (a.identity === 'dept_member') return a.dept + '成员';
+        if (a.identity === 'dept_lead') return a.dept + '部长';
+        return { vice_president: '副会长', president: '会长', teacher: '老师', partner: '合伙人', other: '成员' }[a.identity] || '成员';
+      };
+      const depts = ['技术部', '竞赛部', '组织部', '宣传部', '创新创业部'];
+      const nextMembers = accounts.map((a) => ({
+        id: a.id,
+        name: a.realName,
+        dept: depts.includes(a.dept) ? a.dept : '其他',
+        role: identityRole(a),
+        grade: '',
+        skills: [] as string[],
+        projects: [] as string[],
+        bio: '',
+      }));
+      writeJson(MEMBERS_FILE, nextMembers);
+      // 重新算档案（当前 submissions + 新成员列表）
+      try {
+        const subs = readJson<any[]>(SUBMISSIONS_FILE, []);
+        const profiles = analyzeMemberProfiles(subs as any, nextMembers as any);
+        writeJson(PROFILES_FILE, profiles);
+      } catch (e: any) {
+        console.error('[sync-members] 档案重算失败', e.message);
+      }
+      adminLog({ action: 'sync-members', actor: admin.realName, target: 'content/members.json', note: nextMembers.length + ' 人' });
+      return json(res, 200, {
+        ok: true,
+        count: nextMembers.length,
+        note: '已写入 content/members.json，重新构建并部署后前台生效',
+      });
     }
 
     if (url === '/api/manage/logs' && req.method === 'GET') {

@@ -17,7 +17,8 @@
 | `/achievements` | 活动与成果：上半活动记录（现场照片），下半成员成果（类型/部门/关键词筛选） |
 | `/members` | 成员能力：能力总览（部门产出 / 成果类型 / 高频标签 / 贡献榜）+ 成员列表 |
 | `/members/<id>` | 个人档案：AI 汇总（能力标签 / 代表成果 / 下一步）+ 成果时间线 |
-| `/contribute` | 提交记录：成员自己填写，进入待审核，通过后自动进入成果墙与个人档案 |
+| `/contribute` | 提交记录：登录后填写成果、上传现场照片（部长+直发，成员待审核） |
+| `/gallery` | 现场相册：成员上传、审核通过的活动/项目照片 |
 
 已下线（历史页面，数据保留）：内容库 `/library`、工具站 `/tools`、资源 `/resources`、数据看板 `/stats`、关于 `/about`。精简原因与后续接入点见 [`docs/2026-10-28-精简改版.md`](docs/2026-10-28-精简改版.md)。
 
@@ -30,6 +31,8 @@
 内容数据在 `content/` 与 `src/data/`，页面从数据层读入，不需要改页面：
 
 - `content/activities.json` — 协会活动记录（会议/分享/参观，含 `public/photos/` 现场照片）
+- `content/uploads.json` — 成员上传的现场照片记录（审核状态控制是否展示）
+- `content/members.json` — 成员档案数据（初始演示；管理端「同步成员档案」可覆盖为真实账号）
 - `content/submissions.json` — 成员成果记录（成员提交 + 历史回填；`status` 控制是否展示）
 - `content/profiles.json` — 成员能力档案（**自动生成**，`pnpm analyze` / 后台审核后自动重算）
 - `src/data/members.ts` — 成员（姓名 / 部门 / 年级 / 技能 / 角色；现为示例数据，含组织部占位成员）

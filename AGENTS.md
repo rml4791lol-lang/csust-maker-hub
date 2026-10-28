@@ -8,13 +8,15 @@
 - **信息架构只保留两条主线**：展示活动与成果、收集并分析成员能力。页面在 `src/pages/`：
   `index`（首页）/ `achievements`（活动与成果）/ `members`（成员能力）/ `members/[id]`（个人档案）/ `contribute`（提交记录）/ `404`。
   已下线：内容库、工具站、资源、数据看板、关于页（见 `docs/2026-10-28-精简改版.md`），不要在没有明确需求时加回来。
-- **业务数据在 `content/`**：`activities.json`（协会活动记录，含 `public/photos/` 现场照片）、`submissions.json`（成员成果记录，`status` 控制展示）、`profiles.json`（成员能力档案，**自动生成**）。
+- **业务数据在 `content/`**：`activities.json`（协会活动记录，含 `public/photos/` 现场照片）、`submissions.json`（成员成果记录，`status` 控制展示）、`uploads.json`（成员上传的现场照片记录，审核状态控制展示）、`members.json`（成员档案数据，初始演示；管理端可同步真实账号覆盖）、`profiles.json`（成员能力档案，**自动生成**）。
   `items.json` / `flags.json` / `tools.json` 是历史数据，仅作回填与后台兼容保留。
 - **成员名单在 `src/data/members.ts`**，协会信息/导航/部门职责/运行机制/首屏照片在 `src/data/site.ts`；现场照片在 `public/photos/`（压缩后的 jpg，页面懒加载）。
 - **AI 感装饰图在 `public/decor/`**：程序化生成（`scripts/generate-decor.py`），只做低对比点缀，必须 `pointer-events:none` 且尊重 reduced-motion，不能盖过正文。
   已用于：首页首屏（轨道/极光/波纹）、全部页头与 CTA（神经网络）、首页关于协会与成员能力区（轨道/神经）、活动成果页与投稿页（轨道）、页脚（波纹）。
 - **AI 能力分析自动化**：`src/data/analyze.ts`（规则分析 + 可选 LLM）；`pnpm analyze` 重算档案；
   后台审核发布投稿后自动重算；接口 `POST /api/analyze`。服务器配 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` 后自动升级 LLM 分析。
+- **现场照片上传**：所有登录成员可传；部长及以上直接展示、普通成员需管理员审核；文件在 `public/photos/uploads/`，相册页 `/gallery`，管理端 `/manage` 照片审核。
+- **成员档案同步**：`content/members.json` 为数据源；超级管理员在 `/manage` 点「同步成员档案」把审核通过的账号写入并重算档案，**重新构建后生效**。
 - **成员账号（实名 v2）**：`src/data/auth.ts` 负责注册校验（邮箱/手机号/真实姓名/身份/密码）、密码哈希、会话签名；账号数据存服务器本地 `DATA_DIR`（默认 `~/.csust-maker-data`，不入仓库）；管理员分超级管理员/审核管理员，独立管理端 `/manage`；超级管理员固定为技术部部长（负责人），首次部署用 env `SUPER_ADMIN_EMAIL/PASSWORD/NAME/PHONE` 初始化（默认身份 技术部 · 技术部部长）；投稿必须登录。
 - **分享卡片在 `public/share/`**：`home.jpg` + 每位成员 `member-mXX.jpg`，由 `scripts/generate-share-cards.py` 生成；页面通过 `Base` 的 `shareImage` 参数输出 `og:image`。
 - **发布状态在 `src/data/publish-state.json`**（后台写入），审核记录在 `src/data/review-log.json`。

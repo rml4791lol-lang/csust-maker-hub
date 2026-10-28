@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import { approvedUploads } from '../data/uploads';
+import { activities } from '../data/activities';
+
+const photos = approvedUploads();
+const activityName = (id?: string) => (id ? activities.find((a) => a.id === id)?.title || '活动照片' : '活动照片');
+---
+
+<Base title="现场相册" description="长沙理工大学 AI 创客协会活动与项目现场照片，成员上传、管理员审核后展示。">
+  <div class="wrap page-header">
+    <span class="crumb">GALLERY / 现场相册</span>
+    <h1>协会的现场记录</h1>
+    <p>成员上传的活动与项目照片；部长及以上直接展示，普通成员上传后经管理员审核展示。</p>
+    <div class="hero-actions" style="margin-top:20px;">
+      <a href="/contribute#upload" class="btn btn-primary">上传照片 <span class="ar">→</span></a>
+      <a href="/achievements" class="btn btn-ghost">看活动与成果</a>
+    </div>
+  </div>
+
+  <div class="wrap" style="padding-bottom:100px;">
+    {photos.length ? (
+      <div class="gallery-grid">
+        {photos.map((p) => (
+          <figure class="gallery-item">
+            <a href={p.url} target="_blank" rel="noopener">
+              <img src={p.url} alt={p.caption || '协会活动现场照片'} loading="lazy" />
+            </a>
+            <figcaption>
+              <span class="gallery-cap">{p.caption || activityName(p.activityId)}</span>
+              <span class="gallery-meta">{p.uploaderName} · {activityName(p.activityId)}</span>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    ) : (
+      <div class="view-empty" style="padding:48px 24px;">
+        还没有照片。登录后上传第一张现场照片吧。
+      </div>
+    )}
+  </div>
+</Base>

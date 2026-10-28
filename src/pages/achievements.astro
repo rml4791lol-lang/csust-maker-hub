@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { groupAchievements, contributionTypeLabel, type ContributionType } from '../data/contributions';
 import { sortedActivities, activityKindLabel } from '../data/activities';
+import { memberExists } from '../data/members';
 
 const groups = groupAchievements();
 const types = (Object.keys(contributionTypeLabel) as ContributionType[])
