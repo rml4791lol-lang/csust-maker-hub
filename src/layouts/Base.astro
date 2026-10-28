@@ -1,7 +1,10 @@
 ---
 import { site } from '../data/site';
-import '@fontsource-variable/inter';
+import '@fontsource-variable/noto-sans-sc';
+import '@fontsource-variable/noto-serif-sc';
+import '@fontsource-variable/jetbrains-mono';
 import '../styles/global.css';
+import '../styles/app-theme.css';
 
 interface Props {
   title?: string;
@@ -16,10 +19,44 @@ const pageTitle = title ? `${title} · ${site.name}` : `${site.name} · ${site.t
 const desc = description ?? site.description;
 const path = Astro.url.pathname;
 const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
-const navItems = site.nav;
 const robots = site.publicIndex && !noindex ? 'index, follow' : 'noindex, nofollow';
 const canonicalUrl = new URL(path, site.url).toString();
 const shareImageUrl = new URL(shareImage, site.url).toString();
+
+const labelOf = (p: string) => {
+  if (p === '/') return '首页';
+  if (p.startsWith('/achievements')) return '活动与成果';
+  if (p.startsWith('/members/')) return '成员档案';
+  if (p.startsWith('/members')) return '成员能力';
+  if (p.startsWith('/gallery')) return '现场相册';
+  if (p.startsWith('/contribute')) return '提交记录';
+  if (p.startsWith('/manage')) return '管理端';
+  if (p.startsWith('/login')) return '登录';
+  if (p.startsWith('/register')) return '注册';
+  return '未知页面';
+};
+const pageLabel = labelOf(path);
+const navItems = [
+  { href: '/', label: '首页', icon: 'home' },
+  { href: '/achievements', label: '活动与成果', icon: 'calendar' },
+  { href: '/members', label: '成员能力', icon: 'users' },
+  { href: '/gallery', label: '现场相册', icon: 'image' },
+  { href: '/contribute', label: '提交记录', icon: 'upload' },
+];
+const footItems = [{ href: '/manage', label: '管理端', icon: 'settings' }];
+const svg = (name: string) => {
+  const paths: Record<string, string> = {
+    home: '<rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><rect x="13.5" y="13.5" width="7" height="7" rx="1"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    users: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.3 2.5-5.4 5.5-5.4s5.5 2.1 5.5 5.4"/><path d="M16.5 11.2c2 .3 3.5 2 3.5 4.2v1"/>',
+    image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l4.5-4 3 2.6L15 11l5 5"/>',
+    upload: '<path d="M12 16V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4.5 15v3.5a1.5 1.5 0 001.5 1.5h12a1.5 1.5 0 001.5-1.5V15"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 11-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 110-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h.09a1.7 1.7 0 001-1.55V3a2 2 0 114 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v.09a1.7 1.7 0 001.55 1H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.55 1z"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] ?? ''}</svg>`;
+};
 ---
 
 <!doctype html>
@@ -29,7 +66,7 @@ const shareImageUrl = new URL(shareImage, site.url).toString();
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={desc} />
-    <meta name="theme-color" content="#08090a" />
+    <meta name="theme-color" content="#090d14" />
     <meta name="robots" content={robots} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={desc} />
@@ -39,79 +76,105 @@ const shareImageUrl = new URL(shareImage, site.url).toString();
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2308090a'/%3E%3Cpath d='M9 22V10h3l8 8.2V10h3v12h-3l-8-8.2V22z' fill='%238fa4ff'/%3E%3C/svg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111925'/%3E%3Crect x='9' y='9' width='6' height='6' rx='1.5' fill='%235797ff'/%3E%3Crect x='17' y='9' width='6' height='6' rx='1.5' fill='%2350d6e8'/%3E%3Crect x='9' y='17' width='6' height='6' rx='1.5' fill='%2381b1ff'/%3E%3Crect x='17' y='17' width='6' height='6' rx='1.5' fill='%232b4d86'/%3E%3C/svg%3E" />
     <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
-  <body class="tech">
+  <body class="app">
     <a class="skip-link" href="#main">跳到主要内容</a>
-    <div class="page-glow" aria-hidden="true">
-      <div class="grid"></div>
-      <div class="aurora"></div>
-    </div>
 
-    <header class="tnav">
-      <div class="wrap tnav-inner">
-        <a href="/" class="brand" aria-label={site.name}>
-          <span class="brand-mark">AI</span>
-          <span>{site.name}</span>
-          <span class="brand-sub">云塘 · 科创港</span>
+    <div class="app-shell">
+      <!-- 左侧工作台导航 -->
+      <aside class="app-sidebar" aria-label="站点导航">
+        <a class="side-brand" href="/">
+          <span class="side-brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span class="side-brand-text">
+            <b>{site.name}</b>
+            <span>AI MAKER SPACE</span>
+          </span>
         </a>
 
-        <nav class="tlinks" aria-label="主导航">
+        <nav class="side-nav" aria-label="主导航">
           {navItems.map((n) => (
-            <a href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>{n.label}</a>
+            <a class:list={['side-item', { active: isActive(n.href) }]} href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>
+              <Fragment set:html={svg(n.icon)} />
+              <span>{n.label}</span>
+            </a>
           ))}
         </nav>
 
-        <div class="tright">
-          <a class="nav-auth" href="/login" data-auth>登录</a>
-          <a class="btn btn-primary btn-sm" href="/contribute">提交记录 <span class="ar">→</span></a>
-          <button class="tburger" aria-label="菜单" aria-expanded="false">≡</button>
+        <div class="side-spacer"></div>
+        <div class="side-status"><i></i>{site.dataStatus === 'demo' ? '示例数据 · 待核验' : '数据已核验'}</div>
+        <div class="side-foot">
+          {footItems.map((n) => (
+            <a class:list={['side-item', { active: isActive(n.href) }]} href={n.href}>
+              <Fragment set:html={svg(n.icon)} />
+              <span>{n.label}</span>
+            </a>
+          ))}
+          <a class="side-item" href="/login" data-auth>
+            <Fragment set:html={svg('users')} />
+            <span data-auth-label>登录 / 注册</span>
+          </a>
         </div>
-      </div>
-    </header>
+      </aside>
 
-    <main id="main" tabindex="-1">
-      <slot />
-    </main>
+      <!-- 右侧主区 -->
+      <div class="app-main">
+        <header class="app-topbar">
+          <button class="icon-btn side-toggle" id="menuOpen" aria-label="打开菜单" aria-controls="mobileNav">
+            <Fragment set:html={svg('menu')} />
+          </button>
+          <div class="topbar-crumb">
+            <span class="mono">AI MAKER SPACE</span>
+            <span class="sep">/</span>
+            <strong>{pageLabel}</strong>
+          </div>
+          <div class="topbar-right">
+            <span class="data-flag"><i></i>{site.dataStatus === 'demo' ? '示例数据 · 待核验' : '数据已核验'}</span>
+            <a class="topbar-link" href="/manage">管理后台</a>
+            <a class="topbar-auth" href="/login" data-auth data-auth-top>登录</a>
+          </div>
+        </header>
 
-    <footer class="tfoot">
-      <div class="wrap">
-        <div class="tfoot-grid">
-          <div class="tfoot-brand">
-            <a href="/" class="brand"><span class="brand-mark">AI</span><span>{site.name}</span></a>
-            <p class="foot-lead">{site.about.lead}</p>
-            <p>{site.contact.address}</p>
-          </div>
-          <div>
-            <h5>导航</h5>
-            <ul>
-              {navItems.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
-            </ul>
-          </div>
-          <div>
-            <h5>联系</h5>
-            <ul>
-              <li><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></li>
-              <li><span>{site.contact.group}</span></li>
-              <li><span>{site.contact.address}</span></li>
-            </ul>
-          </div>
-        </div>
-        <div class="tfoot-bottom">
-          <span>© {new Date().getFullYear()} {site.name} · {site.nameEn}</span>
-          <span class="foot-meta">
-            {site.dataStatus === 'demo' ? <span class="data-badge">示例数据 · 待替换为真实名单</span> : null}
-            <span>MAKE SOMETHING REAL.</span>
-          </span>
-        </div>
+        <main id="main" tabindex="-1" class="app-content">
+          <slot />
+        </main>
       </div>
-    </footer>
+    </div>
+
+    <!-- 移动端导航 -->
+    <dialog class="mobile-nav" id="mobileNav" aria-label="站点导航">
+      <div class="side-brand">
+        <span class="side-brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="side-brand-text"><b>{site.name}</b><span>AI MAKER SPACE</span></span>
+        <button class="icon-btn mobile-nav-close" id="menuClose" aria-label="关闭菜单">
+          <Fragment set:html={svg('close')} />
+        </button>
+      </div>
+      <nav class="side-nav">
+        {navItems.map((n) => (
+          <a class:list={['side-item', { active: isActive(n.href) }]} href={n.href}>
+            <Fragment set:html={svg(n.icon)} />
+            <span>{n.label}</span>
+          </a>
+        ))}
+        {footItems.map((n) => (
+          <a class="side-item" href={n.href}>
+            <Fragment set:html={svg(n.icon)} />
+            <span>{n.label}</span>
+          </a>
+        ))}
+        <a class="side-item" href="/login">
+          <Fragment set:html={svg('users')} />
+          <span>登录 / 注册</span>
+        </a>
+      </nav>
+    </dialog>
 
     <script>
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // ---------- 滚动入场 ----------
+      // 滚动入场
       const revealEls = document.querySelectorAll<HTMLElement>('[data-reveal]');
       if (!reduce && 'IntersectionObserver' in window) {
         const io = new IntersectionObserver(
@@ -131,7 +194,7 @@ const shareImageUrl = new URL(shareImage, site.url).toString();
         revealEls.forEach((el) => el.classList.add('in'));
       }
 
-      // ---------- 数字滚动 ----------
+      // 数字滚动
       const counters = document.querySelectorAll<HTMLElement>('[data-count]');
       const animateCount = (el: HTMLElement) => {
         const target = Number(el.dataset.count || 0);
@@ -164,49 +227,32 @@ const shareImageUrl = new URL(shareImage, site.url).toString();
         counters.forEach(animateCount);
       }
 
-      // ---------- 首屏鼠标光斑（有 .hero 才启用） ----------
-      const hero = document.querySelector<HTMLElement>('.hero');
-      if (hero && !reduce) {
-        let raf = 0;
-        hero.addEventListener('pointermove', (ev) => {
-          cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(() => {
-            const r = hero.getBoundingClientRect();
-            hero.style.setProperty('--hx', `${((ev.clientX - r.left) / r.width) * 100}%`);
-            hero.style.setProperty('--hy', `${((ev.clientY - r.top) / r.height) * 100}%`);
-          });
-        });
-      }
-
-      // ---------- 卡片跟随鼠标的柔光 ----------
-      document.querySelectorAll<HTMLElement>('.entry-card, .archive-card, .ach-card, .ability-panel').forEach((card) => {
-        card.addEventListener('pointermove', (ev) => {
-          const r = card.getBoundingClientRect();
-          card.style.setProperty('--mx', `${((ev.clientX - r.left) / r.width) * 100}%`);
-          card.style.setProperty('--my', `${((ev.clientY - r.top) / r.height) * 100}%`);
-        });
-      });
-
-      // ---------- 登录态：已登录显示成员名 ----------
+      // 登录态
       fetch('/admin/api/auth/me')
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
-          const link = document.querySelector<HTMLAnchorElement>('[data-auth]');
-          if (!link || !d?.account) return;
-          link.textContent = d.account.realName || d.account.name;
-          link.href = '/contribute';
-          link.title = '我的记录';
-          link.classList.add('is-user');
+          if (!d?.account) return;
+          const name = d.account.realName || d.account.name || '我的';
+          document.querySelectorAll<HTMLAnchorElement>('[data-auth]').forEach((link) => {
+            link.href = '/contribute';
+            link.title = '我的记录';
+            link.classList.add('is-user');
+          });
+          const sideLabel = document.querySelector<HTMLElement>('[data-auth-label]');
+          if (sideLabel) sideLabel.textContent = name + ' · 我的记录';
+          const topAuth = document.querySelector<HTMLElement>('[data-auth-top]');
+          if (topAuth) topAuth.textContent = name;
         })
         .catch(() => {});
 
-      // ---------- 移动端菜单 ----------
-      const burger = document.querySelector<HTMLButtonElement>('.tburger');
-      const links = document.querySelector<HTMLElement>('.tlinks');
-      burger?.addEventListener('click', () => {
-        links?.classList.toggle('open');
-        burger.setAttribute('aria-expanded', String(links?.classList.contains('open')));
+      // 移动端菜单
+      const mobileNav = document.getElementById('mobileNav') as HTMLDialogElement | null;
+      document.getElementById('menuOpen')?.addEventListener('click', () => mobileNav?.showModal());
+      document.getElementById('menuClose')?.addEventListener('click', () => mobileNav?.close());
+      mobileNav?.addEventListener('click', (e) => {
+        if (e.target === mobileNav) mobileNav.close();
       });
+      mobileNav?.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => mobileNav.close()));
     </script>
   </body>
 </html>
