@@ -1,4 +1,4 @@
-export type Dept = '技术部' | '竞赛部' | '宣传部' | '创新创业部';
+export type Dept = '技术部' | '竞赛部' | '组织部' | '宣传部' | '创新创业部';
 
 export interface Member {
   id: string;
@@ -12,7 +12,7 @@ export interface Member {
   bio?: string;
 }
 
-export const depts: Dept[] = ['技术部', '竞赛部', '宣传部', '创新创业部'];
+export const depts: Dept[] = ['技术部', '竞赛部', '组织部', '宣传部', '创新创业部'];
 
 export const members: Member[] = [
   {
@@ -119,5 +119,23 @@ export const members: Member[] = [
     grade: '2025 级',
     skills: ['新媒体运营', '文案'],
     projects: ['a01'],
+  },
+  {
+    id: 'm13',
+    name: '方晓',
+    dept: '组织部',
+    role: '部长',
+    grade: '2023 级',
+    skills: ['活动策划', '场地与审批对接', '招新'],
+    projects: [],
+    bio: '负责协会内部会议与全校活动的策划、场地与学院对接。',
+  },
+  {
+    id: 'm14',
+    name: '季然',
+    dept: '组织部',
+    grade: '2025 级',
+    skills: ['活动执行', '签到管理', '学院对接'],
+    projects: [],
   },
 ];
