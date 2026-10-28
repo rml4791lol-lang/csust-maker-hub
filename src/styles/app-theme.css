@@ -690,7 +690,7 @@ body { font-size: 16px; }
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  min-height: clamp(420px, calc(100vh - 330px), 500px);
+  min-height: calc(100vh - var(--nav-h));
   display: flex;
   align-items: center;
   margin: calc(-1 * clamp(18px, 2.2vw, 28px)) calc(-1 * clamp(18px, 2.5vw, 32px)) 0;
@@ -796,19 +796,22 @@ body { font-size: 16px; }
   position: relative;
   z-index: 3;
   width: 100%;
-  padding: 8px clamp(24px, 5vw, 64px) 48px;
+  padding: 8px clamp(24px, 5vw, 64px) 96px;
 }
 .home-copy { max-width: 660px; }
 .home-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  font-family: var(--font-sans);
-  font-size: 30px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-  color: var(--fg);
+  gap: 14px;
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  background: linear-gradient(92deg, #f4f8ff 0%, #b9d1ff 52%, #6fd8e8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .home-eyebrow i {
   width: 5px;
@@ -977,18 +980,18 @@ body { font-size: 16px; }
 .home-featured-link:hover { color: var(--accent-hi); }
 
 @media (max-width: 1024px) {
-  .home-hero { min-height: 440px; margin-left: -18px; margin-right: -18px; }
+  .home-hero { min-height: calc(100vh - var(--nav-h)); margin: -20px -18px 0; }
   .home-hero-inner { padding: 18px 28px 56px; }
-  .home-eyebrow { font-size: 26px; }
+  .home-eyebrow { font-size: 26px; letter-spacing: 0.06em; }
   .home-ring-a { right: -28%; opacity: 0.4; }
   .home-ring-b { right: -4%; opacity: 0.32; }
   .home-featured { max-width: 100%; }
 }
 @media (max-width: 640px) {
-  .home-hero { min-height: 360px; }
+  .home-hero { min-height: calc(100dvh - var(--nav-h)); }
   .home-hero-inner { padding: 18px 22px 32px; }
   .home-hero-foot { display: none; }
-  .home-eyebrow { font-size: 22px; }
+  .home-eyebrow { font-size: 23px; letter-spacing: 0.04em; }
   .home-title { font-size: 36px; margin-top: 12px; }
   .home-cta { margin-top: 28px; }
   .home-cta .btn { flex: 1; justify-content: center; }
