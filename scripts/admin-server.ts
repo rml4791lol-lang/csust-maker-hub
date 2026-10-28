@@ -17,7 +17,7 @@
  * 密钥只放服务器 env 文件（.env.admin），绝不入 git。
  */
 import http from 'node:http';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
@@ -71,6 +71,25 @@ function regenerateProfiles(): number {
   const profiles = analyzeMemberProfiles(list as any, members);
   writeJson(PROFILES_FILE, profiles);
   return profiles.length;
+}
+
+/** 启动时检查：投稿文件比档案新（或档案缺失）就自动重算一次 */
+function analyzeIfStale(): void {
+  try {
+    if (!existsSync(PROFILES_FILE)) {
+      regenerateProfiles();
+      console.log('[analyze] 档案不存在，已自动生成');
+      return;
+    }
+    const subM = statSync(SUBMISSIONS_FILE).mtimeMs;
+    const proM = statSync(PROFILES_FILE).mtimeMs;
+    if (subM > proM + 1000) {
+      const n = regenerateProfiles();
+      console.log(`[analyze] 投稿比档案新，已自动重算 ${n} 位成员档案`);
+    }
+  } catch (e: any) {
+    console.error('[analyze] 启动检查失败', e.message);
+  }
 }
 
 /** 成员投稿限流：同一 IP 10 分钟最多 5 条（进程内，够用） */
@@ -1113,6 +1132,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
+  analyzeIfStale();
   console.log(`后台：http://127.0.0.1:${PORT}`);
   console.log(`  - 人：Basic Auth（ADMIN_USERS，默认 admin/admin123）`);
   console.log(`  - agent：Bearer token（${AGENT_TOKENS.length} 枚已配置${AGENT_TOKENS.length ? '：' + AGENT_TOKENS.map((t) => t.name).join('、') : '，未配置则 agent 接口关闭'}）`);

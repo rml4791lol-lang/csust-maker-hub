@@ -36,6 +36,8 @@ for (const label of ['AI 创客协会', '云塘校区', '活动与成果', '成�
   must(home.includes(label), `首页缺少关键内容：${label}`);
 }
 must(home.includes('示例数据'), '首页缺少示例数据提示');
+must(home.includes('og:image'), '首页缺少 og:image（分享卡片）');
+must(home.includes('/share/home.jpg'), '首页缺少分享图');
 must(home.includes('/photos/first-meeting-group.jpg'), '首页缺少第一次会议合影');
 must(home.includes('技术部'), '首页缺少部门信息');
 
@@ -49,6 +51,9 @@ must(members.includes('能力总览'), '成员页缺少能力总览');
 must(members.includes('高频能力标签'), '成员页缺少能力标签');
 must(members.includes('五个部门'), '成员页缺少部门介绍');
 must(members.includes('协会怎么分工'), '成员页缺少部门分工');
+
+const profilePage = read('members/m01/index.html');
+must(profilePage.includes('/share/member-m01.jpg'), '成员档案缺少专属分享图');
 
 const contribute = read('contribute/index.html');
 must(contribute.includes('提交审核'), '提交页缺少提交按钮');

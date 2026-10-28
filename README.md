@@ -35,6 +35,7 @@
 - `src/data/members.ts` — 成员（姓名 / 部门 / 年级 / 技能 / 角色；现为示例数据，含组织部占位成员）
 - `public/photos/` — 协会现场照片（压缩后的 jpg，来自第一次会议及科创港）
 - `public/decor/` — 程序化生成的「AI 感」装饰图（轨道/网格/神经网络/极光，见 `docs/2026-10-28-AI感装饰.md`，生成脚本 `scripts/generate-decor.py`）
+- `public/share/` — 分享卡片图（首页 + 每位成员，生成脚本 `scripts/generate-share-cards.py`；需求与分期见 `docs/2026-10-28-需求澄清.md`）
 - `src/data/site.ts` — 协会信息、导航、联系方式、关于协会文案
 - `content/items.json` — 历史内容库数据（页面已下线，仅作为成果回填来源保留）
 - `content/flags.json` / `content/tools.json` — 历史数据（对应页面已下线，暂留兼容后台接口）

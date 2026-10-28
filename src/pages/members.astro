@@ -77,7 +77,7 @@ const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.c
               <a class="ability-person" href={`/members/${p.memberId}`}>
                 <span class="ach-avatar">{p.name.slice(0, 1)}</span>
                 <b>#{i + 1} {p.name}</b>
-                <span>{p.dept} · {p.role ?? p.grade}</span>
+                <span>{p.dept}{p.role ? ' · ' + p.role : ''}</span>
                 <span>{p.stats.contributions} 条成果</span>
               </a>
             ))}
@@ -121,7 +121,7 @@ const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.c
               <span class="archive-avatar">{m.name.slice(0, 1)}</span>
               <span>
                 <span class="archive-name">{m.name}{m.role ? ` · ${m.role}` : ''}</span>
-                <span class="archive-meta" style="display:block;">{m.dept} · {m.grade}</span>
+                <span class="archive-meta" style="display:block;">{m.dept}</span>
               </span>
             </span>
             <span class="archive-tags">
