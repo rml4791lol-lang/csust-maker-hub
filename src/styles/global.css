@@ -3663,3 +3663,26 @@ input, select, textarea, button, option {
 
 /* [hidden] 必须真正隐藏（防止组件 display 覆盖） */
 [hidden] { display: none !important; }
+
+
+/* 2026-10-28 账号注册：身份/部门用卡片选择（避免原生下拉白底白字） */
+.choice-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+.choice input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.choice span {
+  display: inline-block;
+  padding: 9px 15px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  font-size: 15px;
+  color: var(--fg-2);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), color 0.18s var(--ease-out);
+}
+.choice input:checked + span {
+  border-color: rgba(143, 164, 255, 0.6);
+  background: rgba(94, 106, 210, 0.22);
+  color: #fff;
+}
+.choice input:focus-visible + span { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
+select, option { color: #eef1f6; background-color: #111318; }

@@ -22,7 +22,7 @@ function read(rel) {
 }
 
 // 1. 关键页面存在
-const pages = ['index.html', 'achievements/index.html', 'members/index.html', 'contribute/index.html', 'members/m01/index.html', 'login/index.html', 'register/index.html'];
+const pages = ['index.html', 'achievements/index.html', 'members/index.html', 'contribute/index.html', 'members/m01/index.html', 'login/index.html', 'register/index.html', 'manage/index.html'];
 for (const p of pages) must(existsSync(join(DIST, p)), `缺关键页面：dist/${p}`);
 
 // 2. 已移除的冗余页面不应再产出

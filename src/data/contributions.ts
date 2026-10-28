@@ -190,12 +190,18 @@ export interface ContributionInput {
 }
 
 /** 校验一条成员投稿。返回空数组表示通过。 */
-export function validateSubmission(input: ContributionInput, now = new Date()): ContributionIssue[] {
+export function validateSubmission(
+  input: ContributionInput,
+  now = new Date(),
+  options: { skipMember?: boolean } = {}
+): ContributionIssue[] {
   const issues: ContributionIssue[] = [];
   const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
-  const member = members.find((m) => m.id === text(input.memberId));
-  if (!member) issues.push({ field: 'memberId', message: '请选择协会成员' });
+  if (!options.skipMember) {
+    const member = members.find((m) => m.id === text(input.memberId));
+    if (!member) issues.push({ field: 'memberId', message: '请选择协会成员' });
+  }
 
   if (!TYPE_SET.includes(text(input.type) as ContributionType)) {
     issues.push({ field: 'type', message: '成果类型不合法' });

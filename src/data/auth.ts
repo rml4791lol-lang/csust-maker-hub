@@ -1,65 +1,94 @@
 /**
- * 成员实名账号：类型、校验、密码哈希、会话签名。
+ * 成员实名账号：类型、校验、密码哈希、会话签名、管理员权限。
  * 仅服务端（scripts/admin-server.ts）与测试使用；不要在前端 .astro 里 import。
  *
- * 需求（2026-10-28 讨论定稿）：
- *  - 成员自助注册，姓名 + 部门与名单匹配；
- *  - 管理员审核后生效，并核定角色（成员 / 部长 / 管理员）；
- *  - 登录后投稿，身份自动带出；
- *  - 上传权限：部长及以上。
+ * 2026-10-28 需求（第二轮讨论）：
+ *  - 邮箱 / 手机号注册（登录名），不依赖成员名单；
+ *  - 实名资料：真实姓名 + 手机号 + 身份（部门成员/部长/副会长/会长/老师/合伙人/其他）；
+ *  - 管理员审核；超级管理员可任命/撤销管理员；
+ *  - 手机号仅管理员可见。
  */
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import { members, type Dept } from './members';
 
-export type Role = 'member' | 'lead' | 'admin';
+export type Dept = '技术部' | '竞赛部' | '组织部' | '宣传部' | '创新创业部' | '其他';
+
+export type Identity =
+  | 'dept_member'
+  | 'dept_lead'
+  | 'vice_president'
+  | 'president'
+  | 'teacher'
+  | 'partner'
+  | 'other';
+
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'disabled';
+export type AdminLevel = 'super' | 'reviewer';
 
 export interface Account {
   id: string;
-  /** 绑定成员名单的 id（一个成员只能有一个账号） */
-  memberId: string;
-  name: string;
+  email: string;
+  phone: string;
+  realName: string;
   dept: Dept;
-  /** 实际角色（管理员审核时核定） */
-  role: Role;
-  /** 注册时申请的角色（审核参考） */
-  requestedRole: Role;
+  identity: Identity;
   status: AccountStatus;
+  /** 管理员等级：null/undefined = 普通成员；reviewer = 审核管理员；super = 超级管理员 */
+  adminLevel?: AdminLevel | null;
   passwordHash: string;
   createdAt: string;
   reviewedAt?: string;
   reviewedBy?: string;
+  rejectReason?: string;
   lastLoginAt?: string;
 }
 
-export const roleLabel: Record<Role, string> = {
-  member: '成员',
-  lead: '部长',
-  admin: '管理员',
+export const deptList: Dept[] = ['技术部', '竞赛部', '组织部', '宣传部', '创新创业部', '其他'];
+
+export const identityLabel: Record<Identity, string> = {
+  dept_member: '部门成员',
+  dept_lead: '部门部长',
+  vice_president: '副会长',
+  president: '会长',
+  teacher: '老师',
+  partner: '合伙人',
+  other: '其他',
 };
 
-export const roleLevel: Record<Role, number> = { member: 1, lead: 2, admin: 3 };
-
-/** 上传权限：部长及以上 */
-export function canUpload(role: Role): boolean {
-  return roleLevel[role] >= 2;
+/** 身份展示文案：部门成员 → 技术部成员；副会长 → 副会长 */
+export function identityDisplay(identity: Identity, dept?: Dept): string {
+  if (identity === 'dept_member') return `${dept && dept !== '其他' ? dept : '部门'}成员`;
+  if (identity === 'dept_lead') return `${dept && dept !== '其他' ? dept : '部门'}部长`;
+  return identityLabel[identity] ?? '其他';
 }
 
-export function isRole(v: unknown): v is Role {
-  return v === 'member' || v === 'lead' || v === 'admin';
+export const adminLevelLabel: Record<AdminLevel, string> = {
+  super: '超级管理员',
+  reviewer: '审核管理员',
+};
+
+export function isAdmin(a: Account | null | undefined): boolean {
+  return Boolean(a && a.status === 'approved' && a.adminLevel);
 }
 
-/** 公开展示用账号信息（绝不含密码哈希） */
+export function isSuperAdmin(a: Account | null | undefined): boolean {
+  return Boolean(a && a.status === 'approved' && a.adminLevel === 'super');
+}
+
 export function publicAccount(a: Account) {
   return {
     id: a.id,
-    memberId: a.memberId,
-    name: a.name,
+    email: a.email,
+    phone: a.phone,
+    realName: a.realName,
     dept: a.dept,
-    role: a.role,
+    identity: a.identity,
+    identityLabel: identityDisplay(a.identity, a.dept),
     status: a.status,
+    adminLevel: a.adminLevel ?? null,
+    adminLevelLabel: a.adminLevel ? adminLevelLabel[a.adminLevel] : null,
     createdAt: a.createdAt,
     reviewedAt: a.reviewedAt,
+    rejectReason: a.rejectReason,
     lastLoginAt: a.lastLoginAt,
   };
 }
@@ -109,21 +138,35 @@ export function verifySession(token: string, secret: string): SessionPayload | n
   }
 }
 
-/** 注册校验：姓名 + 部门与名单匹配；密码至少 8 位且含字母和数字；角色只允许成员/部长自选 */
-export function validateRegistration(
-  input: { memberId?: unknown; dept?: unknown; password?: unknown; role?: unknown },
-  memberList = members
-): string[] {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^1[3-9]\d{9}$/;
+
+/** 注册校验：邮箱/手机号/实名/身份/密码 */
+export function validateRegistration(input: {
+  email?: unknown;
+  phone?: unknown;
+  realName?: unknown;
+  password?: unknown;
+  dept?: unknown;
+  identity?: unknown;
+}): string[] {
   const issues: string[] = [];
-  const memberId = String(input.memberId ?? '');
-  const member = memberList.find((m) => m.id === memberId);
-  if (!member) issues.push('请选择名单里的成员');
-  else if (input.dept != null && String(input.dept) !== member.dept) issues.push('部门与名单不一致');
+  const email = String(input.email ?? '').trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) issues.push('邮箱格式不正确');
+  const phone = String(input.phone ?? '').trim();
+  if (!PHONE_RE.test(phone)) issues.push('手机号格式不正确（11 位）');
+  const realName = String(input.realName ?? '').trim();
+  if (realName.length < 2 || realName.length > 20) issues.push('真实姓名 2~20 字');
   const password = String(input.password ?? '');
   if (password.length < 8) issues.push('密码至少 8 位');
   if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) issues.push('密码需要同时包含字母和数字');
-  const role = input.role == null ? 'member' : String(input.role);
-  if (!['member', 'lead'].includes(role)) issues.push('申请角色只能是成员或部长');
+  const identity = String(input.identity ?? '');
+  const validIdentity: Identity[] = ['dept_member', 'dept_lead', 'vice_president', 'president', 'teacher', 'partner', 'other'];
+  if (!validIdentity.includes(identity as Identity)) issues.push('请选择协会身份');
+  const needsDept = identity === 'dept_member' || identity === 'dept_lead';
+  const dept = String(input.dept ?? '其他');
+  if (needsDept && !deptList.includes(dept as Dept)) issues.push('请选择所属部门');
+  if (needsDept && dept === '其他') issues.push('部门成员/部长需要选择具体部门');
   return issues;
 }
 

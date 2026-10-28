@@ -193,7 +193,7 @@ const shareImageUrl = new URL(shareImage, site.url).toString();
         .then((d) => {
           const link = document.querySelector<HTMLAnchorElement>('[data-auth]');
           if (!link || !d?.account) return;
-          link.textContent = d.account.name;
+          link.textContent = d.account.realName || d.account.name;
           link.href = '/contribute';
           link.title = '我的记录';
           link.classList.add('is-user');
