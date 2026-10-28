@@ -1,0 +1,308 @@
+---
+import Base from '../layouts/Base.astro';
+
+const identityOptions = [
+  { value: 'dept_member', label: '部门成员' },
+  { value: 'dept_lead', label: '部门部长' },
+  { value: 'vice_president', label: '副会长' },
+  { value: 'president', label: '会长' },
+  { value: 'teacher', label: '老师' },
+  { value: 'partner', label: '合伙人' },
+  { value: 'other', label: '其他' },
+];
+const depts = ['技术部', '竞赛部', '组织部', '宣传部', '创新创业部'];
+const statusLabel: Record<string, string> = { pending: '待审核', approved: '已通过', rejected: '已退回', disabled: '已停用' };
+---
+
+<Base title="管理端" description="长沙理工大学 AI 创客协会账号与权限管理端。" noindex>
+  <style is:global>
+    .manage-shell { max-width: 1180px; }
+    .manage-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+    .manage-head h1 { font-size: 30px; margin: 0; }
+    .manage-who { color: var(--fg-2); font-size: 15px; }
+    .manage-head .spacer { flex: 1; }
+    .manage-login { max-width: 520px; }
+    .manage-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 16px; }
+    .manage-tab { border: 1px solid var(--line-2); background: transparent; color: var(--fg-2); border-radius: 999px; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+    .manage-tab.is-active { background: rgba(94, 106, 210, 0.2); border-color: rgba(143, 164, 255, 0.5); color: #fff; }
+    .manage-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .manage-stat { border: 1px solid var(--line-2); border-radius: 12px; padding: 14px 16px; background: rgba(255, 255, 255, 0.025); }
+    .manage-stat b { display: block; font-size: 26px; color: #fff; }
+    .manage-stat span { font-size: 14px; color: var(--fg-3); }
+    .acc-card { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; padding: 16px 18px; border: 1px solid var(--line-2); border-radius: 12px; background: rgba(255, 255, 255, 0.02); margin-bottom: 10px; flex-wrap: wrap; }
+    .acc-main { display: grid; gap: 4px; min-width: 0; flex: 1; }
+    .acc-main b { font-size: 16px; color: #eef1f6; }
+    .acc-meta { font-size: 14px; color: var(--fg-3); }
+    .acc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .acc-ops { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .acc-ops select { font-size: 14px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line-2); background: #111318; color: #eef1f6; }
+    .st { font-size: 14px; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--fg-2); }
+    .st-pending { color: #f0b46a; border-color: rgba(240, 180, 106, 0.4); }
+    .st-approved { color: #9fd8b8; border-color: rgba(159, 216, 184, 0.4); }
+    .st-rejected, .st-disabled { color: #f08a8a; border-color: rgba(240, 138, 138, 0.4); }
+    .log-row { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-2); font-size: 14px; color: var(--fg-3); }
+    .log-row:first-child { border-top: 0; }
+    .log-row b { color: #eef1f6; font-weight: 520; }
+    .manage-empty { color: var(--fg-3); font-size: 15px; padding: 22px 0; }
+    #manageBody[hidden] { display: none !important; }
+    @media (max-width: 720px) {
+      .manage-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+
+  <div class="wrap page-header">
+    <span class="crumb">MANAGE / 管理端</span>
+    <h1>账号与权限管理</h1>
+    <p>管理员登录后审核实名资料、管理成员账号、任命管理员、重置密码。</p>
+  </div>
+
+  <div class="wrap manage-shell" style="padding-bottom:100px;">
+    <!-- 未登录 -->
+    <form class="form-panel manage-login" id="manageLogin" novalidate>
+      <div class="form-grid">
+        <div class="field full">
+          <label for="mIdentifier">管理员邮箱 / 手机号</label>
+          <input id="mIdentifier" name="identifier" autocomplete="username" required />
+        </div>
+        <div class="field full">
+          <label for="mPassword">密码</label>
+          <input id="mPassword" name="password" type="password" autocomplete="current-password" required />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="mLoginBtn">登录管理端 <span class="ar">→</span></button>
+        <span class="form-msg" id="mLoginMsg" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+
+    <!-- 已登录 -->
+    <div id="manageBody" hidden>
+      <div class="manage-head">
+        <h1 style="font-size:24px;">账号与权限</h1>
+        <span class="manage-who" id="mWho"></span>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="mLogout">退出管理端</button>
+      </div>
+
+      <div class="manage-stats" id="mStats"></div>
+
+      <div class="manage-tabs" id="mTabs">
+        <button class="manage-tab is-active" data-tab="pending">待审核</button>
+        <button class="manage-tab" data-tab="accounts">全部账号</button>
+        <button class="manage-tab" data-tab="admins">管理员</button>
+        <button class="manage-tab" data-tab="logs">操作日志</button>
+      </div>
+
+      <div id="mContent"></div>
+    </div>
+  </div>
+
+  <script type="application/json" id="manageOptions" set:html={JSON.stringify({ identityOptions, depts })}></script>
+  <script>
+    const opts = JSON.parse(document.getElementById('manageOptions')?.textContent || '{}');
+    const loginForm = document.getElementById('manageLogin') as HTMLFormElement | null;
+    const bodyEl = document.getElementById('manageBody');
+    const whoEl = document.getElementById('mWho');
+    const statsEl = document.getElementById('mStats');
+    const contentEl = document.getElementById('mContent');
+    const loginMsg = document.getElementById('mLoginMsg');
+    const loginBtn = document.getElementById('mLoginBtn') as HTMLButtonElement | null;
+    const logoutBtn = document.getElementById('mLogout');
+    let me: any = null;
+    let tab = 'pending';
+
+    const showLogin = (text = '', kind: 'ok' | 'err' | '' = '') => {
+      if (!loginMsg) return;
+      loginMsg.textContent = text;
+      loginMsg.className = 'form-msg' + (kind ? ' ' + kind : '');
+    };
+    const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+    const req = async (url: string, init?: RequestInit) => {
+      const res = await fetch('/admin/api/manage' + url, { credentials: 'same-origin', ...init });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || '请求失败');
+      return data;
+    };
+
+    function identityOptionsHtml(selected = 'dept_member') {
+      return (opts.identityOptions || []).map((o: any) => `<option value="${o.value}" ${o.value === selected ? 'selected' : ''}>${esc(o.label)}</option>`).join('');
+    }
+    function deptOptionsHtml(selected = '技术部') {
+      return (opts.depts || []).map((d: string) => `<option value="${esc(d)}" ${d === selected ? 'selected' : ''}>${esc(d)}</option>`).join('');
+    }
+    function statusBadge(s: string) {
+      const label: Record<string, string> = { pending: '待审核', approved: '已通过', rejected: '已退回', disabled: '已停用' };
+      return `<span class="st st-${esc(s)}">${label[s] || esc(s)}</span>`;
+    }
+    function adminBadge(a: any) {
+      return a.adminLevel ? `<span class="st st-approved">${esc(a.adminLevelLabel)}</span>` : '';
+    }
+
+    async function load() {
+      const ov = await req('/overview');
+      me = ov.me;
+      if (whoEl) {
+        whoEl.textContent = `${me.realName} · ${me.adminLevelLabel || '管理员'}`;
+      }
+      if (statsEl) {
+        statsEl.innerHTML = `
+          <div class="manage-stat"><b>${ov.counts.pending}</b><span>待审核</span></div>
+          <div class="manage-stat"><b>${ov.counts.approved}</b><span>已通过</span></div>
+          <div class="manage-stat"><b>${ov.counts.total}</b><span>账号总数</span></div>
+          <div class="manage-stat"><b>${ov.counts.admins}</b><span>管理员</span></div>`;
+      }
+      await render();
+    }
+
+    async function render() {
+      if (!contentEl) return;
+      if (tab === 'pending') {
+        const data = await req('/overview');
+        const list = data.pending || [];
+        contentEl.innerHTML = list.length
+          ? list.map((a: any) => `
+            <div class="acc-card" data-id="${esc(a.id)}">
+              <div class="acc-main">
+                <b>${esc(a.realName)} <span class="acc-meta">${esc(a.identityLabel)}${a.dept !== '其他' ? ' · ' + esc(a.dept) : ''}</span></b>
+                <span class="acc-meta">${esc(a.email)} · ${esc(a.phone)} · 申请于 ${esc(String(a.createdAt).slice(0, 10))}</span>
+                <div class="acc-tags">${statusBadge(a.status)}</div>
+              </div>
+              <div class="acc-ops">
+                <select data-approve-identity>${identityOptionsHtml(a.identity)}</select>
+                <select data-approve-dept>${deptOptionsHtml(a.dept === '其他' ? '技术部' : a.dept)}</select>
+                <button class="btn btn-primary btn-sm" data-approve>通过</button>
+                <button class="btn btn-ghost btn-sm" data-reject>退回</button>
+              </div>
+            </div>`).join('')
+          : '<p class="manage-empty">暂无待审核的注册申请。</p>';
+        contentEl.querySelectorAll<HTMLElement>('.acc-card').forEach((card) => {
+          const id = card.dataset.id!;
+          card.querySelector('[data-approve]')?.addEventListener('click', async () => {
+            const identity = (card.querySelector('[data-approve-identity]') as HTMLSelectElement).value;
+            const dept = (card.querySelector('[data-approve-dept]') as HTMLSelectElement).value;
+            try {
+              await req('/accounts/' + id + '/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve', identity, dept: ['dept_member', 'dept_lead'].includes(identity) ? dept : '其他' }) });
+              await load();
+            } catch (e: any) { alert('操作失败：' + e.message); }
+          });
+          card.querySelector('[data-reject]')?.addEventListener('click', async () => {
+            const reason = prompt('退回原因（会显示给成员）：', '');
+            if (reason === null) return;
+            try {
+              await req('/accounts/' + id + '/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', reason }) });
+              await load();
+            } catch (e: any) { alert('操作失败：' + e.message); }
+          });
+        });
+        return;
+      }
+
+      if (tab === 'accounts' || tab === 'admins') {
+        const list = await req('/accounts');
+        const rows = (list as any[]).filter((a) => (tab === 'admins' ? a.adminLevel : true));
+        contentEl.innerHTML = rows.length
+          ? rows.map((a: any) => `
+            <div class="acc-card" data-id="${esc(a.id)}">
+              <div class="acc-main">
+                <b>${esc(a.realName)} <span class="acc-meta">${esc(a.identityLabel)}${a.dept !== '其他' ? ' · ' + esc(a.dept) : ''}</span></b>
+                <span class="acc-meta">${esc(a.email)} · ${esc(a.phone)}</span>
+                <div class="acc-tags">${statusBadge(a.status)} ${adminBadge(a)}</div>
+              </div>
+              <div class="acc-ops">
+                <select data-admin-level>
+                  <option value="">普通成员</option>
+                  <option value="reviewer" ${a.adminLevel === 'reviewer' ? 'selected' : ''}>审核管理员</option>
+                  <option value="super" ${a.adminLevel === 'super' ? 'selected' : ''}>超级管理员</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" data-appoint ${me.adminLevel === 'super' ? '' : 'disabled'}>保存角色</button>
+                <button class="btn btn-ghost btn-sm" data-reset>重置密码</button>
+                <button class="btn btn-ghost btn-sm" data-disable>${a.status === 'disabled' ? '恢复' : '停用'}</button>
+              </div>
+            </div>`).join('')
+          : '<p class="manage-empty">暂无账号。</p>';
+        contentEl.querySelectorAll<HTMLElement>('.acc-card').forEach((card) => {
+          const id = card.dataset.id!;
+          card.querySelector('[data-appoint]')?.addEventListener('click', async () => {
+            const level = (card.querySelector('[data-admin-level]') as HTMLSelectElement).value;
+            try {
+              await req('/accounts/' + id + '/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminLevel: level || null }) });
+              await load();
+            } catch (e: any) { alert('操作失败：' + e.message); }
+          });
+          card.querySelector('[data-reset]')?.addEventListener('click', async () => {
+            if (!confirm('重置这个账号的密码？新密码只显示一次。')) return;
+            try {
+              const r = await req('/accounts/' + id + '/reset-password', { method: 'POST' });
+              alert('新密码：' + r.password + '（只显示一次，请转告成员）');
+            } catch (e: any) { alert('操作失败：' + e.message); }
+          });
+          card.querySelector('[data-disable]')?.addEventListener('click', async () => {
+            const isDisabled = card.textContent?.includes('已停用');
+            if (!confirm(isDisabled ? '恢复这个账号？' : '停用这个账号？')) return;
+            try {
+              await req('/accounts/' + id + '/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: isDisabled ? 'approved' : 'disabled' }) });
+              await load();
+            } catch (e: any) { alert('操作失败：' + e.message); }
+          });
+        });
+        return;
+      }
+
+      if (tab === 'logs') {
+        const logs = await req('/logs');
+        contentEl.innerHTML = (logs as any[]).length
+          ? logs.map((l: any) => `<div class="log-row"><b>${esc(l.action)}</b><span>${esc(l.actor || '')} → ${esc(l.target || '')}</span><span style="margin-left:auto">${esc(String(l.at).replace('T', ' ').slice(0, 16))}</span></div>`).join('')
+          : '<p class="manage-empty">暂无操作记录。</p>';
+      }
+    }
+
+    loginForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!loginForm || !loginBtn) return;
+      const data = Object.fromEntries(new FormData(loginForm).entries()) as Record<string, string>;
+      loginBtn.disabled = true;
+      showLogin('登录中…');
+      try {
+        const res = await fetch('/admin/api/manage/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ identifier: data.identifier, password: data.password }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || '登录失败');
+        showLogin('登录成功', 'ok');
+        await boot();
+      } catch (err: any) {
+        showLogin(err.message || '登录失败', 'err');
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+
+    logoutBtn?.addEventListener('click', async () => {
+      await fetch('/admin/api/manage/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+      location.reload();
+    });
+
+    document.getElementById('mTabs')?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.manage-tab');
+      if (!btn) return;
+      tab = btn.dataset.tab || 'pending';
+      document.querySelectorAll('.manage-tab').forEach((b) => b.classList.toggle('is-active', b === btn));
+      render().catch(() => {});
+    });
+
+    async function boot() {
+      try {
+        await load();
+        if (bodyEl) bodyEl.hidden = false;
+        if (loginForm) loginForm.hidden = true;
+      } catch {
+        if (bodyEl) bodyEl.hidden = true;
+        if (loginForm) loginForm.hidden = false;
+      }
+    }
+    boot();
+  </script>
+</Base>

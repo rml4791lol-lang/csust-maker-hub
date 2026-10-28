@@ -1,31 +1,67 @@
 ---
 import Base from '../layouts/Base.astro';
-import { members } from '../data/members';
 
-const memberOptions = members.map((m) => ({ id: m.id, name: m.name, dept: m.dept }));
+const identityOptions = [
+  { value: 'dept_member', label: '部门成员' },
+  { value: 'dept_lead', label: '部门部长' },
+  { value: 'vice_president', label: '副会长' },
+  { value: 'president', label: '会长' },
+  { value: 'teacher', label: '老师' },
+  { value: 'partner', label: '合伙人' },
+  { value: 'other', label: '其他' },
+];
+const depts = ['技术部', '竞赛部', '组织部', '宣传部', '创新创业部'];
 ---
 
-<Base title="注册" description="长沙理工大学 AI 创客协会成员注册：姓名与部门需和协会名单一致，管理员审核后开通账号。" noindex>
+<Base title="注册" description="长沙理工大学 AI 创客协会成员注册：邮箱/手机号账号 + 实名资料，管理员审核后开通。" noindex>
   <div class="wrap page-header">
     <span class="crumb">REGISTER / 注册</span>
     <h1>成员注册</h1>
-    <p>实名注册：姓名与部门需和协会名单一致；提交后由管理员审核，通过后即可登录投稿。</p>
+    <p>用邮箱或手机号注册账号，填写实名资料；提交后由管理员审核，通过后即可登录投稿。</p>
   </div>
 
-  <div class="wrap" style="padding-bottom:100px;max-width:620px;">
+  <div class="wrap" style="padding-bottom:100px;max-width:720px;">
     <form class="form-panel" id="registerForm" novalidate>
       <div class="form-grid">
         <div class="field">
-          <label for="memberId">姓名<i>*</i></label>
-          <select id="memberId" name="memberId" required>
-            <option value="">选择你的名字</option>
-            {memberOptions.map((m) => <option value={m.id} data-dept={m.dept}>{m.name} · {m.dept}</option>)}
-          </select>
+          <label for="email">邮箱<i>*</i></label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
         </div>
         <div class="field">
-          <label for="dept">部门（来自名单）</label>
-          <input id="dept" name="dept" readonly placeholder="选择姓名后自动带出" />
+          <label for="phone">手机号<i>*</i></label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="11 位手机号" required />
+          <span class="hint">仅管理员可见，用于联系。</span>
         </div>
+
+        <div class="field full">
+          <label for="realName">真实姓名<i>*</i></label>
+          <input id="realName" name="realName" placeholder="与协会登记一致的真实姓名" maxlength="20" required />
+        </div>
+
+        <div class="field full">
+          <label>协会身份<i>*</i></label>
+          <div class="choice-group" id="identityGroup">
+            {identityOptions.map((o, i) => (
+              <label class="choice">
+                <input type="radio" name="identity" value={o.value} checked={i === 0} />
+                <span>{o.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div class="field full" id="deptField">
+          <label>所属部门<i>*</i></label>
+          <div class="choice-group" id="deptGroup">
+            {depts.map((d) => (
+              <label class="choice">
+                <input type="radio" name="dept" value={d} />
+                <span>{d}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         <div class="field">
           <label for="password">设置密码<i>*</i></label>
           <input id="password" name="password" type="password" autocomplete="new-password" placeholder="至少 8 位，含字母和数字" required />
@@ -34,15 +70,8 @@ const memberOptions = members.map((m) => ({ id: m.id, name: m.name, dept: m.dept
           <label for="password2">确认密码<i>*</i></label>
           <input id="password2" name="password2" type="password" autocomplete="new-password" required />
         </div>
-        <div class="field full">
-          <label for="role">申请角色</label>
-          <select id="role" name="role">
-            <option value="member">成员</option>
-            <option value="lead">部长</option>
-          </select>
-          <span class="hint">角色由管理员最终核定；部长及以上可以使用后台上传功能。</span>
-        </div>
       </div>
+
       <div class="form-actions">
         <button type="submit" class="btn btn-primary" id="registerBtn">提交注册 <span class="ar">→</span></button>
         <a href="/login" class="btn btn-ghost">已有账号？去登录</a>
@@ -55,37 +84,54 @@ const memberOptions = members.map((m) => ({ id: m.id, name: m.name, dept: m.dept
     const form = document.getElementById('registerForm') as HTMLFormElement | null;
     const msg = document.getElementById('registerMsg');
     const btn = document.getElementById('registerBtn') as HTMLButtonElement | null;
-    const select = document.getElementById('memberId') as HTMLSelectElement | null;
-    const dept = document.getElementById('dept') as HTMLInputElement | null;
+    const deptField = document.getElementById('deptField');
     const show = (text: string, kind: 'ok' | 'err' | '' = '') => {
       if (!msg) return;
       msg.textContent = text;
       msg.className = 'form-msg' + (kind ? ' ' + kind : '');
     };
-    select?.addEventListener('change', () => {
-      const opt = select.selectedOptions[0];
-      if (dept) dept.value = opt?.dataset.dept || '';
-    });
+
+    const syncDept = () => {
+      const identity = form?.querySelector<HTMLInputElement>('input[name="identity"]:checked')?.value || '';
+      const needsDept = identity === 'dept_member' || identity === 'dept_lead';
+      if (deptField) deptField.hidden = !needsDept;
+    };
+    form?.querySelectorAll<HTMLInputElement>('input[name="identity"]').forEach((el) => el.addEventListener('change', syncDept));
+    syncDept();
+
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!form || !btn) return;
       const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
-      if (!data.memberId) return show('请选择你的名字', 'err');
+      if (!data.email) return show('请填写邮箱', 'err');
+      if (!data.phone) return show('请填写手机号', 'err');
+      if (!data.realName || data.realName.trim().length < 2) return show('请填写真实姓名', 'err');
+      if (!data.identity) return show('请选择协会身份', 'err');
+      const needsDept = data.identity === 'dept_member' || data.identity === 'dept_lead';
+      if (needsDept && !data.dept) return show('请选择所属部门', 'err');
       if (!data.password || data.password.length < 8) return show('密码至少 8 位', 'err');
       if (!/[A-Za-z]/.test(data.password) || !/\d/.test(data.password)) return show('密码需要同时包含字母和数字', 'err');
       if (data.password !== data.password2) return show('两次密码不一致', 'err');
+
       btn.disabled = true;
       show('提交中…');
       try {
         const res = await fetch('/admin/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memberId: data.memberId, dept: data.dept, password: data.password, role: data.role }),
+          body: JSON.stringify({
+            email: data.email,
+            phone: data.phone,
+            realName: data.realName,
+            password: data.password,
+            identity: data.identity,
+            dept: needsDept ? data.dept : '其他',
+          }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error || '注册失败');
         form.reset();
-        if (dept) dept.value = '';
+        syncDept();
         show('注册已提交，等待管理员审核；通过后就可以登录了。', 'ok');
       } catch (err: any) {
         show(err.message || '注册失败', 'err');
