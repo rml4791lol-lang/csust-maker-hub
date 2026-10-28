@@ -1087,3 +1087,19 @@ body { font-size: 16px; }
 @media (max-width: 640px) {
   .page-header { padding-left: 18px; padding-right: 18px; }
 }
+
+/* 2026-10-28 首屏文案与 3D 模型同步右移（约 3 个字宽） */
+.home-copy { margin-left: clamp(20px, 6.5vw, 96px); }
+.home-canvas { transform: translateX(clamp(24px, 6.5vw, 96px)); }
+.home-ring-a { translate: clamp(24px, 6.5vw, 96px) -50%; }
+.home-ring-b { translate: clamp(24px, 6.5vw, 96px) -50%; }
+@media (max-width: 1024px) {
+  .home-copy { margin-left: clamp(8px, 3vw, 34px); }
+  .home-canvas { transform: translateX(clamp(10px, 3vw, 34px)); }
+  .home-ring-a, .home-ring-b { translate: clamp(10px, 3vw, 34px) -50%; }
+}
+@media (max-width: 640px) {
+  .home-copy { margin-left: 14px; }
+  .home-canvas { transform: translateX(12px); }
+  .home-ring-a, .home-ring-b { translate: 12px -50%; }
+}
