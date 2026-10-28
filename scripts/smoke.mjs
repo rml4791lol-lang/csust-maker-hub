@@ -32,7 +32,7 @@ for (const gone of ['library', 'tools', 'resources', 'stats', 'about']) {
 
 // 3. 首页包含核心模块与定位
 const home = read('index.html');
-for (const label of ['长理 AI 创客', '云塘校区', '把 AI 用起来', '活动与成果', '提交记录', '精选']) {
+for (const label of ['长理 AI 创客', '长沙理工大学 AI 创客协会', '把 AI 用起来', '活动与成果', '提交记录', '精选']) {
   must(home.includes(label), `首页缺少关键内容：${label}`);
 }
 must(home.includes('最近做出来的东西'), '首页缺少精选成果');
