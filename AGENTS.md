@@ -1,27 +1,34 @@
-# 长理创客 · 技术分享网站
+# 长理 AI 创客 · 协会展示与成员能力档案站
 
-创客空间的技术分享与服务门户。静态站，Astro 5 + Tailwind 4，部署在 `an520.xin`。
+长沙理工大学 AI 创客协会（云塘校区 · 科创港）的展示站：活动与成果、成员能力档案、成果提交。
+静态站，Astro 5 构建，部署在 `an520.xin`；线上另有最小后台（`/admin`，接口 `/admin/api/*`，agent 用 Bearer token）。
 
 ## 项目约定
 
-- **内容数据在 `content/`**：`items.json`（五类内容：攻略 guide / 技能指令 skill / 模板 template / 外部项目 link / 培训 training，另有历史类型保留兼容）、`flags.json`（功能开关）、`tools.json`（工具目录）。`src/data/items.ts` 等负责读入，改内容不碰页面。
-- **发布状态在 `src/data/publish-state.json`**（后台写入），审核记录在 `src/data/review-log.json`。校验：`pnpm test`，构建烟雾：`pnpm test:smoke`。
-- **页面在 `src/pages/`**，全站布局/导航/页脚/搜索在 `src/layouts/Base.astro`，设计系统在 `src/styles/global.css`。
+- **信息架构只保留两条主线**：展示活动与成果、收集并分析成员能力。页面在 `src/pages/`：
+  `index`（首页）/ `achievements`（活动与成果）/ `members`（成员能力）/ `members/[id]`（个人档案）/ `contribute`（提交记录）/ `404`。
+  已下线：内容库、工具站、资源、数据看板、关于页（见 `docs/2026-10-28-精简改版.md`），不要在没有明确需求时加回来。
+- **业务数据在 `content/`**：`submissions.json`（成员成果记录，`status` 控制展示）、`profiles.json`（成员能力档案，**自动生成**）。
+  `items.json` / `flags.json` / `tools.json` 是历史数据，仅作回填与后台兼容保留。
+- **成员名单在 `src/data/members.ts`**，协会信息/导航/联系方式在 `src/data/site.ts`。
+- **AI 能力分析自动化**：`src/data/analyze.ts`（规则分析 + 可选 LLM）；`pnpm analyze` 重算档案；
+  后台审核发布投稿后自动重算；接口 `POST /api/analyze`。服务器配 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` 后自动升级 LLM 分析。
+- **发布状态在 `src/data/publish-state.json`**（后台写入），审核记录在 `src/data/review-log.json`。
+- 校验：`pnpm test`；构建烟雾：`pnpm test:smoke`（会校验冗余页面不应再产出）。
 - **不要提交** `node_modules/`、`dist/`、`.astro/`（见 `.gitignore`）。
-- **构建**：`pnpm build`，产物在 `dist/`。
-- **本地预览**：`pnpm dev` → http://localhost:4321
-- **部署**：rsync `dist/` 到服务器 `/var/www/csust-maker`，详见 `README.md`（含回滚步骤）。
-- 线上是静态站 + 服务器上一个最小后台（`/admin`，接口在 `/admin/api/*`，agent 用 Bearer token）；静态页不依赖后端也能看。
+- **构建**：`pnpm build`（产物 `dist/`）；**本地预览**：`pnpm dev` → http://localhost:4321
+- **部署**：rsync `dist/` 到服务器 `/var/www/csust-maker`，详见 `README.md`。
+- 静态页不依赖后端也能看；后台只服务投稿审核与 AI 汇总重算。
 
-## 设计约束（2026-10 视觉改版后的新规范）
+## 设计约束（2026-10 视觉改版 + 10-28 精简后的新规范）
 
 - **暗色科技风**：近黑底（`#08090a`），单一靛蓝强调色（主 `#5e6ad2` / 亮 `#8fa4ff`）；允许低饱和光晕、极细网格与噪点，不做整屏高饱和色块。
 - 列表与表格优先，不做营销卡片和轮播；卡片只用在一组并列项或数据对象上。
 - 字体：Inter（拉丁/数字）+ PingFang SC（中文）；小标签用等宽字（大写 + 宽字距）；数字统一 `tabular-nums`。
 - 字号/圆角用 token（`--text-*`、`--radius-*`），不写死；正文行高 1.7~1.85。
 - 动效：入场级联、滚动入场、数字滚动、悬停微交互；必须尊重 `prefers-reduced-motion`，且无 JS 时内容完整可见。
-- 站内搜索：保留 ⌘K 搜索面板（只索引已发布内容）。
-- 全站 `noindex`，内部使用。
+- 简洁优先：4 个导航入口；不做全局搜索（页面太少，搜索是纯负担）。
+- 收录：`site.publicIndex` 默认 `false`；个人档案页始终 noindex；换真实数据后可开启全站收录。
 
 ## Agent skills
 
