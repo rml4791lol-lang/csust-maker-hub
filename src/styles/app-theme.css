@@ -94,8 +94,7 @@ a { color: inherit; }
   width: 240px;
   display: flex;
   flex-direction: column;
-  background: var(--bg-2);
-  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--bg-2), rgba(17, 25, 37, 0.55));
   padding: 14px 12px 16px;
 }
 .side-brand {
@@ -184,10 +183,9 @@ a { color: inherit; }
   gap: 14px;
   height: 64px;
   padding: 0 24px;
-  background: rgba(9, 13, 20, 0.82);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(9, 13, 20, 0.92), rgba(9, 13, 20, 0.55));
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 .topbar-crumb { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--fg-3); }
 .topbar-crumb .mono { font-size: 12px; letter-spacing: 0.14em; color: var(--fg-4); }
@@ -237,7 +235,6 @@ a { color: inherit; }
   max-width: var(--maxw);
   margin: 0 auto;
   padding: 42px 0 30px;
-  border-bottom: 1px solid var(--line);
   overflow: hidden;
   background: none;
   border-radius: 0;
@@ -691,16 +688,17 @@ body { font-size: 16px; }
 .home-hero {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  min-height: clamp(500px, calc(100vh - 240px), 640px);
+  border: 0;
+  border-radius: 0;
+  min-height: clamp(420px, calc(100vh - 330px), 500px);
   display: flex;
   align-items: center;
+  margin: calc(-1 * clamp(18px, 2.2vw, 28px)) calc(-1 * clamp(18px, 2.5vw, 32px)) 0;
   background:
-    radial-gradient(70% 80% at 82% 18%, rgba(61, 123, 253, 0.22), transparent 62%),
-    radial-gradient(55% 70% at 12% 92%, rgba(34, 211, 238, 0.12), transparent 60%),
-    linear-gradient(180deg, #0b1220, #090d14 70%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 18px 50px rgba(0, 0, 0, 0.35);
+    radial-gradient(58% 70% at 84% 6%, rgba(61, 123, 253, 0.36), transparent 60%),
+    radial-gradient(52% 62% at 4% 102%, rgba(34, 211, 238, 0.2), transparent 62%),
+    radial-gradient(40% 50% at 34% 44%, rgba(59, 130, 246, 0.09), transparent 70%),
+    linear-gradient(180deg, #0b1424 0%, rgba(9, 13, 20, 0.9) 62%, rgba(9, 13, 20, 0) 100%);
   isolation: isolate;
 }
 .home-hero::after {
@@ -709,12 +707,20 @@ body { font-size: 16px; }
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(9, 13, 20, 0.92), rgba(9, 13, 20, 0.35) 46%, transparent 70%),
-    linear-gradient(0deg, rgba(9, 13, 20, 0.9), transparent 38%);
+  background:
+    linear-gradient(90deg, rgba(9, 13, 20, 0.62), rgba(9, 13, 20, 0.1) 48%, transparent 74%),
+    linear-gradient(0deg, #090d14 0%, rgba(9, 13, 20, 0) 26%);
 }
 
 /* 背景层次：光晕 → 网格 → 线框环 → 3D，一层比一层收敛 */
-.home-hero-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.home-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 74%, transparent 99%);
+  mask-image: linear-gradient(180deg, #000 74%, transparent 99%);
+}
 .home-glow {
   position: absolute;
   border-radius: 50%;
@@ -790,18 +796,19 @@ body { font-size: 16px; }
   position: relative;
   z-index: 3;
   width: 100%;
-  padding: 64px clamp(24px, 5vw, 64px) 72px;
+  padding: 8px clamp(24px, 5vw, 64px) 48px;
 }
 .home-copy { max-width: 660px; }
 .home-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  color: var(--fg-3);
-  text-transform: uppercase;
+  gap: 12px;
+  font-family: var(--font-sans);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--fg);
 }
 .home-eyebrow i {
   width: 5px;
@@ -811,7 +818,7 @@ body { font-size: 16px; }
   box-shadow: 0 0 0 4px rgba(80, 214, 232, 0.14);
 }
 .home-title {
-  margin: 26px 0 0;
+  margin: 14px 0 0;
   font-family: var(--font-display);
   font-size: clamp(42px, 5vw, 66px);
   font-weight: 700;
@@ -851,7 +858,7 @@ body { font-size: 16px; }
   color: var(--fg-4);
   text-transform: uppercase;
 }
-.home-hero-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-2), transparent); }
+.home-hero-line { display: none; }
 
 /* 精选区：更窄、更安静，和首屏拉开层次 */
 .home-featured {
@@ -864,8 +871,7 @@ body { font-size: 16px; }
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
 }
 .home-featured-kicker {
   font-family: var(--font-mono);
@@ -899,12 +905,12 @@ body { font-size: 16px; }
   grid-template-columns: 56px 1fr auto 22px;
   align-items: center;
   gap: 18px;
+  position: relative;
   padding: 22px 8px;
-  border-top: 1px solid var(--line);
   text-decoration: none;
   transition: background 0.25s var(--ease-standard), padding 0.25s var(--ease-out);
 }
-.home-featured-list li:first-child .home-featured-row { border-top: 0; }
+.home-featured-row::before { display: none; }
 .home-featured-row:hover { background: rgba(255, 255, 255, 0.025); padding-left: 14px; }
 .home-featured-index {
   font-family: var(--font-mono);
@@ -951,9 +957,7 @@ body { font-size: 16px; }
   align-items: center;
   flex-wrap: wrap;
   gap: 22px;
-  margin-top: 30px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
+  margin-top: 34px;
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.14em;
@@ -973,17 +977,19 @@ body { font-size: 16px; }
 .home-featured-link:hover { color: var(--accent-hi); }
 
 @media (max-width: 1024px) {
-  .home-hero { min-height: 540px; }
-  .home-hero-inner { padding: 48px 28px 64px; }
+  .home-hero { min-height: 440px; margin-left: -18px; margin-right: -18px; }
+  .home-hero-inner { padding: 18px 28px 56px; }
+  .home-eyebrow { font-size: 26px; }
   .home-ring-a { right: -28%; opacity: 0.4; }
   .home-ring-b { right: -4%; opacity: 0.32; }
   .home-featured { max-width: 100%; }
 }
 @media (max-width: 640px) {
-  .home-hero { min-height: 460px; }
-  .home-hero-inner { padding: 34px 22px 44px; }
-  .home-title { font-size: 36px; margin-top: 20px; }
-  .home-lead { font-size: 16px; margin-top: 20px; }
+  .home-hero { min-height: 360px; }
+  .home-hero-inner { padding: 18px 22px 32px; }
+  .home-hero-foot { display: none; }
+  .home-eyebrow { font-size: 22px; }
+  .home-title { font-size: 36px; margin-top: 12px; }
   .home-cta { margin-top: 28px; }
   .home-cta .btn { flex: 1; justify-content: center; }
   .home-hero-foot { left: 22px; right: 22px; bottom: 18px; font-size: 10px; }
