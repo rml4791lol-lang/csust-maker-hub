@@ -1,86 +1,39 @@
 ---
 import Base from '../layouts/Base.astro';
-import { publishedSubmissions, contributionTypeLabel, type ContributionType, type Submission } from '../data/contributions';
-import { members } from '../data/members';
+import { groupAchievements, contributionTypeLabel, type ContributionType } from '../data/contributions';
 
-const subs = [...publishedSubmissions()].sort((a, b) => (a.date < b.date ? 1 : -1));
-
-/** 同一内容回填会给每个参与人生成一条记录；成果墙上按「标题 + 日期」合并成一条团队成果 */
-interface Group {
-  key: string;
-  title: string;
-  date: string;
-  type: ContributionType;
-  description: string;
-  outcome?: string;
-  image?: string;
-  link?: string;
-  members: { id: string; name: string; dept?: string }[];
-  depts: string[];
-  ids: string[];
-}
-const groups: Group[] = [];
-const byKey = new Map<string, Group>();
-for (const s of subs) {
-  const key = `${s.title}||${s.date}`;
-  let g = byKey.get(key);
-  if (!g) {
-    g = {
-      key,
-      title: s.title,
-      date: s.date,
-      type: s.type,
-      description: s.description,
-      outcome: s.outcome,
-      image: s.image,
-      link: s.link,
-      members: [],
-      depts: [],
-      ids: [],
-    };
-    byKey.set(key, g);
-    groups.push(g);
-  }
-  if (!g.members.some((m) => m.id === s.memberId)) g.members.push({ id: s.memberId, name: s.memberName, dept: s.dept });
-  if (s.dept && !g.depts.includes(s.dept)) g.depts.push(s.dept);
-  g.ids.push(s.id);
-  if (!g.image && s.image) g.image = s.image;
-  if (!g.link && s.link) g.link = s.link;
-  if (!g.outcome && s.outcome) g.outcome = s.outcome;
-}
-groups.sort((a, b) => (a.date < b.date ? 1 : -1));
-
+const groups = groupAchievements();
 const typeKeys = Object.keys(contributionTypeLabel) as ContributionType[];
 const types = typeKeys
   .map((k) => ({ key: k, label: contributionTypeLabel[k], n: groups.filter((g) => g.type === k).length }))
   .filter((t) => t.n > 0);
 const allDepts = [...new Set(groups.flatMap((g) => g.depts))];
-const memberCount = new Set(subs.map((s) => s.memberId)).size;
+const memberIds = new Set(groups.flatMap((g) => g.members.map((m) => m.id)));
 const latest = groups[0]?.date ?? '—';
 
-const memberPath = (id: string) => `/members/${id}`;
 const isExternal = (link?: string) => Boolean(link && /^https?:/.test(link));
-const cardSearch = (g: Group) => `${g.title} ${g.description} ${g.members.map((m) => m.name).join(' ')} ${g.depts.join(' ')}`;
+const cardSearch = (g: (typeof groups)[number]) =>
+  `${g.title} ${g.description} ${g.members.map((m) => m.name).join(' ')} ${g.depts.join(' ')}`;
 ---
 
-<Base title="成果墙" description="长理创客（AI 创客协会）的成果与事迹展示：项目、竞赛、课程、实操与分享，按类型、部门、时间和关键词筛选。">
+<Base title="活动与成果" description="长沙理工大学 AI 创客协会的活动与成果：项目、竞赛、工作坊、课程与分享，按类型、部门和时间浏览。">
   <div class="wrap page-header">
-    <span class="crumb">ACHIEVEMENTS / 成果墙</span>
+    <span class="crumb">ACHIEVEMENTS / 活动与成果</span>
     <h1>协会做过的事，都在这。</h1>
     <p>
-      项目、竞赛、课程、实操与分享按时间汇总，每条都能追到人和场合。成员可以自己提交成果，
-      审核后进入成果墙与个人能力档案。
+      项目、竞赛、工作坊、课程与分享按时间汇总，每条都能追到参与的人。
+      成员可以自己提交记录，审核后进入这里，并自动进入个人能力档案。
     </p>
     <div class="hero-actions" style="margin-top:20px;">
-      <a href="/contribute" class="btn btn-primary">提交我的成果 <span class="ar">→</span></a>
-      <a href="/members" class="btn btn-ghost">看成员档案</a>
+      <a href="/contribute" class="btn btn-primary">提交我的记录 <span class="ar">→</span></a>
+      <a href="/members" class="btn btn-ghost">看成员能力</a>
     </div>
   </div>
 
   <div class="wrap" style="padding-bottom:96px;">
     <div class="ach-stats" data-reveal>
       <div class="ach-stat"><span class="stat-label">成果条目</span><b class="ach-num" data-count={groups.length}>{groups.length}</b></div>
-      <div class="ach-stat"><span class="stat-label">参与成员</span><b class="ach-num" data-count={memberCount}>{memberCount}</b></div>
+      <div class="ach-stat"><span class="stat-label">参与成员</span><b class="ach-num" data-count={memberIds.size}>{memberIds.size}</b></div>
       <div class="ach-stat"><span class="stat-label">覆盖部门</span><b class="ach-num" data-count={allDepts.length}>{allDepts.length}</b></div>
       <div class="ach-stat"><span class="stat-label">最近更新</span><b class="ach-num" style="font-size:20px;">{latest.replaceAll('-', '.')}</b></div>
     </div>
@@ -118,7 +71,7 @@ const cardSearch = (g: Group) => `${g.title} ${g.description} ${g.members.map((m
             <span class="ach-member">
               <span class="ach-avatar">{g.members[0]?.name.slice(0, 1) || '创'}</span>
               {g.members.slice(0, 3).map((m, idx) => (
-                <a href={memberPath(m.id)}>{m.name}{idx < Math.min(g.members.length, 3) - 1 ? '、' : ''}</a>
+                <a href={`/members/${m.id}`}>{m.name}{idx < Math.min(g.members.length, 3) - 1 ? '、' : ''}</a>
               ))}
               {g.members.length > 3 ? <span style="color:var(--fg-4);">等 {g.members.length} 人</span> : null}
             </span>
@@ -135,7 +88,7 @@ const cardSearch = (g: Group) => `${g.title} ${g.description} ${g.members.map((m
     <div class="ach-empty" id="empty" style="display:none;">没有匹配的成果。换个筛选条件或关键词试试。</div>
     <div style="display:flex;justify-content:space-between;gap:16px;margin-top:18px;font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
       <span id="resultCount"></span>
-      <span>数据来源：成员提交 + 内容库回填，审核后展示</span>
+      <span>数据来源：成员提交 + 历史记录回填，审核后展示</span>
     </div>
   </div>
 

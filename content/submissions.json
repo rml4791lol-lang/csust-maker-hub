@@ -8,7 +8,6 @@
     "title": "AI 工具工作坊 · 第二期",
     "date": "2026-10-26",
     "description": "两小时动手场，带着一件重复劳动来，带着一个能跑的流程走。",
-    "link": "/library/tr01",
     "status": "published",
     "submittedAt": "2026-10-26T00:00:00.000Z",
     "source": "backfill"
@@ -22,7 +21,6 @@
     "title": "AI 工具工作坊 · 第二期",
     "date": "2026-10-26",
     "description": "两小时动手场，带着一件重复劳动来，带着一个能跑的流程走。",
-    "link": "/library/tr01",
     "status": "published",
     "submittedAt": "2026-10-26T00:00:00.000Z",
     "source": "backfill"
@@ -36,7 +34,6 @@
     "title": "从零做一个能上线的静态网站",
     "date": "2026-10-24",
     "description": "进阶课。用 Astro 做一个真站点，学会内容组织、构建和部署。",
-    "link": "/library/c02",
     "status": "published",
     "submittedAt": "2026-10-24T00:00:00.000Z",
     "source": "backfill"
@@ -50,7 +47,6 @@
     "title": "软著申请：从项目到材料",
     "date": "2026-10-22",
     "description": "把做过的东西变成一份能提交的软著材料，附模板和常见退回原因；材料清单在资源页可下载。",
-    "link": "/library/c03",
     "status": "published",
     "submittedAt": "2026-10-22T00:00:00.000Z",
     "source": "backfill"
@@ -64,7 +60,6 @@
     "title": "全国大学生机械创新设计大赛",
     "date": "2026-10-20",
     "description": "校内选拔已出结果，省赛队伍在准备实物和答辩材料。",
-    "link": "/library/k01",
     "status": "published",
     "submittedAt": "2026-10-20T00:00:00.000Z",
     "source": "backfill"
@@ -78,7 +73,6 @@
     "title": "全国大学生机械创新设计大赛",
     "date": "2026-10-20",
     "description": "校内选拔已出结果，省赛队伍在准备实物和答辩材料。",
-    "link": "/library/k01",
     "status": "published",
     "submittedAt": "2026-10-20T00:00:00.000Z",
     "source": "backfill"
@@ -92,7 +86,6 @@
     "title": "全国大学生机械创新设计大赛",
     "date": "2026-10-20",
     "description": "校内选拔已出结果，省赛队伍在准备实物和答辩材料。",
-    "link": "/library/k01",
     "status": "published",
     "submittedAt": "2026-10-20T00:00:00.000Z",
     "source": "backfill"
@@ -106,7 +99,6 @@
     "title": "用 AI 把部门周报自动化",
     "date": "2026-10-20",
     "description": "每周花两小时拼周报，改成录音加提示词，十分钟出初稿。",
-    "link": "/library/g01",
     "status": "published",
     "submittedAt": "2026-10-20T00:00:00.000Z",
     "source": "backfill"
@@ -120,7 +112,6 @@
     "title": "把会议录音整理成纪要",
     "date": "2026-10-18",
     "description": "一段可以直接粘给 agent 的指令，输出带待办和负责人的纪要。",
-    "link": "/library/s01",
     "status": "published",
     "submittedAt": "2026-10-18T00:00:00.000Z",
     "source": "backfill"
@@ -134,7 +125,6 @@
     "title": "AI 工具工作坊 · 第一期回放",
     "date": "2026-10-17",
     "description": "两小时的动手场完整录像。现场把一件重复的活自动化，从找场景到跑通流程。",
-    "link": "/library/v01",
     "status": "published",
     "submittedAt": "2026-10-17T00:00:00.000Z",
     "source": "backfill"
@@ -148,7 +138,6 @@
     "title": "AI 工具工作坊 · 第一期回放",
     "date": "2026-10-17",
     "description": "两小时的动手场完整录像。现场把一件重复的活自动化，从找场景到跑通流程。",
-    "link": "/library/v01",
     "status": "published",
     "submittedAt": "2026-10-17T00:00:00.000Z",
     "source": "backfill"
@@ -162,7 +151,6 @@
     "title": "AI 工具工作坊 · 第一期",
     "date": "2026-10-16",
     "description": "两个小时的动手场：现场用 AI 把一件重复的活自动化，带走一个能跑的流程。",
-    "link": "/library/a01",
     "status": "published",
     "submittedAt": "2026-10-16T00:00:00.000Z",
     "source": "backfill"
@@ -176,7 +164,6 @@
     "title": "AI 工具工作坊 · 第一期",
     "date": "2026-10-16",
     "description": "两个小时的动手场：现场用 AI 把一件重复的活自动化，带走一个能跑的流程。",
-    "link": "/library/a01",
     "status": "published",
     "submittedAt": "2026-10-16T00:00:00.000Z",
     "source": "backfill"
@@ -190,7 +177,6 @@
     "title": "需求登记表模板",
     "date": "2026-10-16",
     "description": "提需求前先对一遍字段，省掉来回问。",
-    "link": "/library/t01",
     "status": "published",
     "submittedAt": "2026-10-16T00:00:00.000Z",
     "source": "backfill"
@@ -204,7 +190,6 @@
     "title": "Datawhale 开源学习路线",
     "date": "2026-10-15",
     "description": "完整的数据与 AI 学习路线，适合想系统入门的人。",
-    "link": "/library/l01",
     "status": "published",
     "submittedAt": "2026-10-15T00:00:00.000Z",
     "source": "backfill"
@@ -218,7 +203,6 @@
     "title": "软著材料自动化",
     "date": "2026-10-12",
     "description": "从项目 README 直接生成软著申请材料初稿，把原来两天的活压到两小时。",
-    "link": "/library/p05",
     "status": "published",
     "submittedAt": "2026-10-12T00:00:00.000Z",
     "source": "backfill"
@@ -232,7 +216,6 @@
     "title": "软著材料自动化",
     "date": "2026-10-12",
     "description": "从项目 README 直接生成软著申请材料初稿，把原来两天的活压到两小时。",
-    "link": "/library/p05",
     "status": "published",
     "submittedAt": "2026-10-12T00:00:00.000Z",
     "source": "backfill"
@@ -246,7 +229,6 @@
     "title": "用 AI 做第一个自动化流程",
     "date": "2026-10-10",
     "description": "入门课。不写代码，用现成工具把每周重复做的事变成一句话触发的流程。",
-    "link": "/library/c01",
     "status": "published",
     "submittedAt": "2026-10-10T00:00:00.000Z",
     "source": "backfill"
@@ -260,7 +242,6 @@
     "title": "创客空间数据看板",
     "date": "2026-10-08",
     "description": "把成员、项目、需求、活动四类数据汇到一个看板，每周更新一次，代替手工统计。",
-    "link": "/library/p02",
     "status": "published",
     "submittedAt": "2026-10-08T00:00:00.000Z",
     "source": "backfill"
@@ -274,7 +255,6 @@
     "title": "创客空间数据看板",
     "date": "2026-10-08",
     "description": "把成员、项目、需求、活动四类数据汇到一个看板，每周更新一次，代替手工统计。",
-    "link": "/library/p02",
     "status": "published",
     "submittedAt": "2026-10-08T00:00:00.000Z",
     "source": "backfill"
@@ -288,7 +268,6 @@
     "title": "中国国际大学生创新大赛",
     "date": "2026-09-28",
     "description": "校赛报名已开，重点在高教主赛道和青年红色筑梦之旅赛道。",
-    "link": "/library/k02",
     "status": "published",
     "submittedAt": "2026-09-28T00:00:00.000Z",
     "source": "backfill"
@@ -302,7 +281,6 @@
     "title": "中国国际大学生创新大赛",
     "date": "2026-09-28",
     "description": "校赛报名已开，重点在高教主赛道和青年红色筑梦之旅赛道。",
-    "link": "/library/k02",
     "status": "published",
     "submittedAt": "2026-09-28T00:00:00.000Z",
     "source": "backfill"
@@ -316,7 +294,6 @@
     "title": "创客开放日 · 现场记录",
     "date": "2026-09-26",
     "description": "项目展示和招新的现场剪辑，三分钟看完当天做了什么。",
-    "link": "/library/v02",
     "status": "published",
     "submittedAt": "2026-09-26T00:00:00.000Z",
     "source": "backfill"
@@ -330,7 +307,6 @@
     "title": "创客开放日",
     "date": "2026-09-25",
     "description": "对外展示协会项目和成果，招新同步进行。",
-    "link": "/library/a02",
     "status": "published",
     "submittedAt": "2026-09-25T00:00:00.000Z",
     "source": "backfill"
@@ -344,7 +320,6 @@
     "title": "校园电子班车表",
     "date": "2026-09-18",
     "description": "把校车时刻、实时位置和到站提醒做成一个小程序，结束群里天天问「车到哪了」。",
-    "link": "/library/p01",
     "status": "published",
     "submittedAt": "2026-09-18T00:00:00.000Z",
     "source": "backfill"
@@ -358,7 +333,6 @@
     "title": "校园电子班车表",
     "date": "2026-09-18",
     "description": "把校车时刻、实时位置和到站提醒做成一个小程序，结束群里天天问「车到哪了」。",
-    "link": "/library/p01",
     "status": "published",
     "submittedAt": "2026-09-18T00:00:00.000Z",
     "source": "backfill"
@@ -372,7 +346,6 @@
     "title": "AI 需求登记与分派流程",
     "date": "2026-09-02",
     "description": "部门提需求 → 自动分类 → 分派给接口人 → 到期提醒。替代微信群接龙。",
-    "link": "/library/p03",
     "status": "published",
     "submittedAt": "2026-09-02T00:00:00.000Z",
     "source": "backfill"
@@ -386,7 +359,6 @@
     "title": "AI 需求登记与分派流程",
     "date": "2026-09-02",
     "description": "部门提需求 → 自动分类 → 分派给接口人 → 到期提醒。替代微信群接龙。",
-    "link": "/library/p03",
     "status": "published",
     "submittedAt": "2026-09-02T00:00:00.000Z",
     "source": "backfill"
@@ -400,7 +372,6 @@
     "title": "AI 视觉素材库",
     "date": "2026-08-26",
     "description": "宣传部常用的海报模板、配色、字体和提示词，整理成一套能直接套用的素材包。",
-    "link": "/library/p04",
     "status": "published",
     "submittedAt": "2026-08-26T00:00:00.000Z",
     "source": "backfill"

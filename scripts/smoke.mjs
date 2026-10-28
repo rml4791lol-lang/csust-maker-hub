@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * 构建烟雾检查：构建产物不是空站。
+ * 构建烟雾检查：构建产物不是空站，且信息架构符合「展示活动成果 + 成员能力」的定位。
  * 跑法：node scripts/smoke.mjs（需先 pnpm build）
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const DIST = 'dist';
@@ -12,7 +12,6 @@ const errors = [];
 function must(cond, message) {
   if (!cond) errors.push(message);
 }
-
 function read(rel) {
   const p = join(DIST, rel);
   if (!existsSync(p)) {
@@ -22,55 +21,36 @@ function read(rel) {
   return readFileSync(p, 'utf8');
 }
 
-// 1. 关键页面存在（/tools 取决于功能开关）
-let flagTools = true;
-let flagHomeEntries = true;
-try {
-  const flags = JSON.parse(readFileSync('content/flags.json', 'utf8'));
-  flagTools = flags.find((f) => f.key === 'tools')?.enabled ?? true;
-  flagHomeEntries = flags.find((f) => f.key === 'home.entries')?.enabled ?? true;
-} catch { /* 无开关文件按全开 */ }
-const pages = [
-  'index.html',
-  'library/index.html',
-  'members/index.html',
-  'resources/index.html',
-  'about/index.html',
-  'stats/index.html',
-];
-if (flagTools) pages.push('tools/index.html');
+// 1. 关键页面存在
+const pages = ['index.html', 'achievements/index.html', 'members/index.html', 'contribute/index.html', 'members/m01/index.html'];
 for (const p of pages) must(existsSync(join(DIST, p)), `缺关键页面：dist/${p}`);
 
-// 2. 首页包含五类入口（受功能开关 home.entries 控制）
+// 2. 已移除的冗余页面不应再产出
+for (const gone of ['library', 'tools', 'resources', 'stats', 'about']) {
+  must(!existsSync(join(DIST, gone)), `不应再产出页面：dist/${gone}`);
+}
+
+// 3. 首页包含核心模块与定位
 const home = read('index.html');
-if (flagHomeEntries) {
-  for (const label of ['攻略', '技能指令', '模板素材', '外部项目', '培训']) {
-    must(home.includes(label), `首页缺少分类入口：${label}`);
-  }
+for (const label of ['AI 创客协会', '云塘校区', '活动与成果', '成员能力', '提交我的记录']) {
+  must(home.includes(label), `首页缺少关键内容：${label}`);
 }
+must(home.includes('示例数据'), '首页缺少示例数据提示');
 
-// 3. 首页出现至少一条内容标题（从 library 目录反查一条详情页）
-const libDir = join(DIST, 'library');
-let detailHtml = '';
-let detailId = '';
-if (existsSync(libDir)) {
-  const entries = readdirSync(libDir, { withFileTypes: true }).filter((d) => d.isDirectory());
-  must(entries.length > 0, '内容库没有任何详情页');
-  if (entries.length) {
-    detailId = entries[0].name;
-    detailHtml = read(`library/${detailId}/index.html`);
-  }
-} else {
-  errors.push('缺少 dist/library 目录');
-}
+// 4. 成果页 / 成员页 / 提交页的关键内容
+const ach = read('achievements/index.html');
+must(ach.includes('成果条目'), '成果页缺少统计条');
+must(ach.includes('全部类型'), '成果页缺少类型筛选');
 
-// 详情页包含正文与审核信息
-if (detailHtml) {
-  must(detailHtml.includes('detail-main'), `详情页 ${detailId} 缺少正文区域`);
-  must(detailHtml.includes('条目信息'), `详情页 ${detailId} 缺少条目信息区`);
-}
+const members = read('members/index.html');
+must(members.includes('能力总览'), '成员页缺少能力总览');
+must(members.includes('高频能力标签'), '成员页缺少能力标签');
 
-// 4. noindex 生效
+const contribute = read('contribute/index.html');
+must(contribute.includes('提交审核'), '提交页缺少提交按钮');
+must(contribute.includes('公开授权'), '提交页缺少授权确认');
+
+// 5. noindex 与 robots
 must(home.includes('noindex'), '首页缺少 noindex');
 must(existsSync(join(DIST, 'robots.txt')), '缺少 robots.txt');
 
@@ -79,5 +59,4 @@ if (errors.length) {
   for (const e of errors) console.error('  - ' + e);
   process.exit(1);
 }
-
-console.log(`✓ 烟雾检查通过（检查了 ${pages.length} 个页面、五类入口、详情页 ${detailId}）`);
+console.log(`✓ 烟雾检查通过（${pages.length} 个关键页面、核心模块、noindex、冗余页面已移除）`);

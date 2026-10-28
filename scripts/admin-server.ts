@@ -26,6 +26,7 @@ import { expiringSoon, validateContent } from '../src/data/validate';
 import { SITE_BASE, sendIm, imChannel } from './im-push';
 import { overdueReviews } from '../src/data/review';
 import { voteLabel } from '../src/data/vote-labels';
+import { analyzeMemberProfiles, analyzeWithLLM } from '../src/data/analyze';
 import { validateSubmission } from '../src/data/contributions';
 
 const ROOT = process.cwd();
@@ -63,6 +64,14 @@ const STATES: State[] = ['draft', 'reviewing', 'published', 'rejected', 'unpubli
 /** HTML 转义：后台页面所有动态内容都经过它，避免内容作者注入脚本 */
 const esc = (v: unknown) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+
+/** 根据投稿重新生成成员能力档案（发布投稿后自动跑一次） */
+function regenerateProfiles(): number {
+  const list = readJson<any[]>(SUBMISSIONS_FILE, []);
+  const profiles = analyzeMemberProfiles(list as any, members);
+  writeJson(PROFILES_FILE, profiles);
+  return profiles.length;
+}
 
 /** 成员投稿限流：同一 IP 10 分钟最多 5 条（进程内，够用） */
 const contributeHits = new Map<string, number[]>();
@@ -315,7 +324,7 @@ function page(actor: string): string {
   const subsNow = readJson<any[]>(SUBMISSIONS_FILE, []);
   const pendingSubs = subsNow.filter((s) => s.status === 'pending');
   const subsHtml = subsNow.length
-    ? `<div class="cfgbox"><b>成员投稿</b><span>共 ${subsNow.length} 条，待审核 ${pendingSubs.length} 条。发布后出现在成员档案与成果墙；退回可写原因。AI 汇总走 <code>PUT /api/profiles</code>。</span>
+    ? `<div class="cfgbox"><b>成员投稿</b><span>共 ${subsNow.length} 条，待审核 ${pendingSubs.length} 条。发布后自动重算成员档案与成果墙；退回可写原因。</span><span class="ops" style="margin-left:auto"><button class="op" id="analyzeBtn">重算 AI 汇总</button></span>
     ${subsNow
       .slice(0, 20)
       .map(
@@ -447,7 +456,7 @@ function page(actor: string): string {
     <p><code>DELETE /api/items/:id</code> 删除</p>
     <p><code>POST /api/state</code> body <code>{"id":"g01","state":"published"}</code></p>
     <p><code>POST /api/review</code> body <code>{"id":"g01"}</code> 完成复核（盖复核章，写 review-log）</p>
-    <p><b>成员成果平台：</b>公开 <code>POST /api/contribute</code>（成员投稿，待审核）；<code>GET /api/submissions</code> 投稿列表；<code>POST /api/submissions/:id/status</code> body <code>{"status":"published","note":""}</code> 审核；<code>GET /api/profiles</code> / <code>PUT /api/profiles</code>（agent 写 AI 汇总，整表替换）</p>
+    <p><b>成员成果平台：</b>公开 <code>POST /api/contribute</code>（成员投稿，待审核）；<code>GET /api/submissions</code> 投稿列表；<code>POST /api/submissions/:id/status</code> body <code>{"status":"published","note":""}</code> 审核（发布后自动重算档案）；<code>POST /api/analyze</code> 立即重算 AI 汇总（配置 AI_API_KEY 时走 LLM，否则规则分析）；<code>GET /api/profiles</code> / <code>PUT /api/profiles</code></p>
     <p><code>POST /api/build</code> 重新构建并部署</p>
   </div>
 </main>
@@ -542,6 +551,22 @@ function page(actor: string): string {
   }));
   document.querySelectorAll('[data-pv-close]').forEach(el => el.addEventListener('click', () => { pv.hidden = true; }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') pv.hidden = true; });
+
+  // ---- 重新生成 AI 汇总 ----
+  document.getElementById('analyzeBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    btn.disabled = true;
+    try {
+      const r = await fetch('api/analyze', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || '操作失败');
+      toast('已重算 ' + d.count + ' 位成员档案（' + d.mode + '），重新构建后前台生效');
+    } catch (err: any) {
+      toast('失败：' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   // ---- 成员投稿审核 ----
   document.querySelectorAll('[data-sub]').forEach(btn => btn.addEventListener('click', async () => {
@@ -967,6 +992,15 @@ const server = http.createServer(async (req, res) => {
         reviewedAt: new Date().toISOString(),
       };
       writeJson(SUBMISSIONS_FILE, list);
+      // 自动化：发布后立即重算成员能力档案（前台重新构建后生效）
+      if (status === 'published') {
+        try {
+          const n = regenerateProfiles();
+          console.log(`[analyze] 投稿 ${prev.id} 发布，已重算 ${n} 位成员档案`);
+        } catch (e: any) {
+          console.error('[analyze] 重算失败', e.message);
+        }
+      }
       logTransition({
         id: prev.id,
         from: prev.status,
@@ -978,6 +1012,24 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true, id: prev.id, status });
     } catch (e: any) {
       return json(res, 400, { error: e.message });
+    }
+  }
+
+  // POST /api/analyze — 立即重算成员能力档案（配置 AI_API_KEY 时走 LLM）
+  if (url === '/api/analyze' && req.method === 'POST') {
+    try {
+      const list = readJson<any[]>(SUBMISSIONS_FILE, []);
+      const profiles = await analyzeWithLLM(list as any, members);
+      writeJson(PROFILES_FILE, profiles);
+      logTransition({ id: 'profiles', from: '-', to: `${profiles.length} 人`, actor, method: who.role === 'agent' ? 'agent' : 'human', note: 'AI 汇总自动重算' });
+      return json(res, 200, {
+        ok: true,
+        count: profiles.length,
+        mode: process.env.AI_API_KEY && process.env.AI_BASE_URL ? 'llm' : 'rules',
+        note: '重新构建后前台生效',
+      });
+    } catch (e: any) {
+      return json(res, 500, { error: e.message });
     }
   }
 

@@ -2,8 +2,6 @@
 import Base from '../../layouts/Base.astro';
 import { members } from '../../data/members';
 import { profileByMember, submissionsByMember, contributionTypeLabel, type Submission } from '../../data/contributions';
-import { items, typeMeta } from '../../data/items';
-import { publishedItems } from '../../data/validate';
 
 export function getStaticPaths() {
   return members.map((m) => ({ params: { id: m.id }, props: { member: m } }));
@@ -12,8 +10,6 @@ export function getStaticPaths() {
 const { member } = Astro.props;
 const profile = profileByMember(member.id);
 const timeline = submissionsByMember(member.id);
-const live = publishedItems(items);
-const involved = live.filter((i) => (i.people ?? []).includes(member.name)).sort((a, b) => (a.date < b.date ? 1 : -1));
 const stats = profile?.stats;
 
 const href = (s: Submission) => (s.link && /^https?:\/\//.test(s.link) ? s.link : s.link ?? '');
@@ -24,9 +20,9 @@ const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributi
 <Base title={`${member.name} · 成员档案`} description={profile?.aiSummary ?? `${member.name}的成果档案`} noindex>
   <div class="wrap page-header">
     <a href="/members" class="crumb" style="display:block;width:fit-content;margin-bottom:16px;">← 返回成员</a>
-    <span class="crumb">MEMBER / 成员档案</span>
+    <span class="crumb">MEMBERS / 个人档案</span>
     <h1>{member.name}的成果档案</h1>
-    <p>成员自己提交 + AI 汇总的成长记录：做过什么、擅长什么、下一步可以做什么。</p>
+    <p>成员自己提交、系统自动汇总的成长记录：做过什么、擅长什么、下一步可以做什么。</p>
   </div>
 
   <div class="wrap" style="padding-bottom:96px;">
@@ -43,11 +39,11 @@ const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributi
         </div>
         <div class="profile-stats">
           <div class="profile-stat"><b>{stats?.contributions ?? timeline.length}</b><span>成果记录</span></div>
-          <div class="profile-stat"><b>{involved.length}</b><span>参与内容</span></div>
-          <div class="profile-stat"><b>{involved.filter((i) => i.type === 'guide').length}</b><span>攻略贡献</span></div>
+          <div class="profile-stat"><b>{stats?.projects ?? 0}</b><span>项目</span></div>
+          <div class="profile-stat"><b>{stats?.competitions ?? 0}</b><span>竞赛</span></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;">
-          <a href="/contribute" class="btn btn-primary btn-sm">提交我的成果 <span class="ar">→</span></a>
+          <a href="/contribute" class="btn btn-primary btn-sm">提交我的记录 <span class="ar">→</span></a>
           <a href="/members" class="btn btn-ghost btn-sm">全部成员</a>
         </div>
       </div>
@@ -86,9 +82,9 @@ const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributi
         <div>
           <div class="sec-index"><b>01</b><span class="rule"></span>成果记录</div>
           <h2 class="sec-title">做过的项目、比赛和分享。</h2>
-          <p class="sec-desc">按时间倒序。来自本人提交或内容库回填，审核后展示。</p>
+          <p class="sec-desc">按时间倒序；成员自己提交或从历史记录回填，审核后展示。</p>
         </div>
-        <a class="sec-more" href="/contribute">提交我的成果 <span class="ar">→</span></a>
+        <a class="sec-more" href="/contribute">提交我的记录 <span class="ar">→</span></a>
       </div>
 
       <div class="list-panel" data-reveal>
@@ -118,36 +114,7 @@ const typeOf = (t: string) => contributionTypeLabel[t as keyof typeof contributi
             ))}
           </div>
         ) : (
-          <div class="views-empty" style="padding:28px 18px;">还没有成果记录。点右上角「提交我的成果」，第一条就从你开始。</div>
-        )}
-      </div>
-    </section>
-
-    <!-- ================= 参与内容 ================= -->
-    <section class="section" style="padding-top:64px;">
-      <div class="section-head" data-reveal>
-        <div>
-          <div class="sec-index"><b>02</b><span class="rule"></span>参与内容</div>
-          <h2 class="sec-title">在内容库里留下的东西。</h2>
-          <p class="sec-desc">攻略、技能指令、模板、项目、竞赛、活动与课程，按收录日期倒序。</p>
-        </div>
-        <a class="sec-more" href="/library">全部内容 <span class="ar">→</span></a>
-      </div>
-
-      <div class="data-list" data-reveal>
-        {involved.length ? involved.map((i) => (
-          <a class="data-row" href={`/library/${i.id}`}>
-            <span class="data-type" data-type={i.type}><i>{typeMeta[i.type].glyph}</i>{typeMeta[i.type].label}</span>
-            <span class="data-main">
-              <b>{i.title}</b>
-              <i>{i.summary}</i>
-            </span>
-            <span class="data-people">{i.people.join(' / ')}</span>
-            <span class="data-status" data-s={i.status}>{i.status}</span>
-            <span class="data-date">{i.date.replaceAll('-', '.')}</span>
-          </a>
-        )) : (
-          <div class="views-empty" style="padding:28px 18px;">内容库里暂时没有关联记录。</div>
+          <div class="views-empty" style="padding:28px 18px;">还没有成果记录。点右上角「提交我的记录」，第一条就从你开始。</div>
         )}
       </div>
     </section>
