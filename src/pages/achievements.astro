@@ -72,7 +72,7 @@ const cardSearch = (g: (typeof groups)[number]) =>
     </section>
 
     <!-- ================= 成员成果 ================= -->
-    <section class="section" style="padding-top:72px;">
+    <section class="section" id="results" style="padding-top:72px;">
       <div class="section-head" data-reveal>
         <div>
           <div class="sec-index"><b>02</b><span class="rule"></span>成员成果</div>
@@ -88,7 +88,7 @@ const cardSearch = (g: (typeof groups)[number]) =>
         ))}
         <div style="flex:1"></div>
         <label class="search-box">
-          <span style="color:var(--text-3);font-size:13px;">⌕</span>
+          <span style="color:var(--text-3);font-size:14px;">⌕</span>
           <input type="search" id="q" placeholder="搜标题、描述、成员…" aria-label="搜索成果" />
         </label>
       </div>
@@ -129,7 +129,7 @@ const cardSearch = (g: (typeof groups)[number]) =>
       </div>
 
       <div class="ach-empty" id="empty" style="display:none;">没有匹配的成果。换个筛选条件或关键词试试。</div>
-      <div style="display:flex;justify-content:space-between;gap:16px;margin-top:18px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-3);">
+      <div style="display:flex;justify-content:space-between;gap:16px;margin-top:18px;font-family:var(--font-mono);font-size:14px;color:var(--text-3);">
         <span id="resultCount"></span>
         <span>数据来源：成员提交 + 历史记录回填，审核后展示</span>
       </div>

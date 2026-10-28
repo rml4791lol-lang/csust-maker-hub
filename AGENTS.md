@@ -12,6 +12,7 @@
   `items.json` / `flags.json` / `tools.json` 是历史数据，仅作回填与后台兼容保留。
 - **成员名单在 `src/data/members.ts`**，协会信息/导航/部门职责/运行机制/首屏照片在 `src/data/site.ts`；现场照片在 `public/photos/`（压缩后的 jpg，页面懒加载）。
 - **AI 感装饰图在 `public/decor/`**：程序化生成（`scripts/generate-decor.py`），只做低对比点缀，必须 `pointer-events:none` 且尊重 reduced-motion，不能盖过正文。
+  已用于：首页首屏（轨道/极光/波纹）、全部页头与 CTA（神经网络）、首页关于协会与成员能力区（轨道/神经）、活动成果页与投稿页（轨道）、页脚（波纹）。
 - **AI 能力分析自动化**：`src/data/analyze.ts`（规则分析 + 可选 LLM）；`pnpm analyze` 重算档案；
   后台审核发布投稿后自动重算；接口 `POST /api/analyze`。服务器配 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` 后自动升级 LLM 分析。
 - **发布状态在 `src/data/publish-state.json`**（后台写入），审核记录在 `src/data/review-log.json`。
@@ -29,7 +30,7 @@
 - 字号/圆角用 token（`--text-*`、`--radius-*`），不写死；正文行高 1.7~1.85。
 - 动效：入场级联、滚动入场、数字滚动、悬停微交互；必须尊重 `prefers-reduced-motion`，且无 JS 时内容完整可见。
 - 简洁优先：4 个导航入口；不做全局搜索（页面太少，搜索是纯负担）。首页不堆解释文字、不展示成员人数（人数会变）；首屏用科创港照片轮播。
-- 字体下限：正文 15px、描述 14px、标签/元信息 12.5px，任何页面不出现小于 12px 的文字。
+- 字体下限（2026-10-28 再放大）：正文 16px、描述 16px、标签/元信息 15px，**任何页面不出现小于 14px（五号）的文字**；导航/页脚 15px。
 - 收录：`site.publicIndex` 默认 `false`；个人档案页始终 noindex；换真实数据后可开启全站收录。
 
 ## Agent skills
