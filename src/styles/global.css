@@ -3686,3 +3686,24 @@ input, select, textarea, button, option {
 }
 .choice input:focus-visible + span { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
 select, option { color: #eef1f6; background-color: #111318; }
+
+
+/* 2026-10-28 现场相册 + 上传面板 */
+.gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.gallery-item { margin: 0; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; overflow: hidden; background: rgba(255, 255, 255, 0.02); }
+.gallery-item img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 0.5s var(--ease-out); }
+.gallery-item:hover img { transform: scale(1.03); }
+.gallery-item figcaption { display: grid; gap: 4px; padding: 12px 14px 14px; }
+.gallery-cap { font-size: 15px; color: #eef1f6; }
+.gallery-meta { font-size: 14px; color: var(--fg-4); }
+.upload-card { border: 1px solid var(--line-2); border-radius: 16px; padding: 22px; background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.006)); display: grid; gap: 14px; }
+.upload-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.upload-field { display: grid; gap: 6px; flex: 1; min-width: 220px; }
+.upload-field span { font-size: 15px; color: var(--fg-2); }
+.upload-field select, .upload-field input { width: 100%; }
+.upload-row input[type="file"] { flex: 1; min-width: 240px; font-size: 15px; color: var(--fg-2); }
+.my-upload-list { display: grid; gap: 6px; }
+.my-upload-row { font-size: 14px; color: var(--fg-3); }
+.my-upload-row b { color: var(--fg-2); font-weight: 520; margin-right: 6px; }
+@media (max-width: 900px) { .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .gallery-grid { grid-template-columns: 1fr; } }

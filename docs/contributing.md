@@ -163,3 +163,19 @@ sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 - 数据：账号存 `DATA_DIR/accounts.json`（默认 `~/.csust-maker-data`），会话密钥 `DATA_DIR/session-secret`，操作日志 `DATA_DIR/admin-log.json`；不入仓库。
 - 接口：成员 `POST /api/auth/register|login|logout`、`GET /api/auth/me`、`POST /api/auth/password`、`GET /api/my/submissions`、`POST /api/my/submissions/:id`；管理端 `POST /api/manage/login|logout`、`GET /api/manage/overview|accounts|logs`、`POST /api/manage/accounts/:id/review|admin|reset-password|status`。
 - 本地联调：后台 3210 + `pnpm dev`（已配置 `/admin` 代理）。
+
+
+## 现场照片上传（2026-10-28）
+
+- 入口：`/contribute#upload`（登录后显示），所有登录成员都能上传。
+- 权限：**部长及以上直接展示；普通成员/其他上传后需管理员审核**才出现在 `/gallery`。
+- 存储：文件写到 `public/photos/uploads/`，记录写 `content/uploads.json`；静态站需要重新构建后新照片才会出现在相册（本地 `pnpm dev` 会自动生效）。
+- 接口：`POST /api/upload`（登录，JSON `{dataBase64, activityId?, caption?}`，前端已压缩到 1600px / ≤2MB，支持 jpg/png/webp）；`GET /api/my/uploads`；管理端 `GET /api/manage/uploads?status=pending`、`POST /api/manage/uploads/:id/review` body `{"action":"approve"|"reject"}`。
+- 审核入口：`/manage` → 「照片审核」。
+
+## 成员档案同步真实账号（2026-10-28）
+
+- 成员数据源：`content/members.json`（初始为演示数据，可用 `pnpm seed:members` 重置）。
+- 管理端 `/manage` → 顶部「同步成员档案」（仅超级管理员）：把审核通过的账号写成成员档案，并重算 `content/profiles.json`。
+- **执行后需要重新构建并部署**，成员页/个人档案/能力汇总才会变成真实成员。
+- 同步后旧的演示成员页面会消失；演示投稿（历史回填）在成果墙上仍保留文字，但不再链接到已不存在的成员页（前端已做兜底）。

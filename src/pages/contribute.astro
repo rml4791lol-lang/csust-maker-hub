@@ -1,6 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 import { contributionTypeLabel } from '../data/contributions';
+import { activities } from '../data/activities';
+
+const activitiesData = activities.map((a) => ({ id: a.id, title: a.title, date: a.date }));
 
 const today = new Date().toISOString().slice(0, 10);
 const types = Object.entries(contributionTypeLabel).map(([value, label]) => ({ value, label }));
@@ -106,6 +109,36 @@ const statusLabel: Record<string, string> = { pending: '待审核', published: '
       </p>
     </div>
 
+    <!-- 上传现场照片 -->
+    <section class="section upload-panel" id="upload" style="padding-top:64px;" hidden>
+      <div class="section-head">
+        <div>
+          <div class="sec-index"><b>02</b><span class="rule"></span>现场照片</div>
+          <h2 class="sec-title">上传活动照片</h2>
+          <p class="section-sub" style="font-size:15px;color:var(--fg-3);margin:6px 0 0;">部长及以上上传后直接展示；普通成员上传后需管理员审核。</p>
+        </div>
+        <a class="sec-more" href="/gallery">看现场相册 <span class="ar">→</span></a>
+      </div>
+      <div class="upload-card">
+        <div class="upload-row">
+          <label class="upload-field">
+            <span>关联活动</span>
+            <select id="uploadActivity"><option value="">不指定活动</option></select>
+          </label>
+          <label class="upload-field">
+            <span>照片说明（可选）</span>
+            <input id="uploadCaption" maxlength="120" placeholder="例：第一次全体会议现场" />
+          </label>
+        </div>
+        <div class="upload-row">
+          <input id="uploadFile" type="file" accept="image/jpeg,image/png,image/webp" />
+          <button type="button" class="btn btn-primary" id="uploadBtn">上传照片</button>
+          <span class="form-msg" id="uploadMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div class="my-upload-list" id="myUploads"></div>
+      </div>
+    </section>
+
     <!-- 我的投稿 -->
     <section class="section" id="mySubs" style="padding-top:64px;" hidden>
       <div class="section-head">
@@ -118,6 +151,7 @@ const statusLabel: Record<string, string> = { pending: '待审核', published: '
     </section>
   </div>
 
+  <script type="application/json" id="activityData" set:html={JSON.stringify(activitiesData)}></script>
   <script>
     const statusLabel: Record<string, string> = { pending: '待审核', published: '已发布', rejected: '已退回' };
     const gate = document.getElementById('authGate');
@@ -162,13 +196,18 @@ const statusLabel: Record<string, string> = { pending: '待审核', published: '
         if (form) form.hidden = false;
         if (compliance) compliance.hidden = false;
         if (mySubs) mySubs.hidden = false;
+        if (uploadPanel) uploadPanel.hidden = false;
+        uploadAllowed = true;
         await loadMine();
+        await loadMyUploads();
       } catch {
         if (gate) gate.hidden = false;
         if (banner) banner.hidden = true;
         if (form) form.hidden = true;
         if (compliance) compliance.hidden = true;
         if (mySubs) mySubs.hidden = true;
+        if (uploadPanel) uploadPanel.hidden = true;
+        uploadAllowed = false;
       }
     }
 
@@ -305,6 +344,99 @@ const statusLabel: Record<string, string> = { pending: '待审核', published: '
         show('提交失败：' + (err.message || '网络错误'), 'err');
       } finally {
         btn.disabled = false;
+      }
+    });
+
+    // ---- 上传活动照片 ----
+    const uploadPanel = document.getElementById('upload');
+    const uploadActivity = document.getElementById('uploadActivity') as HTMLSelectElement | null;
+    const uploadCaption = document.getElementById('uploadCaption') as HTMLInputElement | null;
+    const uploadFile = document.getElementById('uploadFile') as HTMLInputElement | null;
+    const uploadBtn = document.getElementById('uploadBtn') as HTMLButtonElement | null;
+    const uploadMsg = document.getElementById('uploadMsg');
+    const myUploads = document.getElementById('myUploads');
+    const activitiesList = JSON.parse(document.getElementById('activityData')?.textContent || '[]');
+    let uploadAllowed = false;
+
+    const showUpload = (text: string, kind: 'ok' | 'err' | '' = '') => {
+      if (!uploadMsg) return;
+      uploadMsg.textContent = text;
+      uploadMsg.className = 'form-msg' + (kind ? ' ' + kind : '');
+    };
+
+    if (uploadActivity) {
+      for (const a of activitiesList) {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = a.title + ' · ' + a.date;
+        uploadActivity.appendChild(opt);
+      }
+    }
+
+    function compressImage(file: File): Promise<string> {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const max = 1600;
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject(new Error('浏览器不支持图片压缩'));
+          ctx.fillStyle = '#08090a';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片读取失败')); };
+        img.src = url;
+      });
+    }
+
+    async function loadMyUploads() {
+      if (!myUploads) return;
+      try {
+        const res = await fetch('/admin/api/my/uploads');
+        if (!res.ok) return;
+        const list = await res.json();
+        const label: Record<string, string> = { pending: '待审核', approved: '已展示', rejected: '已退回' };
+        myUploads.innerHTML = list.length
+          ? list.map((u: any) => '<span class="my-upload-row"><b>' + (label[u.status] || u.status) + '</b>' + escapeHtml(u.caption || '活动照片') + ' · ' + String(u.createdAt || '').slice(0, 10) + '</span>').join('')
+          : '';
+      } catch {}
+    }
+
+    uploadBtn?.addEventListener('click', async () => {
+      if (!uploadFile || !uploadFile.files?.length) return showUpload('请选择图片', 'err');
+      if (!uploadAllowed) return showUpload('请先登录', 'err');
+      const file = uploadFile.files[0];
+      if (file.size > 12 * 1024 * 1024) return showUpload('原图不超过 12MB', 'err');
+      uploadBtn.disabled = true;
+      showUpload('正在压缩并上传…');
+      try {
+        const dataBase64 = await compressImage(file);
+        const res = await fetch('/admin/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dataBase64,
+            activityId: uploadActivity?.value || undefined,
+            caption: uploadCaption?.value || undefined,
+          }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || '上传失败');
+        showUpload(body.note || '上传成功', 'ok');
+        uploadFile.value = '';
+        if (uploadCaption) uploadCaption.value = '';
+        await loadMyUploads();
+      } catch (err: any) {
+        showUpload('上传失败：' + (err.message || '网络错误'), 'err');
+      } finally {
+        uploadBtn.disabled = false;
       }
     });
 

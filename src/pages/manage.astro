@@ -81,6 +81,7 @@ const statusLabel: Record<string, string> = { pending: '待审核', approved: '�
         <h1 style="font-size:24px;">账号与权限</h1>
         <span class="manage-who" id="mWho"></span>
         <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="mSync" hidden>同步成员档案</button>
         <button class="btn btn-ghost btn-sm" id="mLogout">退出管理端</button>
       </div>
 
@@ -90,6 +91,7 @@ const statusLabel: Record<string, string> = { pending: '待审核', approved: '�
         <button class="manage-tab is-active" data-tab="pending">待审核</button>
         <button class="manage-tab" data-tab="accounts">全部账号</button>
         <button class="manage-tab" data-tab="admins">管理员</button>
+        <button class="manage-tab" data-tab="photos">照片审核</button>
         <button class="manage-tab" data-tab="logs">操作日志</button>
       </div>
 
@@ -145,6 +147,8 @@ const statusLabel: Record<string, string> = { pending: '待审核', approved: '�
         const parts = [me.realName, me.identityLabel, me.adminLevelLabel].filter(Boolean);
         whoEl.textContent = [...new Set(parts)].join(' · ');
       }
+      const syncBtn = document.getElementById('mSync') as HTMLButtonElement | null;
+      if (syncBtn) syncBtn.hidden = me.adminLevel !== 'super';
       if (statsEl) {
         statsEl.innerHTML = `
           <div class="manage-stat"><b>${ov.counts.pending}</b><span>待审核</span></div>
@@ -249,6 +253,36 @@ const statusLabel: Record<string, string> = { pending: '待审核', approved: '�
         return;
       }
 
+      if (tab === 'photos') {
+        const list = await req('/uploads?status=pending');
+        contentEl.innerHTML = (list as any[]).length
+          ? (list as any[]).map((u) => `
+            <div class="acc-card" data-uid="${esc(u.id)}">
+              <div class="acc-main">
+                <b>${esc(u.uploaderName)} <span class="acc-meta">${esc(u.caption || '活动照片')}</span></b>
+                <span class="acc-meta">${esc(String(u.createdAt).slice(0, 16).replace('T', ' '))}${u.activityId ? ' · ' + esc(u.activityId) : ''}</span>
+                <a href="${esc(u.url)}" target="_blank" rel="noopener"><img src="${esc(u.url)}" alt="待审核照片" style="max-width:280px;border-radius:10px;margin-top:8px;" loading="lazy" /></a>
+              </div>
+              <div class="acc-ops">
+                <button class="btn btn-primary btn-sm" data-up-approve>通过并展示</button>
+                <button class="btn btn-ghost btn-sm" data-up-reject>退回</button>
+              </div>
+            </div>`).join('')
+          : '<p class="manage-empty">没有待审核的照片。</p>';
+        contentEl.querySelectorAll<HTMLElement>('.acc-card').forEach((card) => {
+          const id = card.dataset.uid!;
+          card.querySelector('[data-up-approve]')?.addEventListener('click', async () => {
+            try { await req('/uploads/' + id + '/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve' }) }); await render(); } catch (e: any) { alert('操作失败：' + e.message); }
+          });
+          card.querySelector('[data-up-reject]')?.addEventListener('click', async () => {
+            const reason = prompt('退回原因（可选）：', '');
+            if (reason === null) return;
+            try { await req('/uploads/' + id + '/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', reason }) }); await render(); } catch (e: any) { alert('操作失败：' + e.message); }
+          });
+        });
+        return;
+      }
+
       if (tab === 'logs') {
         const logs = await req('/logs');
         contentEl.innerHTML = (logs as any[]).length
@@ -279,6 +313,14 @@ const statusLabel: Record<string, string> = { pending: '待审核', approved: '�
       } finally {
         loginBtn.disabled = false;
       }
+    });
+
+    document.getElementById('mSync')?.addEventListener('click', async () => {
+      if (!confirm('用审核通过的账号覆盖成员档案（content/members.json）？之后需要重新构建站点才会生效。')) return;
+      try {
+        const d = await req('/sync-members', { method: 'POST' });
+        alert('已同步 ' + d.count + ' 位成员。' + d.note);
+      } catch (e: any) { alert('同步失败：' + e.message); }
     });
 
     logoutBtn?.addEventListener('click', async () => {

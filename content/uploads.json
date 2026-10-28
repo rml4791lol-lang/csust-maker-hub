@@ -1,0 +1,35 @@
+[
+  {
+    "id": "u-demo-1",
+    "url": "/photos/first-meeting-group.jpg",
+    "uploaderId": "demo-1",
+    "uploaderName": "技术部",
+    "uploaderIdentity": "dept_lead",
+    "activityId": "act-2026-10-23-meeting",
+    "caption": "第一次全体会议现场",
+    "status": "approved",
+    "createdAt": "2026-10-23T10:00:00.000Z"
+  },
+  {
+    "id": "u-demo-2",
+    "url": "/photos/president-lecture.jpg",
+    "uploaderId": "demo-2",
+    "uploaderName": "技术部",
+    "uploaderIdentity": "dept_lead",
+    "activityId": "act-2026-10-23-lecture",
+    "caption": "会长分享 AI 工具与知识产权",
+    "status": "approved",
+    "createdAt": "2026-10-23T10:10:00.000Z"
+  },
+  {
+    "id": "u-demo-3",
+    "url": "/photos/innovation-port-visit.jpg",
+    "uploaderId": "demo-3",
+    "uploaderName": "宣传部",
+    "uploaderIdentity": "dept_lead",
+    "activityId": "act-2026-10-23-visit",
+    "caption": "科创港参观",
+    "status": "approved",
+    "createdAt": "2026-10-23T10:20:00.000Z"
+  }
+]
