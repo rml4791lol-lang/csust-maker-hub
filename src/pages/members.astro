@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { members, depts } from '../data/members';
 import { profiles, publishedSubmissions, contributionTypeLabel } from '../data/contributions';
+import { site } from '../data/site';
 
 const profileMap = new Map(profiles.map((p) => [p.memberId, p]));
 
@@ -18,21 +19,13 @@ const skillFreq = new Map<string, number>();
 for (const p of profiles) for (const t of p.focusTags) skillFreq.set(t, (skillFreq.get(t) ?? 0) + 1);
 const topSkills = [...skillFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16);
 const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.contributions).slice(0, 5);
-
-const cards = members.map((m) => {
-  const p = profileMap.get(m.id);
-  return { member: m, profile: p, count: p?.stats.contributions ?? 0 };
-});
 ---
 
-<Base title="成员能力" description="长沙理工大学 AI 创客协会成员列表与能力画像：做过什么、擅长什么、下一步可以做什么。">
+<Base title="成员能力" description="长沙理工大学 AI 创客协会成员列表与能力画像：做过什么、擅长什么。">
   <div class="wrap page-header">
     <span class="crumb">MEMBERS / 成员能力</span>
-    <h1>成员，与他们的能力画像。</h1>
-    <p>
-      每位成员自己提交做过的成果，系统自动汇总能力标签、代表成果与下一步建议。
-      点开任何一个人，就能看到他/她在协会里留下的记录。
-    </p>
+    <h1>成员与能力画像</h1>
+    <p>成员自己提交成果，系统自动汇总能力标签与代表成果。点名字看个人档案。</p>
     <div class="hero-actions" style="margin-top:20px;">
       <a href="/contribute" class="btn btn-primary">提交我的记录 <span class="ar">→</span></a>
       <a href="/achievements" class="btn btn-ghost">看协会成果</a>
@@ -42,16 +35,15 @@ const cards = members.map((m) => {
   <div class="wrap" style="padding-bottom:96px;">
     <!-- 能力总览 -->
     <section class="section" style="padding-top:8px;">
-      <div class="section-head" data-reveal>
+      <div class="section-head">
         <div>
           <div class="sec-index"><b>01</b><span class="rule"></span>能力总览</div>
-          <h2 class="sec-title">这个协会在做什么、谁会做什么。</h2>
-          <p class="sec-desc">按成果记录自动聚合，数据随成员提交更新。</p>
+          <h2 class="sec-title">谁在做什么</h2>
         </div>
         <a class="sec-more" href="/achievements">看全部成果 <span class="ar">→</span></a>
       </div>
 
-      <div class="ability-grid" data-reveal>
+      <div class="ability-grid">
         <div class="ability-panel">
           <h3>部门产出</h3>
           {byDept.map((d) => (
@@ -63,7 +55,7 @@ const cards = members.map((m) => {
           ))}
         </div>
         <div class="ability-panel">
-          <h3>成果类型分布</h3>
+          <h3>成果类型</h3>
           {byType.map((t) => (
             <div class="ability-row">
               <span class="hbar-label">{t.label}</span>
@@ -94,19 +86,37 @@ const cards = members.map((m) => {
       </div>
     </section>
 
+    <!-- 部门 -->
+    <section class="section" style="padding-top:64px;">
+      <div class="section-head">
+        <div>
+          <div class="sec-index"><b>02</b><span class="rule"></span>五个部门</div>
+          <h2 class="sec-title">协会怎么分工</h2>
+        </div>
+      </div>
+
+      <div class="dept-grid">
+        {site.departments.map((d) => (
+          <div class="dept-card">
+            <span class="dept-name">{d.name}</span>
+            <p class="dept-duty">{d.duty}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
     <!-- 成员列表 -->
     <section class="section" style="padding-top:64px;">
-      <div class="section-head" data-reveal>
+      <div class="section-head">
         <div>
-          <div class="sec-index"><b>02</b><span class="rule"></span>成员列表</div>
-          <h2 class="sec-title">{members.length} 位成员，{members.length} 份成长记录。</h2>
-          <p class="sec-desc">覆盖技术部、竞赛部、组织部、宣传部、创新创业部；点名字进入个人档案，查看 AI 汇总与成果时间线。</p>
+          <div class="sec-index"><b>03</b><span class="rule"></span>成员档案</div>
+          <h2 class="sec-title">成员清单</h2>
         </div>
       </div>
 
       <div class="member-cards">
-        {cards.map(({ member: m, count }, i) => (
-          <a class="member-card" href={`/members/${m.id}`} data-reveal data-delay={Math.min(i * 40, 240)}>
+        {members.map((m) => (
+          <a class="member-card" href={`/members/${m.id}`}>
             <span class="archive-top">
               <span class="archive-avatar">{m.name.slice(0, 1)}</span>
               <span>
@@ -117,7 +127,7 @@ const cards = members.map((m) => {
             <span class="archive-tags">
               {m.skills.slice(0, 3).map((s) => <span class="skill-chip">{s}</span>)}
             </span>
-            <span class="archive-stats"><span><b>{count}</b> 条成果</span><span>查看档案 →</span></span>
+            <span class="archive-stats"><span>查看档案 →</span></span>
           </a>
         ))}
       </div>
