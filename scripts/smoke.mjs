@@ -22,7 +22,7 @@ function read(rel) {
 }
 
 // 1. 关键页面存在
-const pages = ['index.html', 'achievements/index.html', 'members/index.html', 'contribute/index.html', 'members/m01/index.html'];
+const pages = ['index.html', 'achievements/index.html', 'members/index.html', 'contribute/index.html', 'members/m01/index.html', 'login/index.html', 'register/index.html'];
 for (const p of pages) must(existsSync(join(DIST, p)), `缺关键页面：dist/${p}`);
 
 // 2. 已移除的冗余页面不应再产出
@@ -57,7 +57,13 @@ must(profilePage.includes('/share/member-m01.jpg'), '成员档案缺少专属分
 
 const contribute = read('contribute/index.html');
 must(contribute.includes('提交审核'), '提交页缺少提交按钮');
-must(contribute.includes('公开授权'), '提交页缺少授权确认');
+must(contribute.includes('同意在协会内部页面公开展示'), '提交页缺少授权确认');
+must(contribute.includes('登录后才能提交记录'), '投稿页缺少登录门');
+must(contribute.includes('mySubs'), '投稿页缺少我的投稿区');
+const loginPage = read('login/index.html');
+must(loginPage.includes('登录'), '登录页内容缺失');
+const registerPage = read('register/index.html');
+must(registerPage.includes('成员注册'), '注册页内容缺失');
 
 // 4.5 照片文件存在
 for (const photo of ['first-meeting-group.jpg', 'president-lecture.jpg', 'member-sharing.jpg', 'innovation-port-visit.jpg', 'innovation-port-aerial.jpg', 'lounge.jpg']) {

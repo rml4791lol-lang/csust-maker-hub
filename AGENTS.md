@@ -15,6 +15,7 @@
   已用于：首页首屏（轨道/极光/波纹）、全部页头与 CTA（神经网络）、首页关于协会与成员能力区（轨道/神经）、活动成果页与投稿页（轨道）、页脚（波纹）。
 - **AI 能力分析自动化**：`src/data/analyze.ts`（规则分析 + 可选 LLM）；`pnpm analyze` 重算档案；
   后台审核发布投稿后自动重算；接口 `POST /api/analyze`。服务器配 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` 后自动升级 LLM 分析。
+- **成员账号（实名）**：`src/data/auth.ts` 负责注册校验/密码哈希/会话签名；账号数据存服务器本地 `DATA_DIR`（默认 `~/.csust-maker-data`，不入仓库）；角色：成员/部长/管理员（部长及以上可上传）；投稿必须登录。
 - **分享卡片在 `public/share/`**：`home.jpg` + 每位成员 `member-mXX.jpg`，由 `scripts/generate-share-cards.py` 生成；页面通过 `Base` 的 `shareImage` 参数输出 `og:image`。
 - **发布状态在 `src/data/publish-state.json`**（后台写入），审核记录在 `src/data/review-log.json`。
 - 校验：`pnpm test`；构建烟雾：`pnpm test:smoke`（会校验冗余页面不应再产出）。

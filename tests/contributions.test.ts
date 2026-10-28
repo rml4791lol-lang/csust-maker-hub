@@ -40,6 +40,12 @@ describe('成员成果投稿', () => {
     expect(codes).toEqual(expect.arrayContaining(['memberId', 'title', 'description', 'date', 'link']));
   });
 
+  it('当天日期可以通过，明天会被拦（时区安全）', () => {
+    const now = new Date(2026, 9, 28, 12, 0, 0);
+    expect(validateSubmission({ ...valid, date: '2026-10-28' }, now)).toEqual([]);
+    expect(validateSubmission({ ...valid, date: '2026-10-29' }, now).map((i) => i.field)).toContain('date');
+  });
+
   it('配图必须是 http(s) 地址', () => {
     expect(validateSubmission({ ...valid, image: 'https://example.com/a.png' })).toEqual([]);
     expect(validateSubmission({ ...valid, image: 'javascript:alert(1)' }).map((i) => i.field)).toContain('image');

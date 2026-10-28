@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+import { members } from '../data/members';
+
+const memberOptions = members.map((m) => ({ id: m.id, name: m.name, dept: m.dept }));
+---
+
+<Base title="登录" description="长沙理工大学 AI 创客协会成员登录，登录后可提交自己的成果记录。" noindex>
+  <div class="wrap page-header">
+    <span class="crumb">LOGIN / 登录</span>
+    <h1>成员登录</h1>
+    <p>用注册时的姓名与密码登录；登录后提交记录、查看自己的投稿。</p>
+  </div>
+
+  <div class="wrap" style="padding-bottom:100px;max-width:560px;">
+    <form class="form-panel" id="loginForm" novalidate>
+      <div class="form-grid">
+        <div class="field full">
+          <label for="memberId">姓名<i>*</i></label>
+          <select id="memberId" name="memberId" required>
+            <option value="">选择你的名字</option>
+            {memberOptions.map((m) => <option value={m.id}>{m.name} · {m.dept}</option>)}
+          </select>
+        </div>
+        <div class="field full">
+          <label for="password">密码<i>*</i></label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="loginBtn">登录 <span class="ar">→</span></button>
+        <a href="/register" class="btn btn-ghost">还没注册？去注册</a>
+        <span class="form-msg" id="loginMsg" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm') as HTMLFormElement | null;
+    const msg = document.getElementById('loginMsg');
+    const btn = document.getElementById('loginBtn') as HTMLButtonElement | null;
+    const show = (text: string, kind: 'ok' | 'err' | '' = '') => {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.className = 'form-msg' + (kind ? ' ' + kind : '');
+    };
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form || !btn) return;
+      const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+      if (!data.memberId) return show('请选择你的名字', 'err');
+      if (!data.password) return show('请输入密码', 'err');
+      btn.disabled = true;
+      show('登录中…');
+      try {
+        const res = await fetch('/admin/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId: data.memberId, password: data.password }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || '登录失败');
+        show('登录成功，正在跳转…', 'ok');
+        location.href = '/contribute';
+      } catch (err: any) {
+        show(err.message || '登录失败', 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</Base>

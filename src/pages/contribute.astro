@@ -1,123 +1,138 @@
 ---
 import Base from '../layouts/Base.astro';
-import { members } from '../data/members';
 import { contributionTypeLabel } from '../data/contributions';
 
 const today = new Date().toISOString().slice(0, 10);
-const memberOptions = members.map((m) => ({ id: m.id, name: m.name, dept: m.dept, grade: m.grade }));
 const types = Object.entries(contributionTypeLabel).map(([value, label]) => ({ value, label }));
+const statusLabel: Record<string, string> = { pending: '待审核', published: '已发布', rejected: '已退回' };
 ---
 
-<Base title="提交记录" description="长沙理工大学 AI 创客协会成员提交自己的项目、竞赛、工作坊、课程与分享记录；审核后进入协会成果墙与个人能力档案。">
+<Base title="提交记录" description="长沙理工大学 AI 创客协会成员登录后提交自己的项目、竞赛、工作坊、课程与分享记录；审核后进入协会成果墙与个人能力档案。" noindex>
   <div class="wrap page-header">
     <span class="crumb">CONTRIBUTE / 提交记录</span>
     <h1>把你做过的事，记下来。</h1>
-    <p>
-      项目、竞赛、工作坊、课程、分享都算。提交后进入审核，通过后会出现在协会成果墙和你的个人能力档案里；
-      系统会自动汇总你的能力标签、代表成果与下一步建议。
-    </p>
+    <p>项目、竞赛、工作坊、课程、分享都算。提交后进入审核，通过后会出现在协会成果墙和你的个人能力档案里。</p>
   </div>
 
   <div class="wrap" style="padding-bottom:100px;">
-    <div class="form-shell">
-      <div class="profile-stats" style="grid-template-columns:repeat(3,1fr);margin:0 0 22px;padding:16px 0 0;border-top:1px solid var(--line);">
-        <div class="profile-stat"><b>01</b><span>自己填写</span></div>
-        <div class="profile-stat"><b>02</b><span>审核后进档案</span></div>
-        <div class="profile-stat"><b>03</b><span>AI 汇总成长线</span></div>
-      </div>
-
-      <form class="form-panel" id="contributeForm" data-reveal novalidate>
-        <div class="form-grid">
-          <div class="field">
-            <label for="memberId">我 是<i>*</i></label>
-            <select id="memberId" name="memberId" required>
-              <option value="">选择你的名字</option>
-              {memberOptions.map((m) => (
-                <option value={m.id}>{m.name} · {m.dept} · {m.grade}</option>
-              ))}
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="type">成果类型<i>*</i></label>
-            <select id="type" name="type" required>
-              {types.map((t) => <option value={t.value}>{t.label}</option>)}
-            </select>
-          </div>
-
-          <div class="field full">
-            <label for="title">标题<i>*</i></label>
-            <input id="title" name="title" maxlength="80" placeholder="例：校园电子班车表小程序上线" />
-            <span class="hint">一句话说清做了什么，别人一眼能看懂。</span>
-          </div>
-
-          <div class="field">
-            <label for="date">完成时间<i>*</i></label>
-            <input id="date" name="date" type="date" value={today} max={today} />
-          </div>
-
-          <div class="field">
-            <label for="outcome">产出 / 结果</label>
-            <input id="outcome" name="outcome" maxlength="200" placeholder="例：上线 1 个版本，覆盖 200 名同学" />
-          </div>
-
-          <div class="field full">
-            <label for="description">做了什么、怎么做的、结果如何<i>*</i></label>
-            <textarea id="description" name="description" minlength="30" maxlength="2000"
-              placeholder="至少 30 字。建议写：背景 / 你的角色 / 关键步骤 / 可量化的结果 / 踩过的坑。"></textarea>
-            <span class="hint">会被 AI 汇总成档案里的代表成果，写具体比写漂亮重要。</span>
-          </div>
-
-          <div class="field">
-            <label for="link">相关链接</label>
-            <input id="link" name="link" placeholder="https://…（作品 / 仓库 / 推文 / 视频）" />
-          </div>
-
-          <div class="field">
-            <label for="evidence">佐证说明</label>
-            <input id="evidence" name="evidence" maxlength="300" placeholder="谁可以证明、材料放在哪" />
-          </div>
-
-          <div class="field full">
-            <label for="image">成果配图（可选）</label>
-            <input id="image" name="image" placeholder="https://…（现场照片 / 截图，公开可访问的图片地址）" />
-            <span class="hint">有图更容易被看见；没有就只展示文字。</span>
-          </div>
-
-          <div class="field full">
-            <label style="text-transform:none;letter-spacing:0;font-family:var(--font-sans);">
-              <span class="check-field">
-                <input type="checkbox" id="consent" name="consent" />
-                <span>
-                  我确认以上内容真实、不含他人隐私与未公开数据，并同意在协会内部页面公开展示（含成员档案与成果墙）；
-                  涉及第三方素材的，我已有授权。
-                </span>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary" id="submitBtn">提交审核 <span class="ar">→</span></button>
-          <span class="form-msg" id="formMsg" role="status" aria-live="polite">提交后会写入待审核列表，审核通过才公开展示。</span>
-        </div>
-      </form>
-
-      <div class="layer-card" style="margin-top:18px;padding:18px 20px;display:grid;gap:10px;" data-reveal data-delay="80">
-        <span class="mono">提交前请确认</span>
-        <p style="font-size:14px;line-height:1.8;color:var(--fg-3);margin:0;">
-          ① 不涉政治、宗教、民族敏感内容；② 不含他人隐私与未公开数据；③ 不转载未授权付费内容与破解教程。
-          不确定的内容先别提交，问过站长再写。
-        </p>
+    <!-- 未登录 -->
+    <div class="auth-gate" id="authGate" hidden>
+      <h2>登录后才能提交记录</h2>
+      <p>成员账号需要实名注册，管理员审核通过后生效。</p>
+      <div class="cta-row">
+        <a href="/login" class="btn btn-primary">登录 <span class="ar">→</span></a>
+        <a href="/register" class="btn btn-ghost">注册账号</a>
       </div>
     </div>
+
+    <!-- 已登录 -->
+    <div class="auth-banner" id="authBanner" hidden>
+      <span class="auth-who" id="authWho"></span>
+      <span class="auth-role" id="authRole"></span>
+      <div class="auth-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="logoutBtn">退出登录</button>
+      </div>
+    </div>
+
+    <form class="form-panel" id="contributeForm" data-reveal novalidate hidden>
+      <div class="form-grid">
+        <div class="field">
+          <label for="type">成果类型<i>*</i></label>
+          <select id="type" name="type" required>
+            {types.map((t) => <option value={t.value}>{t.label}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="date">完成时间<i>*</i></label>
+          <input id="date" name="date" type="date" value={today} max={today} />
+        </div>
+
+        <div class="field full">
+          <label for="title">标题<i>*</i></label>
+          <input id="title" name="title" maxlength="80" placeholder="例：校园电子班车表小程序上线" />
+        </div>
+
+        <div class="field full">
+          <label for="outcome">产出 / 结果</label>
+          <input id="outcome" name="outcome" maxlength="200" placeholder="例：上线 1 个版本，覆盖 200 名同学" />
+        </div>
+
+        <div class="field full">
+          <label for="description">做了什么、怎么做的、结果如何<i>*</i></label>
+          <textarea id="description" name="description" minlength="30" maxlength="2000"
+            placeholder="至少 30 字。建议写：背景 / 你的角色 / 关键步骤 / 可量化的结果 / 踩过的坑。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="link">相关链接</label>
+          <input id="link" name="link" placeholder="https://…（作品 / 仓库 / 推文 / 视频）" />
+        </div>
+
+        <div class="field">
+          <label for="image">成果配图（可选）</label>
+          <input id="image" name="image" placeholder="https://…（现场照片 / 截图）" />
+        </div>
+
+        <div class="field full">
+          <label for="evidence">佐证说明</label>
+          <input id="evidence" name="evidence" maxlength="300" placeholder="谁可以证明、材料放在哪" />
+        </div>
+
+        <div class="field full">
+          <label style="text-transform:none;letter-spacing:0;font-family:var(--font-sans);">
+            <span class="check-field">
+              <input type="checkbox" id="consent" name="consent" />
+              <span>
+                我确认以上内容真实、不含他人隐私与未公开数据，并同意在协会内部页面公开展示（含成员档案与成果墙）；
+                涉及第三方素材的，我已有授权。
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="submitBtn">提交审核 <span class="ar">→</span></button>
+        <button type="button" class="btn btn-ghost" id="cancelEditBtn" hidden>取消修改</button>
+        <span class="form-msg" id="formMsg" role="status" aria-live="polite">提交后会写入待审核列表，审核通过才公开展示。</span>
+      </div>
+    </form>
+
+    <div class="layer-card" style="margin-top:18px;padding:18px 20px;display:grid;gap:10px;" hidden id="complianceBox">
+      <span class="mono">提交前请确认</span>
+      <p style="font-size:15px;line-height:1.8;color:var(--fg-3);margin:0;">
+        ① 不涉政治、宗教、民族敏感内容；② 不含他人隐私与未公开数据；③ 不转载未授权付费内容与破解教程。
+        不确定的内容先别提交，问过站长再写。
+      </p>
+    </div>
+
+    <!-- 我的投稿 -->
+    <section class="section" id="mySubs" style="padding-top:64px;" hidden>
+      <div class="section-head">
+        <div>
+          <div class="sec-index"><b>01</b><span class="rule"></span>我的投稿</div>
+          <h2 class="sec-title">我提交过的记录</h2>
+        </div>
+      </div>
+      <div class="my-list" id="myList"></div>
+    </section>
   </div>
 
-  <script type="application/json" id="member-data" set:html={JSON.stringify(memberOptions).replace(/</g, '\\u003c')}></script>
   <script>
+    const statusLabel: Record<string, string> = { pending: '待审核', published: '已发布', rejected: '已退回' };
+    const gate = document.getElementById('authGate');
+    const banner = document.getElementById('authBanner');
+    const whoEl = document.getElementById('authWho');
+    const roleEl = document.getElementById('authRole');
     const form = document.getElementById('contributeForm') as HTMLFormElement | null;
-    const msg = document.getElementById('formMsg');
     const btn = document.getElementById('submitBtn') as HTMLButtonElement | null;
+    const cancelBtn = document.getElementById('cancelEditBtn') as HTMLButtonElement | null;
+    const msg = document.getElementById('formMsg');
+    const compliance = document.getElementById('complianceBox');
+    const mySubs = document.getElementById('mySubs');
+    const myList = document.getElementById('myList');
+    const logoutBtn = document.getElementById('logoutBtn');
+    let editId: string | null = null;
 
     const show = (text: string, kind: 'ok' | 'err' | '' = '') => {
       if (!msg) return;
@@ -125,49 +140,174 @@ const types = Object.entries(contributionTypeLabel).map(([value, label]) => ({ v
       msg.className = 'form-msg' + (kind ? ' ' + kind : '');
     };
 
+    function resetEdit() {
+      editId = null;
+      form?.reset();
+      const date = form?.querySelector<HTMLInputElement>('#date');
+      if (date) date.value = new Date().toISOString().slice(0, 10);
+      if (cancelBtn) cancelBtn.hidden = true;
+      if (btn) btn.innerHTML = '提交审核 <span class="ar">→</span>';
+    }
+
+    async function loadMe() {
+      try {
+        const res = await fetch('/admin/api/auth/me');
+        if (!res.ok) throw new Error('unauth');
+        const body = await res.json();
+        const a = body.account;
+        if (gate) gate.hidden = true;
+        if (banner) banner.hidden = false;
+        if (whoEl) whoEl.textContent = a.name + ' · ' + a.dept;
+        if (roleEl) roleEl.textContent = body.roleLabel + (body.canUpload ? ' · 可上传图片' : '');
+        if (form) form.hidden = false;
+        if (compliance) compliance.hidden = false;
+        if (mySubs) mySubs.hidden = false;
+        await loadMine();
+      } catch {
+        if (gate) gate.hidden = false;
+        if (banner) banner.hidden = true;
+        if (form) form.hidden = true;
+        if (compliance) compliance.hidden = true;
+        if (mySubs) mySubs.hidden = true;
+      }
+    }
+
+    async function loadMine() {
+      if (!myList) return;
+      try {
+        const res = await fetch('/admin/api/my/submissions');
+        if (!res.ok) return;
+        const list = await res.json();
+        const sorted = [...list].sort((a, b) => {
+          const rank: Record<string, number> = { pending: 0, rejected: 1, published: 2 };
+          return (rank[a.status] ?? 3) - (rank[b.status] ?? 3);
+        });
+        if (!sorted.length) {
+          myList.innerHTML = '<div class="my-empty">还没有提交记录。从上面表单提交第一条吧。</div>';
+          return;
+        }
+        myList.innerHTML = sorted
+          .map((s: any) => {
+            const canEdit = s.status !== 'published';
+            return `<div class="my-row">
+              <div class="my-main">
+                <span class="my-status" data-status="${s.status}">${statusLabel[s.status] || s.status}</span>
+                <b>${escapeHtml(s.title)}</b>
+                <span class="my-meta">${escapeHtml(s.date)} · ${escapeHtml(s.type)}</span>
+                ${s.note ? `<p class="my-note">退回原因：${escapeHtml(s.note)}</p>` : ''}
+              </div>
+              <div class="my-ops">
+                ${canEdit ? `<button class="btn btn-ghost btn-sm" data-edit="${s.id}">修改</button><button class="btn btn-ghost btn-sm" data-withdraw="${s.id}">撤回</button>` : ''}
+              </div>
+            </div>`;
+          })
+          .join('');
+        myList.querySelectorAll<HTMLButtonElement>('[data-edit]').forEach((b) => b.addEventListener('click', () => startEdit((b.dataset.edit || ''))));
+        myList.querySelectorAll<HTMLButtonElement>('[data-withdraw]').forEach((b) => b.addEventListener('click', () => withdraw((b.dataset.withdraw || ''))));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function escapeHtml(s: unknown) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+    }
+
+    async function startEdit(id: string) {
+      try {
+        const res = await fetch('/admin/api/my/submissions');
+        const list = await res.json();
+        const s = list.find((x: any) => x.id === id);
+        if (!s || !form) return;
+        editId = id;
+        (form.querySelector('#type') as HTMLSelectElement).value = s.type;
+        (form.querySelector('#date') as HTMLInputElement).value = s.date;
+        (form.querySelector('#title') as HTMLInputElement).value = s.title;
+        (form.querySelector('#outcome') as HTMLInputElement).value = s.outcome || '';
+        (form.querySelector('#description') as HTMLTextAreaElement).value = s.description;
+        (form.querySelector('#link') as HTMLInputElement).value = s.link || '';
+        (form.querySelector('#image') as HTMLInputElement).value = s.image || '';
+        (form.querySelector('#evidence') as HTMLInputElement).value = s.evidence || '';
+        if (cancelBtn) cancelBtn.hidden = false;
+        if (btn) btn.innerHTML = '保存修改 <span class="ar">→</span>';
+        show('正在修改：保存后重新进入待审核。');
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e: any) {
+        show('读取记录失败：' + e.message, 'err');
+      }
+    }
+
+    async function withdraw(id: string) {
+      if (!confirm('确定撤回这条投稿？')) return;
+      try {
+        const res = await fetch('/admin/api/my/submissions/' + encodeURIComponent(id), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'withdraw' }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || '撤回失败');
+        show('已撤回', 'ok');
+        resetEdit();
+        await loadMine();
+      } catch (e: any) {
+        show('撤回失败：' + e.message, 'err');
+      }
+    }
+
+    cancelBtn?.addEventListener('click', () => {
+      resetEdit();
+      show('已取消修改');
+    });
+
+    logoutBtn?.addEventListener('click', async () => {
+      await fetch('/admin/api/auth/logout', { method: 'POST' }).catch(() => {});
+      location.reload();
+    });
+
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!form || !btn) return;
       const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
-      // 前端先做一次轻校验，减少无效请求
       const local: string[] = [];
-      if (!data.memberId) local.push('请选择你是谁');
       if (!data.title || data.title.trim().length < 4) local.push('标题至少 4 字');
       if (!data.description || data.description.trim().length < 30) local.push('描述至少 30 字');
       if (data.link && !/^https?:\/\//.test(data.link)) local.push('链接要以 http(s):// 开头');
       if (data.image && !/^https?:\/\//.test(data.image)) local.push('配图要以 http(s):// 开头');
       const consent = form.querySelector<HTMLInputElement>('#consent');
       if (!consent?.checked) local.push('请先勾选「内容真实与公开授权」');
-      if (local.length) {
-        show(local.join('；'), 'err');
-        return;
-      }
+      if (local.length) return show(local.join('；'), 'err');
 
       btn.disabled = true;
       show('正在提交…');
       try {
-        const res = await fetch('/admin/api/contribute', {
+        const url = editId ? '/admin/api/my/submissions/' + encodeURIComponent(editId) : '/admin/api/contribute';
+        const payload = editId ? { action: 'update', ...data } : data;
+        const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const issues = Array.isArray(body.issues)
-            ? body.issues.map((i: any) => i.message).join('；')
-            : body.error || '提交失败';
+          if (res.status === 401 && body.login) {
+            if (gate) gate.hidden = false;
+            if (form) form.hidden = true;
+            throw new Error('登录已过期，请重新登录');
+          }
+          const issues = Array.isArray(body.issues) ? body.issues.map((i: any) => i.message).join('；') : body.error || '提交失败';
           throw new Error(issues);
         }
-        form.reset();
-        show('已提交，等待审核。通过后会出现在你的成员档案里。', 'ok');
+        resetEdit();
+        show(editId ? '已修改，重新进入待审核。' : '已提交，等待审核。通过后会出现在你的成员档案里。', 'ok');
+        await loadMine();
       } catch (err: any) {
-        show(
-          '提交失败：' + (err.message || '网络错误') + '（本地开发时后台未启动是正常的，线上会正常提交）',
-          'err'
-        );
+        show('提交失败：' + (err.message || '网络错误'), 'err');
       } finally {
         btn.disabled = false;
       }
     });
+
+    loadMe();
   </script>
 </Base>

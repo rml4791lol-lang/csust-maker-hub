@@ -214,9 +214,10 @@ export function validateSubmission(input: ContributionInput, now = new Date()): 
   }
 
   const date = text(input.date);
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   if (!DATE_RE.test(date)) {
     issues.push({ field: 'date', message: '日期格式必须是 YYYY-MM-DD' });
-  } else if (new Date(date + 'T23:59:59') > now) {
+  } else if (date > today) {
     issues.push({ field: 'date', message: '日期不能晚于今天' });
   }
 

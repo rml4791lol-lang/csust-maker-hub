@@ -3588,3 +3588,78 @@ input, select, textarea, button, option {
 .ach-empty { font-size: 15px !important; }
 .brand-sub, .brand-mark { font-size: 14px !important; }
 .skill-chip, .tag { font-size: 15px !important; }
+
+
+/* 2026-10-28 成员账号：登录态 / 登录门 / 我的投稿 */
+.nav-auth {
+  font-size: 15px;
+  color: var(--fg-2);
+  padding: 8px 4px;
+  border-bottom: 1px solid transparent;
+}
+.nav-auth:hover { color: #fff; border-bottom-color: var(--accent-hi); }
+.nav-auth.is-user { color: var(--accent-hi); }
+
+.auth-gate {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 36px 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.006));
+  display: grid;
+  gap: 12px;
+  max-width: 640px;
+}
+.auth-gate h2 { font-size: 24px; color: #fff; font-weight: 560; margin: 0; }
+.auth-gate p { color: var(--fg-3); font-size: 15px; margin: 0; }
+
+.auth-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1px solid rgba(143, 164, 255, 0.25);
+  border-radius: 12px;
+  background: rgba(94, 106, 210, 0.1);
+  margin-bottom: 18px;
+  font-size: 15px;
+}
+.auth-who { color: #fff; font-weight: 520; }
+.auth-role { color: var(--accent-hi); font-size: 14px; }
+.auth-actions { margin-left: auto; }
+
+.my-list { display: grid; gap: 10px; }
+.my-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.my-main { display: grid; gap: 4px; min-width: 0; }
+.my-main b { font-size: 16px; color: #eef1f6; font-weight: 520; }
+.my-meta { font-size: 14px; color: var(--fg-4); }
+.my-note { margin: 2px 0 0; font-size: 14px; color: #f0b46a; }
+.my-status {
+  width: fit-content;
+  font-size: 14px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--line-2);
+  color: var(--fg-2);
+}
+.my-status[data-status='pending'] { color: #f0b46a; border-color: rgba(240, 180, 106, 0.35); background: rgba(240, 180, 106, 0.08); }
+.my-status[data-status='published'] { color: #9fd8b8; border-color: rgba(159, 216, 184, 0.35); background: rgba(159, 216, 184, 0.08); }
+.my-status[data-status='rejected'] { color: #f08a8a; border-color: rgba(240, 138, 138, 0.35); background: rgba(240, 138, 138, 0.08); }
+.my-empty { color: var(--fg-3); font-size: 15px; padding: 18px; border: 1px dashed var(--line-2); border-radius: 12px; }
+.my-ops { display: flex; gap: 8px; flex-shrink: 0; }
+@media (max-width: 620px) {
+  .my-row { flex-direction: column; }
+  .my-ops { width: 100%; }
+}
+
+/* [hidden] 必须真正隐藏（防止组件 display 覆盖） */
+[hidden] { display: none !important; }

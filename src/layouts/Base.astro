@@ -64,6 +64,7 @@ const shareImageUrl = new URL(shareImage, site.url).toString();
         </nav>
 
         <div class="tright">
+          <a class="nav-auth" href="/login" data-auth>登录</a>
           <a class="btn btn-primary btn-sm" href="/contribute">提交记录 <span class="ar">→</span></a>
           <button class="tburger" aria-label="菜单" aria-expanded="false">≡</button>
         </div>
@@ -185,6 +186,19 @@ const shareImageUrl = new URL(shareImage, site.url).toString();
           card.style.setProperty('--my', `${((ev.clientY - r.top) / r.height) * 100}%`);
         });
       });
+
+      // ---------- 登录态：已登录显示成员名 ----------
+      fetch('/admin/api/auth/me')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const link = document.querySelector<HTMLAnchorElement>('[data-auth]');
+          if (!link || !d?.account) return;
+          link.textContent = d.account.name;
+          link.href = '/contribute';
+          link.title = '我的记录';
+          link.classList.add('is-user');
+        })
+        .catch(() => {});
 
       // ---------- 移动端菜单 ----------
       const burger = document.querySelector<HTMLButtonElement>('.tburger');
