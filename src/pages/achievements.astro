@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import { groupAchievements, contributionTypeLabel, type ContributionType } from '../data/contributions';
 import { sortedActivities, activityKindLabel } from '../data/activities';
 import { memberExists } from '../data/members';
+import { approvedUploads } from '../data/uploads';
 
 const groups = groupAchievements();
 const types = (Object.keys(contributionTypeLabel) as ContributionType[])
@@ -12,6 +13,7 @@ const allDepts = [...new Set(groups.flatMap((g) => g.depts))];
 const memberIds = new Set(groups.flatMap((g) => g.members.map((m) => m.id)));
 const latest = groups[0]?.date ?? '—';
 const activities = sortedActivities();
+const photoCount = approvedUploads().length;
 
 const isExternal = (link?: string) => Boolean(link && /^https?:/.test(link));
 const cardSearch = (g: (typeof groups)[number]) =>
@@ -36,7 +38,7 @@ const cardSearch = (g: (typeof groups)[number]) =>
     <div class="ach-stats" data-reveal>
       <div class="ach-stat"><span class="stat-label">协会活动</span><b class="ach-num" data-count={activities.length}>{activities.length}</b></div>
       <div class="ach-stat"><span class="stat-label">成果条目</span><b class="ach-num" data-count={groups.length}>{groups.length}</b></div>
-      <div class="ach-stat"><span class="stat-label">参与成员</span><b class="ach-num" data-count={memberIds.size}>{memberIds.size}</b></div>
+      <div class="ach-stat"><span class="stat-label">现场照片</span><b class="ach-num" data-count={photoCount}>{photoCount}</b></div>
       <div class="ach-stat"><span class="stat-label">覆盖部门</span><b class="ach-num" data-count={allDepts.length}>{allDepts.length}</b></div>
     </div>
 
