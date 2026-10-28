@@ -131,7 +131,7 @@ export interface AchievementGroup {
 export function groupAchievements(list: Submission[] = publishedSubmissions()): AchievementGroup[] {
   const groups: AchievementGroup[] = [];
   const byKey = new Map<string, AchievementGroup>();
-  for (const s of [...list].sort((a, b) => (a.date < b.date ? 1 : -1))) {
+  for (const s of [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))) {
     const key = `${s.title}||${s.date}`;
     let g = byKey.get(key);
     if (!g) {
@@ -158,7 +158,7 @@ export function groupAchievements(list: Submission[] = publishedSubmissions()): 
     if (!g.link && s.link) g.link = s.link;
     if (!g.outcome && s.outcome) g.outcome = s.outcome;
   }
-  return groups.sort((a, b) => (a.date < b.date ? 1 : -1));
+  return groups.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }
 
 /** 首页用的最近团队成果 */

@@ -8,9 +8,9 @@
 - **信息架构只保留两条主线**：展示活动与成果、收集并分析成员能力。页面在 `src/pages/`：
   `index`（首页）/ `achievements`（活动与成果）/ `members`（成员能力）/ `members/[id]`（个人档案）/ `contribute`（提交记录）/ `404`。
   已下线：内容库、工具站、资源、数据看板、关于页（见 `docs/2026-10-28-精简改版.md`），不要在没有明确需求时加回来。
-- **业务数据在 `content/`**：`submissions.json`（成员成果记录，`status` 控制展示）、`profiles.json`（成员能力档案，**自动生成**）。
+- **业务数据在 `content/`**：`activities.json`（协会活动记录，含 `public/photos/` 现场照片）、`submissions.json`（成员成果记录，`status` 控制展示）、`profiles.json`（成员能力档案，**自动生成**）。
   `items.json` / `flags.json` / `tools.json` 是历史数据，仅作回填与后台兼容保留。
-- **成员名单在 `src/data/members.ts`**，协会信息/导航/联系方式在 `src/data/site.ts`。
+- **成员名单在 `src/data/members.ts`**，协会信息/导航/部门职责/运行机制/首屏照片在 `src/data/site.ts`；现场照片在 `public/photos/`（压缩后的 jpg，页面懒加载）。
 - **AI 能力分析自动化**：`src/data/analyze.ts`（规则分析 + 可选 LLM）；`pnpm analyze` 重算档案；
   后台审核发布投稿后自动重算；接口 `POST /api/analyze`。服务器配 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` 后自动升级 LLM 分析。
 - **发布状态在 `src/data/publish-state.json`**（后台写入），审核记录在 `src/data/review-log.json`。

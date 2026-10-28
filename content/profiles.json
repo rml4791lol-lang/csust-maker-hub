@@ -312,5 +312,48 @@
       "lastDate": "2026-10-26"
     },
     "aiUpdatedAt": "2026-10-28"
+  },
+  {
+    "memberId": "m13",
+    "name": "方晓",
+    "dept": "组织部",
+    "role": "部长",
+    "grade": "2023 级",
+    "aiSummary": "方晓（部长）是组织部成员，暂无成果记录。建议从最近一次项目、工作坊或分享开始补充。",
+    "focusTags": [
+      "活动策划",
+      "场地与审批对接",
+      "招新"
+    ],
+    "highlights": [],
+    "nextStep": "提交第一条成果记录（项目、竞赛、工作坊都算），档案会自动生成。",
+    "stats": {
+      "contributions": 0,
+      "projects": 0,
+      "competitions": 0,
+      "activities": 0
+    },
+    "aiUpdatedAt": "2026-10-28"
+  },
+  {
+    "memberId": "m14",
+    "name": "季然",
+    "dept": "组织部",
+    "grade": "2025 级",
+    "aiSummary": "季然是组织部成员，暂无成果记录。建议从最近一次项目、工作坊或分享开始补充。",
+    "focusTags": [
+      "活动执行",
+      "签到管理",
+      "学院对接"
+    ],
+    "highlights": [],
+    "nextStep": "提交第一条成果记录（项目、竞赛、工作坊都算），档案会自动生成。",
+    "stats": {
+      "contributions": 0,
+      "projects": 0,
+      "competitions": 0,
+      "activities": 0
+    },
+    "aiUpdatedAt": "2026-10-28"
   }
 ]

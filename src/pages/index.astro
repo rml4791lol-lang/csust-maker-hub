@@ -3,12 +3,14 @@ import Base from '../layouts/Base.astro';
 import { site } from '../data/site';
 import { members } from '../data/members';
 import { profiles, groupAchievements, contributionTypeLabel } from '../data/contributions';
+import { recentActivities, activityKindLabel } from '../data/activities';
 
 const groups = groupAchievements();
 const recent = groups.slice(0, 6);
 const memberCount = members.length;
 const deptCount = new Set(members.map((m) => m.dept)).size;
 const latest = groups[0]?.date ?? '—';
+const activities = recentActivities(4);
 
 const topProfiles = [...profiles].sort((a, b) => b.stats.contributions - a.stats.contributions).slice(0, 4);
 const skillFreq = new Map<string, number>();
@@ -43,49 +45,73 @@ const typeLabel = (t: string) => contributionTypeLabel[t as keyof typeof contrib
 
         <div class="hero-meta">
           <span><i></i>{memberCount} 位成员</span>
+          <span><i></i>{activities.length} 场活动</span>
           <span><i></i>{groups.length} 项成果</span>
           <span><i></i>{deptCount} 个部门</span>
-          <span><i></i>最近更新 {latest.replaceAll('-', '.')}</span>
         </div>
       </div>
 
-      <aside class="hero-latest" aria-label="最近活动与成果">
-        <div class="hero-latest-head">
-          <span>最近活动与成果</span>
-          <a href="/achievements">全部 →</a>
-        </div>
-        <div class="hero-latest-list">
-          {recent.slice(0, 4).map((g) => (
-            <a class="hero-latest-row" href="/achievements">
-              <span class="hl-date">{g.date.replaceAll('-', '.')}</span>
-              <span class="hl-main">
-                <b>{g.title}</b>
-                <i>{g.members.slice(0, 2).map((m) => m.name).join('、')}{g.members.length > 2 ? ' 等' : ''}</i>
-              </span>
-              <span class="hl-go">→</span>
-            </a>
-          ))}
-        </div>
+      <aside class="hero-photo">
+        <a class="hero-photo-frame" href="/achievements#act-2026-10-23-meeting">
+          <img src={site.heroPhoto.src} alt={site.heroPhoto.alt} />
+          <span class="hero-photo-shade"></span>
+          <span class="hero-photo-badge">{site.heroPhoto.date.replaceAll('-', '.')} · {site.heroPhoto.label}</span>
+          <span class="hero-photo-caption">
+            <b>{site.heroPhoto.caption}</b>
+            <i>去活动记录看现场 →</i>
+          </span>
+        </a>
+        <span class="hero-photo-count">{memberCount} 人 · {site.contact.address}</span>
       </aside>
     </div>
 
     <div class="stats-strip">
       <div class="wrap stats-grid">
         <div class="stat-cell" data-reveal><span class="stat-k">在册成员</span><span class="stat-v"><span data-count={memberCount}>{memberCount}</span><small>人</small></span></div>
-        <div class="stat-cell" data-reveal data-delay="80"><span class="stat-k">成果记录</span><span class="stat-v"><span data-count={groups.length}>{groups.length}</span><small>项</small></span></div>
-        <div class="stat-cell" data-reveal data-delay="160"><span class="stat-k">覆盖部门</span><span class="stat-v"><span data-count={deptCount}>{deptCount}</span><small>个</small></span></div>
-        <div class="stat-cell" data-reveal data-delay="240"><span class="stat-k">最近更新</span><span class="stat-v" style="font-size:26px;">{latest.replaceAll('-', '.')}</span></div>
+        <div class="stat-cell" data-reveal data-delay="80"><span class="stat-k">协会活动</span><span class="stat-v"><span data-count={activities.length}>{activities.length}</span><small>场</small></span></div>
+        <div class="stat-cell" data-reveal data-delay="160"><span class="stat-k">成果记录</span><span class="stat-v"><span data-count={groups.length}>{groups.length}</span><small>项</small></span></div>
+        <div class="stat-cell" data-reveal data-delay="240"><span class="stat-k">覆盖部门</span><span class="stat-v"><span data-count={deptCount}>{deptCount}</span><small>个</small></span></div>
       </div>
     </div>
   </section>
 
-  <!-- ================= 活动与成果 ================= -->
+  <!-- ================= 活动记录 ================= -->
+  <section class="section" id="activities">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>01</b><span class="rule"></span>活动记录</div>
+          <h2 class="sec-title">协会最近办了什么。</h2>
+          <p class="sec-desc">会议、分享、参观与工作坊都留了现场照片和记录，按时间倒序。</p>
+        </div>
+        <a class="sec-more" href="/achievements">全部活动与成果 <span class="ar">→</span></a>
+      </div>
+
+      <div class="activity-grid">
+        {activities.map((a, i) => (
+          <a class={`activity-card ${i === 0 ? 'activity-card-feature' : ''}`} href={`/achievements#${a.id}`} data-reveal data-delay={Math.min(i * 55, 220)}>
+            <span class="activity-cover">
+              <img src={a.cover} alt={a.title} loading={i === 0 ? 'eager' : 'lazy'} />
+              <span class="activity-kind">{activityKindLabel[a.kind]}</span>
+            </span>
+            <span class="activity-body">
+              <span class="activity-meta">{a.date.replaceAll('-', '.')}{a.location ? ` · ${a.location}` : ''}</span>
+              <b>{a.title}</b>
+              <p>{a.summary}</p>
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 成员成果 ================= -->
   <section class="section" id="achievements">
     <div class="wrap">
       <div class="section-head" data-reveal>
         <div>
-          <div class="sec-index"><b>01</b><span class="rule"></span>活动与成果</div>
-          <h2 class="sec-title">协会最近做了什么。</h2>
+          <div class="sec-index"><b>02</b><span class="rule"></span>成员成果</div>
+          <h2 class="sec-title">成员们做出来的东西。</h2>
           <p class="sec-desc">项目、竞赛、工作坊、分享都算，按时间倒序；每条都能追到参与的人。</p>
         </div>
         <a class="sec-more" href="/achievements">全部 {groups.length} 项 <span class="ar">→</span></a>
@@ -119,7 +145,7 @@ const typeLabel = (t: string) => contributionTypeLabel[t as keyof typeof contrib
     <div class="wrap">
       <div class="section-head" data-reveal>
         <div>
-          <div class="sec-index"><b>02</b><span class="rule"></span>成员能力</div>
+          <div class="sec-index"><b>03</b><span class="rule"></span>成员能力</div>
           <h2 class="sec-title">谁在做什么，AI 汇总给你看。</h2>
           <p class="sec-desc">成员自己提交成果，系统自动汇总能力标签与代表成果；点开名字看完整档案。</p>
         </div>
@@ -156,23 +182,70 @@ const typeLabel = (t: string) => contributionTypeLabel[t as keyof typeof contrib
     <div class="wrap">
       <div class="section-head" data-reveal>
         <div>
-          <div class="sec-index"><b>03</b><span class="rule"></span>关于协会</div>
+          <div class="sec-index"><b>04</b><span class="rule"></span>关于协会</div>
           <h2 class="sec-title">{site.about.lead}</h2>
           <p class="sec-desc">{site.about.body}</p>
         </div>
       </div>
 
-      <div class="about-facts">
-        {site.about.facts.map((f) => (
+      <div class="about-layout">
+        <div class="about-media" data-reveal>
+          <figure class="about-photo-main">
+            <img src="/photos/innovation-port-aerial.jpg" alt="长沙理工大学云塘校区科创港外观" loading="lazy" />
+            <figcaption>云塘校区 · 科创港</figcaption>
+          </figure>
+          <figure class="about-photo-sub">
+            <img src="/photos/lounge.jpg" alt="科创港交流室，协会活动与分享场地" loading="lazy" />
+            <figcaption>交流室 · 活动与分享场地</figcaption>
+          </figure>
+        </div>
+
+        <div class="about-facts">
+          {site.about.facts.map((f) => (
+            <div class="about-fact" data-reveal>
+              <span class="mono">{f.k}</span>
+              <b>{f.v}</b>
+            </div>
+          ))}
           <div class="about-fact" data-reveal>
-            <span class="mono">{f.k}</span>
-            <b>{f.v}</b>
+            <span class="mono">联系</span>
+            <b><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 部门与机制 ================= -->
+  <section class="section" id="structure">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>05</b><span class="rule"></span>部门与机制</div>
+          <h2 class="sec-title">五个部门，一套能沉淀的机制。</h2>
+          <p class="sec-desc">协会由会长统筹，五个部门分工协作；做过的项目要沉淀成可复用的经验。</p>
+        </div>
+      </div>
+
+      <div class="dept-grid">
+        {site.departments.map((d, i) => (
+          <div class="dept-card" data-reveal data-delay={Math.min(i * 45, 200)}>
+            <span class="dept-name">{d.name}</span>
+            <p class="dept-duty">{d.duty}</p>
+            <span class="dept-tags">
+              {d.tags.map((t) => <span class="tag">{t}</span>)}
+            </span>
           </div>
         ))}
-        <div class="about-fact" data-reveal>
-          <span class="mono">联系</span>
-          <b><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></b>
-        </div>
+      </div>
+
+      <div class="mech-list" data-reveal>
+        {site.mechanisms.map((m) => (
+          <div class="mech-row">
+            <span class="mech-k">{m.k}</span>
+            <p>{m.v}</p>
+          </div>
+        ))}
       </div>
     </div>
   </section>
@@ -180,12 +253,12 @@ const typeLabel = (t: string) => contributionTypeLabel[t as keyof typeof contrib
   <!-- ================= CTA ================= -->
   <section class="cta-band">
     <div class="wrap cta-inner" data-reveal>
-      <div class="sec-index"><b>04</b><span class="rule"></span>开始</div>
+      <div class="sec-index"><b>06</b><span class="rule"></span>开始</div>
       <h2>做过的事，<span class="grad">值得被记下来。</span></h2>
       <p>提交一条项目、竞赛、工作坊或分享记录，审核后进入协会成果墙与你自己的 AI 能力档案。</p>
       <div class="cta-row">
         <a href="/contribute" class="btn btn-primary">提交我的记录 <span class="ar">→</span></a>
-        <a href="/achievements" class="btn btn-ghost">先看看成果</a>
+        <a href="/achievements" class="btn btn-ghost">先看看活动与成果</a>
       </div>
     </div>
   </section>

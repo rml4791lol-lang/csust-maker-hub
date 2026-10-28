@@ -70,7 +70,8 @@ describe('成员 AI 档案', () => {
     for (const p of profiles) {
       expect(p.aiSummary.trim().length).toBeGreaterThan(10);
       expect(p.focusTags.length).toBeGreaterThan(0);
-      expect(p.highlights.length).toBeGreaterThan(0);
+      // 有成果的成员必须有代表成果；新加入、暂无记录的成员允许为空
+      if (p.stats.contributions > 0) expect(p.highlights.length).toBeGreaterThan(0);
     }
   });
 

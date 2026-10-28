@@ -1,0 +1,47 @@
+[
+  {
+    "id": "act-2026-10-23-meeting",
+    "title": "协会第一次全体会议",
+    "date": "2026-10-23",
+    "kind": "meeting",
+    "summary": "协会第一次全体会议在科创港举行：明确协会定位与五个部门分工，分享 AI 工具使用原则、大学生创业与保研政策，确定每周案例分享与项目沉淀机制。",
+    "cover": "/photos/first-meeting-group.jpg",
+    "photos": ["/photos/first-meeting-group.jpg", "/photos/first-meeting.jpg"],
+    "location": "长沙理工大学云塘校区 · 科创港",
+    "depts": ["技术部", "竞赛部", "组织部", "宣传部", "创新创业部"],
+    "tags": ["全体会议", "部门分工", "AI 工具"]
+  },
+  {
+    "id": "act-2026-10-23-lecture",
+    "title": "会长分享：AI 工具与知识产权创作",
+    "date": "2026-10-23",
+    "kind": "lecture",
+    "summary": "会长讲解 AI 工具使用原则：避免全流程依赖 AI，软著可 AI 辅助但需人工审核，专利需先掌握传统写作逻辑；并介绍 Skill 的使用方式与人机协作流程。",
+    "cover": "/photos/president-lecture.jpg",
+    "photos": ["/photos/president-lecture.jpg"],
+    "location": "科创港 · 交流室",
+    "tags": ["AI 工具", "Skill", "知识产权"]
+  },
+  {
+    "id": "act-2026-10-23-sharing",
+    "title": "成员分享：AI 工具实践案例",
+    "date": "2026-10-23",
+    "kind": "sharing",
+    "summary": "成员结合真实任务做案例分享，演示 AI 工具在项目里的用法与踩坑，为「每周案例分享」机制开了个头。",
+    "cover": "/photos/member-sharing.jpg",
+    "photos": ["/photos/member-sharing.jpg"],
+    "location": "科创港 · 交流室",
+    "tags": ["案例分享", "AI 实践"]
+  },
+  {
+    "id": "act-2026-10-23-visit",
+    "title": "科创港参观：概念验证与中试平台",
+    "date": "2026-10-23",
+    "kind": "visit",
+    "summary": "协会成员参观科创港的概念验证与中试平台，了解从技术成果到产品验证的完整流程，为后续项目落地与园区申报做准备。",
+    "cover": "/photos/innovation-port-visit.jpg",
+    "photos": ["/photos/innovation-port-visit.jpg"],
+    "location": "科创港 · 概念验证与中试平台",
+    "tags": ["参观", "科创港", "项目落地"]
+  }
+]

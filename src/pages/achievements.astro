@@ -1,27 +1,28 @@
 ---
 import Base from '../layouts/Base.astro';
 import { groupAchievements, contributionTypeLabel, type ContributionType } from '../data/contributions';
+import { sortedActivities, activityKindLabel } from '../data/activities';
 
 const groups = groupAchievements();
-const typeKeys = Object.keys(contributionTypeLabel) as ContributionType[];
-const types = typeKeys
+const types = (Object.keys(contributionTypeLabel) as ContributionType[])
   .map((k) => ({ key: k, label: contributionTypeLabel[k], n: groups.filter((g) => g.type === k).length }))
   .filter((t) => t.n > 0);
 const allDepts = [...new Set(groups.flatMap((g) => g.depts))];
 const memberIds = new Set(groups.flatMap((g) => g.members.map((m) => m.id)));
 const latest = groups[0]?.date ?? '—';
+const activities = sortedActivities();
 
 const isExternal = (link?: string) => Boolean(link && /^https?:/.test(link));
 const cardSearch = (g: (typeof groups)[number]) =>
   `${g.title} ${g.description} ${g.members.map((m) => m.name).join(' ')} ${g.depts.join(' ')}`;
 ---
 
-<Base title="活动与成果" description="长沙理工大学 AI 创客协会的活动与成果：项目、竞赛、工作坊、课程与分享，按类型、部门和时间浏览。">
+<Base title="活动与成果" description="长沙理工大学 AI 创客协会的活动记录与成员成果：会议、分享、参观，以及项目、竞赛、工作坊与课程。">
   <div class="wrap page-header">
     <span class="crumb">ACHIEVEMENTS / 活动与成果</span>
     <h1>协会做过的事，都在这。</h1>
     <p>
-      项目、竞赛、工作坊、课程与分享按时间汇总，每条都能追到参与的人。
+      上半部分是协会活动记录，带现场照片；下半部分是成员成果，每条都能追到参与的人。
       成员可以自己提交记录，审核后进入这里，并自动进入个人能力档案。
     </p>
     <div class="hero-actions" style="margin-top:20px;">
@@ -32,64 +33,107 @@ const cardSearch = (g: (typeof groups)[number]) =>
 
   <div class="wrap" style="padding-bottom:96px;">
     <div class="ach-stats" data-reveal>
+      <div class="ach-stat"><span class="stat-label">协会活动</span><b class="ach-num" data-count={activities.length}>{activities.length}</b></div>
       <div class="ach-stat"><span class="stat-label">成果条目</span><b class="ach-num" data-count={groups.length}>{groups.length}</b></div>
       <div class="ach-stat"><span class="stat-label">参与成员</span><b class="ach-num" data-count={memberIds.size}>{memberIds.size}</b></div>
       <div class="ach-stat"><span class="stat-label">覆盖部门</span><b class="ach-num" data-count={allDepts.length}>{allDepts.length}</b></div>
-      <div class="ach-stat"><span class="stat-label">最近更新</span><b class="ach-num" style="font-size:20px;">{latest.replaceAll('-', '.')}</b></div>
     </div>
 
-    <div class="filter-bar" id="filters">
-      <button class="chip active" data-filter-type="all">全部类型 <span class="count">{groups.length}</span></button>
-      {types.map((t) => (
-        <button class="chip" data-filter-type={t.key}>{t.label} <span class="count">{t.n}</span></button>
-      ))}
-      <div style="flex:1"></div>
-      <label class="search-box">
-        <span style="color:var(--text-3);font-size:13px;">⌕</span>
-        <input type="search" id="q" placeholder="搜标题、描述、成员…" aria-label="搜索成果" />
-      </label>
-    </div>
+    <!-- ================= 活动记录 ================= -->
+    <section class="section" style="padding-top:24px;">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>01</b><span class="rule"></span>活动记录</div>
+          <h2 class="sec-title">会议、分享、参观，都留了现场。</h2>
+          <p class="sec-desc">协会活动的现场照片与记录，按时间倒序；最近更新 {latest.replaceAll('-', '.')}。</p>
+        </div>
+      </div>
 
-    <div class="filter-bar" id="deptFilters" style="border-bottom:0;padding-top:0;margin-bottom:14px;">
-      <span class="mono" style="margin-right:6px;">部门</span>
-      <button class="chip active" data-filter-dept="all">全部</button>
-      {allDepts.map((d) => <button class="chip" data-filter-dept={d}>{d}</button>)}
-    </div>
-
-    <div class="ach-grid" id="grid">
-      {groups.map((g, i) => (
-        <article class="ach-card" id={g.ids[0]} data-type={g.type} data-dept={g.depts.join(',')} data-search={cardSearch(g)} data-reveal data-delay={Math.min(i * 40, 240)}>
-          <div class="ach-top">
-            <span class="ach-type">{contributionTypeLabel[g.type] ?? '成果'}</span>
-            <span class="ach-date">{g.date.replaceAll('-', '.')}</span>
-          </div>
-          {g.image ? <img class="ach-img" src={g.image} alt={`${g.title} 配图`} loading="lazy" /> : null}
-          <h2 class="ach-title">{g.title}</h2>
-          <p class="ach-desc">{g.description}</p>
-          {g.outcome ? <div class="ach-outcome">产出：{g.outcome}</div> : null}
-          <div class="ach-foot">
-            <span class="ach-member">
-              <span class="ach-avatar">{g.members[0]?.name.slice(0, 1) || '创'}</span>
-              {g.members.slice(0, 3).map((m, idx) => (
-                <a href={`/members/${m.id}`}>{m.name}{idx < Math.min(g.members.length, 3) - 1 ? '、' : ''}</a>
-              ))}
-              {g.members.length > 3 ? <span style="color:var(--fg-4);">等 {g.members.length} 人</span> : null}
+      <div class="activity-grid">
+        {activities.map((a, i) => (
+          <article class={`activity-card ${i === 0 ? 'activity-card-feature' : ''}`} id={a.id} data-reveal data-delay={Math.min(i * 55, 200)}>
+            <span class="activity-cover">
+              <img src={a.cover} alt={a.title} loading={i === 0 ? 'eager' : 'lazy'} />
+              <span class="activity-kind">{activityKindLabel[a.kind]}</span>
             </span>
-            {g.link ? (
-              <a class="ach-link" href={g.link} target={isExternal(g.link) ? '_blank' : undefined} rel={isExternal(g.link) ? 'noopener' : undefined}>
-                {isExternal(g.link) ? '查看作品 ↗' : '查看内容 →'}
-              </a>
-            ) : null}
-          </div>
-        </article>
-      ))}
-    </div>
+            <span class="activity-body">
+              <span class="activity-meta">{a.date.replaceAll('-', '.')}{a.location ? ` · ${a.location}` : ''}</span>
+              <b>{a.title}</b>
+              <p>{a.summary}</p>
+              {a.tags?.length ? (
+                <span class="dept-tags" style="margin-top:4px;">
+                  {a.tags.map((t) => <span class="tag">{t}</span>)}
+                </span>
+              ) : null}
+            </span>
+          </article>
+        ))}
+      </div>
+    </section>
 
-    <div class="ach-empty" id="empty" style="display:none;">没有匹配的成果。换个筛选条件或关键词试试。</div>
-    <div style="display:flex;justify-content:space-between;gap:16px;margin-top:18px;font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
-      <span id="resultCount"></span>
-      <span>数据来源：成员提交 + 历史记录回填，审核后展示</span>
-    </div>
+    <!-- ================= 成员成果 ================= -->
+    <section class="section" style="padding-top:72px;">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>02</b><span class="rule"></span>成员成果</div>
+          <h2 class="sec-title">成员们做出来的东西。</h2>
+          <p class="sec-desc">项目、竞赛、工作坊、课程与分享，按时间倒序；支持按类型、部门与关键词筛选。</p>
+        </div>
+      </div>
+
+      <div class="filter-bar" id="filters">
+        <button class="chip active" data-filter-type="all">全部类型 <span class="count">{groups.length}</span></button>
+        {types.map((t) => (
+          <button class="chip" data-filter-type={t.key}>{t.label} <span class="count">{t.n}</span></button>
+        ))}
+        <div style="flex:1"></div>
+        <label class="search-box">
+          <span style="color:var(--text-3);font-size:13px;">⌕</span>
+          <input type="search" id="q" placeholder="搜标题、描述、成员…" aria-label="搜索成果" />
+        </label>
+      </div>
+
+      <div class="filter-bar" id="deptFilters" style="border-bottom:0;padding-top:0;margin-bottom:14px;">
+        <span class="mono" style="margin-right:6px;">部门</span>
+        <button class="chip active" data-filter-dept="all">全部</button>
+        {allDepts.map((d) => <button class="chip" data-filter-dept={d}>{d}</button>)}
+      </div>
+
+      <div class="ach-grid" id="grid">
+        {groups.map((g, i) => (
+          <article class="ach-card" id={g.ids[0]} data-type={g.type} data-dept={g.depts.join(',')} data-search={cardSearch(g)} data-reveal data-delay={Math.min(i * 40, 240)}>
+            <div class="ach-top">
+              <span class="ach-type">{contributionTypeLabel[g.type] ?? '成果'}</span>
+              <span class="ach-date">{g.date.replaceAll('-', '.')}</span>
+            </div>
+            {g.image ? <img class="ach-img" src={g.image} alt={`${g.title} 配图`} loading="lazy" /> : null}
+            <h3 class="ach-title">{g.title}</h3>
+            <p class="ach-desc">{g.description}</p>
+            {g.outcome ? <div class="ach-outcome">产出：{g.outcome}</div> : null}
+            <div class="ach-foot">
+              <span class="ach-member">
+                <span class="ach-avatar">{g.members[0]?.name.slice(0, 1) || '创'}</span>
+                {g.members.slice(0, 3).map((m, idx) => (
+                  <a href={`/members/${m.id}`}>{m.name}{idx < Math.min(g.members.length, 3) - 1 ? '、' : ''}</a>
+                ))}
+                {g.members.length > 3 ? <span style="color:var(--fg-4);">等 {g.members.length} 人</span> : null}
+              </span>
+              {g.link ? (
+                <a class="ach-link" href={g.link} target={isExternal(g.link) ? '_blank' : undefined} rel={isExternal(g.link) ? 'noopener' : undefined}>
+                  {isExternal(g.link) ? '查看作品 ↗' : '查看内容 →'}
+                </a>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div class="ach-empty" id="empty" style="display:none;">没有匹配的成果。换个筛选条件或关键词试试。</div>
+      <div style="display:flex;justify-content:space-between;gap:16px;margin-top:18px;font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
+        <span id="resultCount"></span>
+        <span>数据来源：成员提交 + 历史记录回填，审核后展示</span>
+      </div>
+    </section>
   </div>
 
   <script>

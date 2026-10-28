@@ -32,10 +32,12 @@ for (const gone of ['library', 'tools', 'resources', 'stats', 'about']) {
 
 // 3. 首页包含核心模块与定位
 const home = read('index.html');
-for (const label of ['AI 创客协会', '云塘校区', '活动与成果', '成员能力', '提交我的记录']) {
+for (const label of ['AI 创客协会', '云塘校区', '活动与成果', '成员能力', '提交我的记录', '活动记录', '部门与机制', '五个部门']) {
   must(home.includes(label), `首页缺少关键内容：${label}`);
 }
 must(home.includes('示例数据'), '首页缺少示例数据提示');
+must(home.includes('/photos/first-meeting-group.jpg'), '首页缺少第一次会议合影');
+must(home.includes('技术部'), '首页缺少部门信息');
 
 // 4. 成果页 / 成员页 / 提交页的关键内容
 const ach = read('achievements/index.html');
@@ -49,6 +51,11 @@ must(members.includes('高频能力标签'), '成员页缺少能力标签');
 const contribute = read('contribute/index.html');
 must(contribute.includes('提交审核'), '提交页缺少提交按钮');
 must(contribute.includes('公开授权'), '提交页缺少授权确认');
+
+// 4.5 照片文件存在
+for (const photo of ['first-meeting-group.jpg', 'president-lecture.jpg', 'member-sharing.jpg', 'innovation-port-visit.jpg', 'innovation-port-aerial.jpg', 'lounge.jpg']) {
+  must(existsSync(join(DIST, 'photos', photo)), `缺少照片：dist/photos/${photo}`);
+}
 
 // 5. noindex 与 robots
 must(home.includes('noindex'), '首页缺少 noindex');
