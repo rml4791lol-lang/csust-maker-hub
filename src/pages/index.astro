@@ -1,251 +1,134 @@
 ---
 import Base from '../layouts/Base.astro';
-import { site, stats } from '../data/site';
-import { items, typeMeta, sortedByDate } from '../data/items';
-import { publishedItems } from '../data/validate';
+import { site } from '../data/site';
 import { members } from '../data/members';
-import { flagEnabled } from '../data/flags';
-import { profiles } from '../data/contributions';
+import { profiles, groupAchievements, contributionTypeLabel } from '../data/contributions';
 
-const live = publishedItems(items);
-const latestConsole = publishedItems(sortedByDate).slice(0, 5);
-const latestList = publishedItems(sortedByDate).slice(0, 8);
-const working = publishedItems(sortedByDate)
-  .filter((i) => ['进行中', '备赛中', '报名中'].includes(i.status))
-  .slice(0, 3);
-const people = members.slice(0, 8);
-const topProfiles = [...profiles].sort((a, b) => b.stats.contributions - a.stats.contributions).slice(0, 3);
-const totalTags = new Set(live.flatMap((i) => i.tags)).size;
-const show = (k: string) => flagEnabled(k);
+const groups = groupAchievements();
+const recent = groups.slice(0, 6);
+const memberCount = members.length;
+const deptCount = new Set(members.map((m) => m.dept)).size;
+const latest = groups[0]?.date ?? '—';
 
-const itemHref = (i: (typeof items)[number]) =>
-  i.type === 'link' && i.extra?.url ? i.extra.url : `/library/${i.id}`;
-
-const CONSOLE_TABS = ['全部', '攻略', '指令', '模板', '培训'];
+const topProfiles = [...profiles].sort((a, b) => b.stats.contributions - a.stats.contributions).slice(0, 4);
+const skillFreq = new Map<string, number>();
+for (const p of profiles) for (const t of p.focusTags) skillFreq.set(t, (skillFreq.get(t) ?? 0) + 1);
+const topSkills = [...skillFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+const memberPath = (id: string) => `/members/${id}`;
+const typeLabel = (t: string) => contributionTypeLabel[t as keyof typeof contributionTypeLabel] ?? '成果';
 ---
 
 <Base>
   <!-- ================= HERO ================= -->
-  <section class="hero">
+  <section class="hero hero-simple">
     <div class="wrap hero-inner">
       <div class="hero-copy">
         <span class="eyebrow-pill">
           <span class="beam"></span>
-          CSUST MAKER SPACE
+          {site.fullName}
           <span class="sep">/</span>
-          内部知识库
+          云塘校区 · 科创港
         </span>
 
         <h1>
-          把想法，<span class="line-2 grad">做成东西。</span>
+          {site.tagline[0]}<span class="line-2 grad">{site.tagline[1]}</span>
         </h1>
 
-        <p class="lead">
-          长沙理工大学创客空间的内部知识库。攻略、技能指令、模板、外部项目、培训——
-          每条都带<b>现成路径</b>和<b>能直接拿走的东西</b>。
-        </p>
+        <p class="lead">{site.description}</p>
 
         <div class="cta-row">
-          <a href="/library" class="btn btn-primary">浏览内容库 <span class="ar">→</span></a>
-          <a href="/contribute" class="btn btn-ghost">提交我的成果</a>
+          <a href="/achievements" class="btn btn-primary">看活动与成果 <span class="ar">→</span></a>
+          <a href="/contribute" class="btn btn-ghost">提交我的记录</a>
         </div>
 
         <div class="hero-meta">
-          <span><i></i>{live.length} 条内容</span>
-          <span><i></i>{members.length} 位成员</span>
-          <span><i></i>{totalTags} 个标签</span>
-          <span><i></i>持续更新</span>
+          <span><i></i>{memberCount} 位成员</span>
+          <span><i></i>{groups.length} 项成果</span>
+          <span><i></i>{deptCount} 个部门</span>
+          <span><i></i>最近更新 {latest.replaceAll('-', '.')}</span>
         </div>
       </div>
 
-      <div class="hero-visual">
-        <div class="console-glow" aria-hidden="true"></div>
-        <div class="console">
-          <div class="console-bar">
-            <span class="dots"><i></i><i></i><i></i></span>
-            <span class="console-title">内容库 · 最近收录</span>
-            <span class="console-chip">LIVE</span>
-          </div>
-          <div class="console-tabs">
-            {CONSOLE_TABS.map((t, i) => <span class="console-tab" data-on={i === 0 ? '' : undefined}>{t}</span>)}
-          </div>
-          <ul class="console-list">
-            {latestConsole.map((i, idx) => (
-              <li class:list={['console-row', { 'is-hot': idx === 0 }]}>
-                <span class="cr-glyph">{typeMeta[i.type].glyph}</span>
-                <span class="cr-main">
-                  <b>{i.title}</b>
-                  <i>{typeMeta[i.type].label} · {i.people[0] ?? i.author ?? '创客空间'}</i>
-                </span>
-                <span class="cr-meta">{i.date.replaceAll('-', '.')}</span>
-              </li>
-            ))}
-          </ul>
-          <div class="console-foot">
-            <span>共 <b>{live.length}</b> 条 · 五类内容</span>
-            <span>构建于 {new Date().toISOString().slice(0, 10).replaceAll('-', '.')}</span>
-          </div>
+      <aside class="hero-latest" aria-label="最近活动与成果">
+        <div class="hero-latest-head">
+          <span>最近活动与成果</span>
+          <a href="/achievements">全部 →</a>
         </div>
-
-        <span class="orbit-chip c1"><i></i>{live.length} 条已索引</span>
-        <span class="orbit-chip c2"><i></i>g01 · 周报自动化</span>
-      </div>
-    </div>
-
-    <!-- 数据带 -->
-    {show('home.strip') && (
-    <div class="stats-strip">
-      <div class="wrap stats-grid">
-        {stats.map((s, i) => (
-          <div class="stat-cell" data-reveal data-delay={i * 80}>
-            <span class="stat-k">{s.k}</span>
-            <span class="stat-v">
-              <span data-count={s.v}>{s.v}</span>
-              <small>{s.unit}</small>
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-    )}
-  </section>
-
-  <!-- ================= 五类内容 ================= -->
-  {show('home.entries') && (
-  <section class="section" id="entries">
-    <div class="wrap">
-      <div class="section-head" data-reveal>
-        <div>
-          <div class="sec-index"><b>01</b><span class="rule"></span>内容线</div>
-          <h2 class="sec-title">五类内容，按需要的样子组织。</h2>
-          <p class="sec-desc">不按部门堆，按「你要解决什么」分。每条都留下能直接拿走用的产出。</p>
-        </div>
-        <a class="sec-more" href="/library">全部内容 <span class="ar">→</span></a>
-      </div>
-
-      <div class="entries-grid">
-        {site.entries.map((e, i) => (
-          <a
-            href={e.href}
-            class:list={['entry-card', { wide: i >= 3 }]}
-            data-reveal
-            data-delay={i * 70}
-          >
-            <div class="entry-top">
-              <span class="entry-icon">{e.icon}</span>
-              <span class="entry-num">0{i + 1}</span>
-            </div>
-            <h3>{e.title}</h3>
-            <p>{e.desc}</p>
-            <span class="entry-go">{e.go} <span class="ar">→</span></span>
-            <span class="entry-ghost" aria-hidden="true">{e.icon}</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  </section>
-  )}
-
-  <!-- ================= 最近更新 ================= -->
-  {show('home.latest') && (
-  <section class="section" id="latest">
-    <div class="wrap">
-      <div class="section-head" data-reveal>
-        <div>
-          <div class="sec-index"><b>02</b><span class="rule"></span>最近更新</div>
-          <h2 class="sec-title">最近收录了什么。</h2>
-          <p class="sec-desc">按时间倒序，列表优先——扫一眼就知道这周加了什么。</p>
-        </div>
-        <a class="sec-more" href="/library">查看全部 <span class="ar">→</span></a>
-      </div>
-
-      <div class="latest-layout">
-        <div class="list-panel" data-reveal>
-          <div class="list-head">
-            <span class="dot-live"></span>
-            <span>RECENT / 最近更新</span>
-            <span style="margin-left:auto">{latestList.length} 条</span>
-          </div>
-          {latestList.map((i) => (
-            <a class="item-row" href={itemHref(i)} target={i.type === 'link' ? '_blank' : undefined} rel={i.type === 'link' ? 'noopener' : undefined}>
-              <span class="row-date">{i.date.replaceAll('-', '.')}</span>
-              <span class="row-main">
-                <span class="row-title"><span class="type-dot"></span>{i.title}</span>
-                <span class="row-sub">{i.summary}</span>
+        <div class="hero-latest-list">
+          {recent.slice(0, 4).map((g) => (
+            <a class="hero-latest-row" href="/achievements">
+              <span class="hl-date">{g.date.replaceAll('-', '.')}</span>
+              <span class="hl-main">
+                <b>{g.title}</b>
+                <i>{g.members.slice(0, 2).map((m) => m.name).join('、')}{g.members.length > 2 ? ' 等' : ''}</i>
               </span>
-              <span class="row-tag">{typeMeta[i.type].label} · {i.status}</span>
+              <span class="hl-go">→</span>
             </a>
           ))}
         </div>
+      </aside>
+    </div>
 
-        <aside class="side-stack">
-          {show('home.workbench') && (
-          <div class="workbench" data-reveal data-delay="120">
-            <div class="wb-head"><b>本周工作台</b><span>进行中 {working.length}</span></div>
-            {working.map((i) => (
-              <a class="wb-item" href={itemHref(i)}>
-                <span class="wb-k">{typeMeta[i.type].label} · {i.status}</span>
-                <span class="wb-t">{i.title}</span>
-                <span class="wb-s">{i.people.join(' / ') || '创客空间'} · {i.date.replaceAll('-', '.')}</span>
-              </a>
-            ))}
-          </div>
-          )}
-
-          <div class="mini-note" data-reveal data-delay="200">
-            <span class="mn-key">标准</span>
-            <p>判断一条内容好不好的标准只有一句：<br />一个没做过的人照着做完，能产出东西。</p>
-          </div>
-        </aside>
+    <div class="stats-strip">
+      <div class="wrap stats-grid">
+        <div class="stat-cell" data-reveal><span class="stat-k">在册成员</span><span class="stat-v"><span data-count={memberCount}>{memberCount}</span><small>人</small></span></div>
+        <div class="stat-cell" data-reveal data-delay="80"><span class="stat-k">成果记录</span><span class="stat-v"><span data-count={groups.length}>{groups.length}</span><small>项</small></span></div>
+        <div class="stat-cell" data-reveal data-delay="160"><span class="stat-k">覆盖部门</span><span class="stat-v"><span data-count={deptCount}>{deptCount}</span><small>个</small></span></div>
+        <div class="stat-cell" data-reveal data-delay="240"><span class="stat-k">最近更新</span><span class="stat-v" style="font-size:26px;">{latest.replaceAll('-', '.')}</span></div>
       </div>
     </div>
   </section>
-  )}
 
-  <!-- ================= 谁在做 ================= -->
-  {show('home.people') && (
-  <section class="section" id="people">
+  <!-- ================= 活动与成果 ================= -->
+  <section class="section" id="achievements">
     <div class="wrap">
       <div class="section-head" data-reveal>
         <div>
-          <div class="sec-index"><b>03</b><span class="rule"></span>成员</div>
-          <h2 class="sec-title">谁在做。</h2>
-          <p class="sec-desc">四个部门、十二个人，内容背后都能找到人。</p>
+          <div class="sec-index"><b>01</b><span class="rule"></span>活动与成果</div>
+          <h2 class="sec-title">协会最近做了什么。</h2>
+          <p class="sec-desc">项目、竞赛、工作坊、分享都算，按时间倒序；每条都能追到参与的人。</p>
         </div>
-        <a class="sec-more" href="/members">全部成员 <span class="ar">→</span></a>
+        <a class="sec-more" href="/achievements">全部 {groups.length} 项 <span class="ar">→</span></a>
       </div>
 
-      <div class="people-grid">
-        {people.map((m, i) => (
-          <a class="person-card" href={`/members/${m.id}`} data-reveal data-delay={i * 55}>
-            <span class="avatar-ring">{m.name.slice(0, 1)}</span>
-            <h3>{m.name}{m.role ? <span>{m.role}</span> : null}</h4>
-            <span class="person-dept">{m.dept} / {m.grade}</span>
-            <span class="person-skills">
-              {m.skills.slice(0, 3).map((s) => <span class="skill-chip">{s}</span>)}
-            </span>
-          </a>
+      <div class="ach-grid">
+        {recent.map((g, i) => (
+          <article class="ach-card" data-reveal data-delay={Math.min(i * 50, 250)}>
+            <div class="ach-top">
+              <span class="ach-type">{typeLabel(g.type)}</span>
+              <span class="ach-date">{g.date.replaceAll('-', '.')}</span>
+            </div>
+            <h3 class="ach-title">{g.title}</h3>
+            <p class="ach-desc">{g.description}</p>
+            <div class="ach-foot">
+              <span class="ach-member">
+                <span class="ach-avatar">{g.members[0]?.name.slice(0, 1) || '创'}</span>
+                {g.members.slice(0, 2).map((m) => <a href={memberPath(m.id)}>{m.name}</a>)}
+                {g.members.length > 2 ? <span style="color:var(--fg-4);">等 {g.members.length} 人</span> : null}
+              </span>
+              <a class="ach-link" href="/achievements">查看 →</a>
+            </div>
+          </article>
         ))}
       </div>
     </div>
   </section>
-  )}
 
-  <!-- ================= 成员成果档案 ================= -->
-  <section class="section" id="profiles">
+  <!-- ================= 成员能力 ================= -->
+  <section class="section" id="members">
     <div class="wrap">
       <div class="section-head" data-reveal>
         <div>
-          <div class="sec-index"><b>04</b><span class="rule"></span>成员档案</div>
-          <h2 class="sec-title">每个人做过的事，都有记录。</h2>
-          <p class="sec-desc">成员自己提交成果，AI 汇总成档案：做过什么、擅长什么、下一步可以做什么。</p>
+          <div class="sec-index"><b>02</b><span class="rule"></span>成员能力</div>
+          <h2 class="sec-title">谁在做什么，AI 汇总给你看。</h2>
+          <p class="sec-desc">成员自己提交成果，系统自动汇总能力标签与代表成果；点开名字看完整档案。</p>
         </div>
-        <a class="sec-more" href="/contribute">提交我的成果 <span class="ar">→</span></a>
+        <a class="sec-more" href="/members">全部成员与能力 <span class="ar">→</span></a>
       </div>
 
-      <div class="profiles-grid">
+      <div class="home-profiles">
         {topProfiles.map((p, i) => (
-          <a class="archive-card" href={`/members/${p.memberId}`} data-reveal data-delay={i * 70}>
+          <a class="archive-card" href={memberPath(p.memberId)} data-reveal data-delay={i * 60}>
             <span class="archive-top">
               <span class="archive-avatar">{p.name.slice(0, 1)}</span>
               <span>
@@ -254,37 +137,56 @@ const CONSOLE_TABS = ['全部', '攻略', '指令', '模板', '培训'];
               </span>
             </span>
             <span class="archive-summary">{p.aiSummary}</span>
-            <span class="archive-tags">
-              {p.focusTags.slice(0, 3).map((t) => <span class="skill-chip">{t}</span>)}
-            </span>
-            <span class="archive-stats">
-              <span><b>{p.stats.contributions}</b> 条成果</span>
-              <span><b>{p.stats.projects}</b> 个项目</span>
-              <span><b>{p.highlights.length}</b> 个亮点</span>
-            </span>
+            <span class="archive-stats"><span><b>{p.stats.contributions}</b> 条成果</span><span><b>{p.highlights.length}</b> 个亮点</span></span>
           </a>
         ))}
       </div>
 
-      <div class="mini-note" data-reveal data-delay="120" style="margin-top:14px;">
-        <span class="mn-key">怎么用</span>
-        <p>点成员名字打开个人档案；想让自己的记录更完整，就点右上角「提交我的成果」，审核后进入档案并参与 AI 汇总。</p>
+      <div class="home-skills" data-reveal data-delay="120">
+        <span class="mono">高频能力标签</span>
+        <div class="ability-tags">
+          {topSkills.map(([k, n]) => <span class="skill-chip">{k} <b style="color:var(--fg-4);font-weight:400;">{n}</b></span>)}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 关于协会 ================= -->
+  <section class="section" id="about">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>03</b><span class="rule"></span>关于协会</div>
+          <h2 class="sec-title">{site.about.lead}</h2>
+          <p class="sec-desc">{site.about.body}</p>
+        </div>
+      </div>
+
+      <div class="about-facts">
+        {site.about.facts.map((f) => (
+          <div class="about-fact" data-reveal>
+            <span class="mono">{f.k}</span>
+            <b>{f.v}</b>
+          </div>
+        ))}
+        <div class="about-fact" data-reveal>
+          <span class="mono">联系</span>
+          <b><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></b>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- ================= CTA ================= -->
-  {show('home.cta') && (
   <section class="cta-band">
     <div class="wrap cta-inner" data-reveal>
-      <div class="sec-index"><b>05</b><span class="rule"></span>开始</div>
-      <h2>有一个具体的活，<br />或者一个模糊的想法，<span class="grad">都可以提。</span></h2>
-      <p>每条都带现成路径和可复制的东西，看完能直接动手。</p>
+      <div class="sec-index"><b>04</b><span class="rule"></span>开始</div>
+      <h2>做过的事，<span class="grad">值得被记下来。</span></h2>
+      <p>提交一条项目、竞赛、工作坊或分享记录，审核后进入协会成果墙与你自己的 AI 能力档案。</p>
       <div class="cta-row">
-        <a href="/library" class="btn btn-primary">看最新收录 <span class="ar">→</span></a>
-        <a href="/resources" class="btn btn-ghost">下载模板</a>
+        <a href="/contribute" class="btn btn-primary">提交我的记录 <span class="ar">→</span></a>
+        <a href="/achievements" class="btn btn-ghost">先看看成果</a>
       </div>
     </div>
   </section>
-  )}
 </Base>

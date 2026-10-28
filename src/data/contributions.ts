@@ -38,7 +38,8 @@ export interface Submission {
 export interface MemberProfileStats {
   contributions: number;
   projects: number;
-  guides: number;
+  competitions: number;
+  activities: number;
   firstDate?: string;
   lastDate?: string;
 }
@@ -107,6 +108,62 @@ export function memberContributionStats(memberId: string): { total: number; byTy
 /** 全站成果墙：最近发布的投稿 */
 export function recentSubmissions(limit = 6): Submission[] {
   return [...publishedSubmissions()].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, limit);
+}
+
+/**
+ * 展示用「团队成果」：内容库回填会给每位参与人生成一条记录，
+ * 墙上按「标题 + 日期」合并，避免同一成果重复出现。
+ */
+export interface AchievementGroup {
+  key: string;
+  title: string;
+  date: string;
+  type: ContributionType;
+  description: string;
+  outcome?: string;
+  image?: string;
+  link?: string;
+  members: { id: string; name: string; dept?: string }[];
+  depts: string[];
+  ids: string[];
+}
+
+export function groupAchievements(list: Submission[] = publishedSubmissions()): AchievementGroup[] {
+  const groups: AchievementGroup[] = [];
+  const byKey = new Map<string, AchievementGroup>();
+  for (const s of [...list].sort((a, b) => (a.date < b.date ? 1 : -1))) {
+    const key = `${s.title}||${s.date}`;
+    let g = byKey.get(key);
+    if (!g) {
+      g = {
+        key,
+        title: s.title,
+        date: s.date,
+        type: s.type,
+        description: s.description,
+        outcome: s.outcome,
+        image: s.image,
+        link: s.link,
+        members: [],
+        depts: [],
+        ids: [],
+      };
+      byKey.set(key, g);
+      groups.push(g);
+    }
+    if (!g.members.some((m) => m.id === s.memberId)) g.members.push({ id: s.memberId, name: s.memberName, dept: s.dept });
+    if (s.dept && !g.depts.includes(s.dept)) g.depts.push(s.dept);
+    g.ids.push(s.id);
+    if (!g.image && s.image) g.image = s.image;
+    if (!g.link && s.link) g.link = s.link;
+    if (!g.outcome && s.outcome) g.outcome = s.outcome;
+  }
+  return groups.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+/** 首页用的最近团队成果 */
+export function recentAchievements(limit = 6): AchievementGroup[] {
+  return groupAchievements().slice(0, limit);
 }
 
 /* ---------------------------- 校验（表单 + API 共用） ---------------------------- */

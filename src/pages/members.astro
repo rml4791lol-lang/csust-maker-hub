@@ -1,14 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 import { members, depts } from '../data/members';
-import { items } from '../data/items';
-import { publishedItems } from '../data/validate';
 import { profiles, publishedSubmissions, contributionTypeLabel } from '../data/contributions';
 
-// 成员页的「参与项目」只显示已发布条目，草稿不能泄露标题
-const itemMap = new Map(publishedItems(items).map((i) => [i.id, i]));
 const profileMap = new Map(profiles.map((p) => [p.memberId, p]));
-const deptCounts = Object.fromEntries(depts.map((d) => [d, members.filter((m) => m.dept === d).length]));
 
 // 能力与成果总览：部门产出 / 成果类型 / 高频能力标签 / 贡献榜
 const subs = publishedSubmissions();
@@ -21,32 +16,39 @@ const maxDept = Math.max(...byDept.map((x) => x.n), 1);
 const maxType = Math.max(...byType.map((x) => x.n), 1);
 const skillFreq = new Map<string, number>();
 for (const p of profiles) for (const t of p.focusTags) skillFreq.set(t, (skillFreq.get(t) ?? 0) + 1);
-for (const m of members) for (const s of m.skills) skillFreq.set(s, (skillFreq.get(s) ?? 0) + 1);
 const topSkills = [...skillFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16);
 const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.contributions).slice(0, 5);
+
+const cards = members.map((m) => {
+  const p = profileMap.get(m.id);
+  return { member: m, profile: p, count: p?.stats.contributions ?? 0 };
+});
 ---
 
-<Base title="成员" description="创客空间成员的能力、参与项目和成果档案，可按部门筛选和检索。">
+<Base title="成员能力" description="长沙理工大学 AI 创客协会成员列表与能力画像：做过什么、擅长什么、下一步可以做什么。">
   <div class="wrap page-header">
-    <span class="crumb">PEOPLE / 成员</span>
-    <h1>成员</h1>
-    <p>每个人的能力、参与项目和成果档案。按部门筛，或者直接搜技能；点名字看个人档案。</p>
+    <span class="crumb">MEMBERS / 成员能力</span>
+    <h1>成员，与他们的能力画像。</h1>
+    <p>
+      每位成员自己提交做过的成果，系统自动汇总能力标签、代表成果与下一步建议。
+      点开任何一个人，就能看到他/她在协会里留下的记录。
+    </p>
     <div class="hero-actions" style="margin-top:20px;">
-      <a href="/contribute" class="btn btn-primary">提交我的成果 <span class="ar">→</span></a>
-      <a href="/library" class="btn btn-ghost">浏览内容库</a>
+      <a href="/contribute" class="btn btn-primary">提交我的记录 <span class="ar">→</span></a>
+      <a href="/achievements" class="btn btn-ghost">看协会成果</a>
     </div>
   </div>
 
-  <div class="wrap" style="padding-bottom:80px;">
-    <!-- 能力与成果总览 -->
+  <div class="wrap" style="padding-bottom:96px;">
+    <!-- 能力总览 -->
     <section class="section" style="padding-top:8px;">
       <div class="section-head" data-reveal>
         <div>
-          <div class="sec-index"><b>00</b><span class="rule"></span>能力总览</div>
+          <div class="sec-index"><b>01</b><span class="rule"></span>能力总览</div>
           <h2 class="sec-title">这个协会在做什么、谁会做什么。</h2>
-          <p class="sec-desc">按成果记录自动聚合：部门产出、成果类型、高频能力标签与贡献榜。数据随成员投稿更新。</p>
+          <p class="sec-desc">按成果记录自动聚合，数据随成员提交更新。</p>
         </div>
-        <a class="sec-more" href="/achievements">看成果墙 <span class="ar">→</span></a>
+        <a class="sec-more" href="/achievements">看全部成果 <span class="ar">→</span></a>
       </div>
 
       <div class="ability-grid" data-reveal>
@@ -59,7 +61,6 @@ const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.c
               <span class="hbar-num">{d.n}</span>
             </div>
           ))}
-          <div class="hint" style="margin-top:10px;font-size:11px;color:var(--fg-4);">按成员成果的部门归属统计</div>
         </div>
         <div class="ability-panel">
           <h3>成果类型分布</h3>
@@ -76,10 +77,9 @@ const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.c
           <div class="ability-tags">
             {topSkills.map(([k, n]) => <span class="skill-chip">{k} <b style="color:var(--fg-4);font-weight:400;">{n}</b></span>)}
           </div>
-          <div class="hint" style="margin-top:12px;font-size:11px;color:var(--fg-4);">来自成员技能与 AI 档案的关注方向，数字为出现次数</div>
         </div>
         <div class="ability-panel" style="grid-column:1 / -1;">
-          <h3>贡献榜 · 成果记录 Top 5</h3>
+          <h3>成果记录 Top 5</h3>
           <div class="ability-top">
             {topPeople.map((p, i) => (
               <a class="ability-person" href={`/members/${p.memberId}`}>
@@ -94,99 +94,33 @@ const topPeople = [...profiles].sort((a, b) => b.stats.contributions - a.stats.c
       </div>
     </section>
 
-    <div class="filter-bar" id="filters">
-      <button class="chip active" data-filter="all">全部 <span class="count">{members.length}</span></button>
-      {depts.map((d) => (
-        <button class="chip" data-filter={d}>{d} <span class="count">{deptCounts[d]}</span></button>
-      ))}
-      <div style="flex:1"></div>
-      <label class="search-box">
-        <span style="color:var(--text-3);font-size:13px;">⌕</span>
-        <input type="search" id="q" placeholder="搜姓名、技能…" />
-      </label>
-    </div>
+    <!-- 成员列表 -->
+    <section class="section" style="padding-top:64px;">
+      <div class="section-head" data-reveal>
+        <div>
+          <div class="sec-index"><b>02</b><span class="rule"></span>成员列表</div>
+          <h2 class="sec-title">12 位成员，12 份成长记录。</h2>
+          <p class="sec-desc">按部门分组；点名字进入个人档案，查看 AI 汇总与成果时间线。</p>
+        </div>
+      </div>
 
-    <div class="layer-card" style="overflow:hidden;">
-      <table class="member-table" id="grid">
-        <thead>
-          <tr>
-            <th style="width:24%;">姓名</th>
-            <th style="width:15%;">部门</th>
-            <th style="width:10%;">年级</th>
-            <th style="width:28%;">技能</th>
-            <th style="width:23%;">参与项目</th>
-          </tr>
-        </thead>
-        <tbody>
-          {members.map((m) => {
-            const projs = m.projects.map((id) => itemMap.get(id)).filter(Boolean);
-            const profile = profileMap.get(m.id);
-            const count = profile?.stats?.contributions ?? 0;
-            return (
-              <tr data-dept={m.dept}
-                  data-search={`${m.name} ${m.dept} ${m.grade} ${m.skills.join(' ')} ${m.bio ?? ''}`}>
-                <td>
-                  <a href={`/members/${m.id}`} class="m-name" title="打开个人档案">{m.name} <span style="font-family:var(--font-mono);font-size:10px;color:var(--fg-4);">→</span></a>
-                  {m.role ? <span class="m-role">{m.role}</span> : null}
-                  {count > 0 ? <span class="m-role" style="color:var(--fg-3);border-color:var(--line-2);background:rgba(255,255,255,.04);">{count} 条成果</span> : null}
-                </td>
-                <td class="m-dept">{m.dept}</td>
-                <td style="color:var(--text-3);font-size:12.5px;">{m.grade}</td>
-                <td>
-                  <span class="m-skills">
-                    {m.skills.map((s) => <span class="tag">{s}</span>)}
-                  </span>
-                </td>
-                <td class="m-proj">
-                  {projs.length
-                    ? projs.map((p: any) => <a href={`/library/${p.id}`} style="border-bottom:1px dotted var(--line-strong);">{p.title}</a>)
-                    : <span style="color:var(--text-3);">—</span>}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="empty-state" id="empty" style="display:none;margin-top:16px;">没有匹配的成员。</div>
-
-    <div style="display:flex;justify-content:space-between;gap:16px;margin-top:16px;font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
-      <span id="resultCount"></span>
-      <span>点击项目名查看详情</span>
-    </div>
+      <div class="member-cards">
+        {cards.map(({ member: m, count }, i) => (
+          <a class="member-card" href={`/members/${m.id}`} data-reveal data-delay={Math.min(i * 40, 240)}>
+            <span class="archive-top">
+              <span class="archive-avatar">{m.name.slice(0, 1)}</span>
+              <span>
+                <span class="archive-name">{m.name}{m.role ? ` · ${m.role}` : ''}</span>
+                <span class="archive-meta" style="display:block;">{m.dept} · {m.grade}</span>
+              </span>
+            </span>
+            <span class="archive-tags">
+              {m.skills.slice(0, 3).map((s) => <span class="skill-chip">{s}</span>)}
+            </span>
+            <span class="archive-stats"><span><b>{count}</b> 条成果</span><span>查看档案 →</span></span>
+          </a>
+        ))}
+      </div>
+    </section>
   </div>
-
-  <script>
-    const chips = document.querySelectorAll<HTMLButtonElement>('#filters .chip');
-    const rows = Array.from(document.querySelectorAll<HTMLElement>('#grid tbody tr'));
-    const q = document.querySelector<HTMLInputElement>('#q');
-    const empty = document.querySelector<HTMLElement>('#empty');
-    const resultCount = document.querySelector<HTMLElement>('#resultCount');
-    let filter = 'all';
-
-    function apply() {
-      const kw = (q?.value || '').trim().toLowerCase();
-      let visible = 0;
-      for (const row of rows) {
-        const okDept = filter === 'all' || row.dataset.dept === filter;
-        const okKw = !kw || (row.dataset.search || '').toLowerCase().includes(kw);
-        const show = okDept && okKw;
-        row.style.display = show ? '' : 'none';
-        if (show) visible++;
-      }
-      if (empty) empty.style.display = visible ? 'none' : '';
-      if (resultCount) resultCount.textContent = `显示 ${visible} / ${rows.length} 人`;
-    }
-
-    chips.forEach((c) =>
-      c.addEventListener('click', () => {
-        filter = c.dataset.filter || 'all';
-        chips.forEach((x) => x.classList.toggle('active', x === c));
-        apply();
-      })
-    );
-    q?.addEventListener('input', apply);
-    apply();
-  </script>
 </Base>

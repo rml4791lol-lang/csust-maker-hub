@@ -2781,3 +2781,78 @@ p { margin: 0; }
   .ach-num { font-size: 24px; }
   .ability-row { grid-template-columns: 84px minmax(0, 1fr) 36px; }
 }
+
+/* ============================================================
+   2026-10-28 简洁改版：首页最新动态、成员能力、关于协会
+   ============================================================ */
+.brand-mark { font-size: 10px; letter-spacing: -0.02em; }
+.hero-simple .hero-inner { align-items: center; }
+.hero-latest {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.008));
+  box-shadow: 0 30px 80px -50px rgba(0, 0, 0, 1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+.hero-latest-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--fg-3);
+}
+.hero-latest-head a { color: var(--accent-hi); }
+.hero-latest-row {
+  display: grid; grid-template-columns: 74px minmax(0, 1fr) 16px; gap: 12px;
+  align-items: center; padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.18s var(--ease-out);
+}
+.hero-latest-row:last-child { border-bottom: 0; }
+.hero-latest-row:hover { background: rgba(255, 255, 255, 0.035); }
+.hl-date { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); }
+.hl-main b { display: block; font-size: 12.5px; color: #e6eaf0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-main i { display: block; font-style: normal; font-size: 11px; color: var(--fg-4); margin-top: 2px; }
+.hl-go { color: var(--fg-4); font-size: 12px; }
+
+.home-profiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.home-profiles .archive-card { padding: 18px; gap: 10px; }
+.home-skills {
+  margin-top: 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.about-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.about-fact {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 18px 20px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.006));
+}
+.about-fact b { font-size: 15px; font-weight: 520; color: #e6eaf0; }
+.about-fact a { color: var(--accent-hi); }
+.foot-lead { color: var(--fg-3) !important; }
+
+@media (max-width: 1080px) {
+  .home-profiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-latest { max-width: 640px; }
+}
+@media (max-width: 860px) { .about-facts { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .home-profiles { grid-template-columns: 1fr; } }
+
+/* 成员卡片网格（简洁版成员页） */
+.member-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.member-card {
+  position: relative; display: flex; flex-direction: column; gap: 12px;
+  padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.006));
+  box-shadow: 0 26px 60px -48px rgba(0, 0, 0, 0.95);
+  transition: transform 0.25s var(--ease-out), border-color 0.25s var(--ease-out);
+}
+.member-card:hover { transform: translateY(-3px); border-color: rgba(143, 164, 255, 0.3); }
+.member-card .archive-stats { margin-top: auto; }
+@media (max-width: 1080px) { .member-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .member-cards { grid-template-columns: 1fr; } }
+
+/* 简洁首页：标题在双栏里不换行的字号 */
+.hero-simple h1 { font-size: clamp(40px, 5.4vw, 64px); letter-spacing: -0.04em; }
+.hero-simple .lead { margin-top: 20px; }
+@media (max-width: 620px) { .hero-simple h1 { font-size: clamp(34px, 9vw, 44px); } }
