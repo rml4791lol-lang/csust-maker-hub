@@ -156,7 +156,10 @@ sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 - 审核：独立管理端 `/manage`（管理员账号登录）；超级管理员在「全部账号 → 保存角色」里任命审核管理员/超级管理员。
 - 登录：`/login`，邮箱或手机号 + 密码；HttpOnly cookie 7 天。
 - 投稿：`/contribute`，身份来自账号；「我的投稿」可修改/撤回（待审核/退回状态）。
-- 管理员初始化：服务器 env `SUPER_ADMIN_EMAIL` + `SUPER_ADMIN_PASSWORD`（可选 `SUPER_ADMIN_NAME`/`SUPER_ADMIN_PHONE`），后台首次启动自动创建超级管理员。
+- 管理员初始化：**超级管理员固定为技术部部长（协会负责人）**。服务器 env 配置（参考根目录 `.env.admin.example`）：
+  `SUPER_ADMIN_EMAIL`（你的邮箱）、`SUPER_ADMIN_PASSWORD`、`SUPER_ADMIN_NAME`（真实姓名）、`SUPER_ADMIN_PHONE`（手机号）。
+  默认身份为「技术部 / dept_lead（技术部部长）」，需要改身份可用 `SUPER_ADMIN_DEPT` / `SUPER_ADMIN_IDENTITY` 覆盖。
+  后台首次启动会自动创建或更新这个超级管理员；之后在 `/manage` 里任命审核管理员。
 - 数据：账号存 `DATA_DIR/accounts.json`（默认 `~/.csust-maker-data`），会话密钥 `DATA_DIR/session-secret`，操作日志 `DATA_DIR/admin-log.json`；不入仓库。
 - 接口：成员 `POST /api/auth/register|login|logout`、`GET /api/auth/me`、`POST /api/auth/password`、`GET /api/my/submissions`、`POST /api/my/submissions/:id`；管理端 `POST /api/manage/login|logout`、`GET /api/manage/overview|accounts|logs`、`POST /api/manage/accounts/:id/review|admin|reset-password|status`。
 - 本地联调：后台 3210 + `pnpm dev`（已配置 `/admin` 代理）。

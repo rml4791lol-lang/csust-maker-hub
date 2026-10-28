@@ -54,6 +54,8 @@ pnpm build        # 产物在 dist/
 
 ## 部署
 
+> 服务器环境变量（管理员、agent token、超级管理员）见根目录 [`.env.admin.example`](.env.admin.example)；复制为 `.env.admin`，**不要提交仓库**。超级管理员固定为技术部部长。
+
 ```bash
 pnpm build
 rsync -az --delete --chmod=D755,F644 --exclude '.DS_Store' \

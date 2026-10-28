@@ -142,7 +142,8 @@ const statusLabel: Record<string, string> = { pending: '待审核', approved: '�
       const ov = await req('/overview');
       me = ov.me;
       if (whoEl) {
-        whoEl.textContent = `${me.realName} · ${me.adminLevelLabel || '管理员'}`;
+        const parts = [me.realName, me.identityLabel, me.adminLevelLabel].filter(Boolean);
+        whoEl.textContent = [...new Set(parts)].join(' · ');
       }
       if (statsEl) {
         statsEl.innerHTML = `
