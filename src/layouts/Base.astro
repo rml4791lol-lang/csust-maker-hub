@@ -23,19 +23,6 @@ const robots = site.publicIndex && !noindex ? 'index, follow' : 'noindex, nofoll
 const canonicalUrl = new URL(path, site.url).toString();
 const shareImageUrl = new URL(shareImage, site.url).toString();
 
-const labelOf = (p: string) => {
-  if (p === '/') return '首页';
-  if (p.startsWith('/achievements')) return '活动与成果';
-  if (p.startsWith('/members/')) return '成员档案';
-  if (p.startsWith('/members')) return '成员能力';
-  if (p.startsWith('/gallery')) return '现场相册';
-  if (p.startsWith('/contribute')) return '提交记录';
-  if (p.startsWith('/manage')) return '管理端';
-  if (p.startsWith('/login')) return '登录';
-  if (p.startsWith('/register')) return '注册';
-  return '未知页面';
-};
-const pageLabel = labelOf(path);
 const navItems = [
   { href: '/', label: '首页', icon: 'home' },
   { href: '/achievements', label: '活动与成果', icon: 'calendar' },
@@ -82,65 +69,39 @@ const svg = (name: string) => {
   <body class="app">
     <a class="skip-link" href="#main">跳到主要内容</a>
 
-    <div class="app-shell">
-      <!-- 左侧工作台导航 -->
-      <aside class="app-sidebar" aria-label="站点导航">
-        <a class="side-brand" href="/">
+    <!-- 顶部导航（参考 shlab：品牌在左，导航居中，操作在右） -->
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="site-brand" href="/">
           <span class="side-brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-          <span class="side-brand-text">
+          <span class="site-brand-text">
             <b>{site.name}</b>
             <span>AI MAKER SPACE</span>
           </span>
         </a>
 
-        <nav class="side-nav" aria-label="主导航">
+        <nav class="site-nav" aria-label="主导航">
           {navItems.map((n) => (
-            <a class:list={['side-item', { active: isActive(n.href) }]} href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>
-              <Fragment set:html={svg(n.icon)} />
-              <span>{n.label}</span>
+            <a class:list={[{ active: isActive(n.href) }]} href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>
+              {n.label}
             </a>
           ))}
         </nav>
 
-        <div class="side-spacer"></div>
-        <div class="side-status"><i></i>{site.dataStatus === 'demo' ? '示例数据 · 待核验' : '数据已核验'}</div>
-        <div class="side-foot">
-          {footItems.map((n) => (
-            <a class:list={['side-item', { active: isActive(n.href) }]} href={n.href}>
-              <Fragment set:html={svg(n.icon)} />
-              <span>{n.label}</span>
-            </a>
-          ))}
-          <a class="side-item" href="/login" data-auth>
-            <Fragment set:html={svg('users')} />
-            <span data-auth-label>登录 / 注册</span>
-          </a>
-        </div>
-      </aside>
-
-      <!-- 右侧主区 -->
-      <div class="app-main">
-        <header class="app-topbar">
-          <button class="icon-btn side-toggle" id="menuOpen" aria-label="打开菜单" aria-controls="mobileNav">
+        <div class="site-actions">
+          <span class="data-flag"><i></i>{site.dataStatus === 'demo' ? '示例数据 · 待核验' : '数据已核验'}</span>
+          <a class="site-action" href="/manage">管理端</a>
+          <a class="site-auth" href="/login" data-auth data-auth-top>登录</a>
+          <button class="icon-btn site-menu-btn" id="menuOpen" aria-label="打开菜单" aria-controls="mobileNav">
             <Fragment set:html={svg('menu')} />
           </button>
-          <div class="topbar-crumb">
-            <span class="mono">AI MAKER SPACE</span>
-            <span class="sep">/</span>
-            <strong>{pageLabel}</strong>
-          </div>
-          <div class="topbar-right">
-            <span class="data-flag"><i></i>{site.dataStatus === 'demo' ? '示例数据 · 待核验' : '数据已核验'}</span>
-            <a class="topbar-link" href="/manage">管理后台</a>
-            <a class="topbar-auth" href="/login" data-auth data-auth-top>登录</a>
-          </div>
-        </header>
-
-        <main id="main" tabindex="-1" class="app-content">
-          <slot />
-        </main>
+        </div>
       </div>
-    </div>
+    </header>
+
+    <main id="main" tabindex="-1" class="app-content">
+      <slot />
+    </main>
 
     <!-- 移动端导航 -->
     <dialog class="mobile-nav" id="mobileNav" aria-label="站点导航">
@@ -164,9 +125,9 @@ const svg = (name: string) => {
             <span>{n.label}</span>
           </a>
         ))}
-        <a class="side-item" href="/login">
+        <a class="side-item" href="/login" data-auth>
           <Fragment set:html={svg('users')} />
-          <span>登录 / 注册</span>
+          <span data-auth-label>登录 / 注册</span>
         </a>
       </nav>
     </dialog>
