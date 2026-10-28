@@ -78,7 +78,10 @@ const ADMIN_COOKIE = 'csust_admin';
 const ADMIN_LOG_FILE = join(DATA_DIR, 'admin-log.json');
 const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
 const SUPER_ADMIN_PASSWORD = process.env.SUPER_ADMIN_PASSWORD || '';
-const SUPER_ADMIN_NAME = process.env.SUPER_ADMIN_NAME || '超级管理员';
+const SUPER_ADMIN_NAME = process.env.SUPER_ADMIN_NAME || '技术部部长';
+const SUPER_ADMIN_PHONE = process.env.SUPER_ADMIN_PHONE || '';
+const SUPER_ADMIN_DEPT = (process.env.SUPER_ADMIN_DEPT || '技术部') as Dept;
+const SUPER_ADMIN_IDENTITY = (process.env.SUPER_ADMIN_IDENTITY || 'dept_lead') as Identity;
 const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 /** 多 agent token：AGENT_TOKENS="token:loong333,token2:Qiu-Py"——日志与审核记录按名字区分操作人 */
@@ -230,7 +233,11 @@ function bootstrapSuperAdmin(): void {
       let changed = false;
       if (existing.adminLevel !== 'super') { existing.adminLevel = 'super'; changed = true; }
       if (existing.status !== 'approved') { existing.status = 'approved'; changed = true; }
-      if (changed) { saveAccounts(list); console.log('[manage] 已把', SUPER_ADMIN_EMAIL, '设为超级管理员'); }
+      if (SUPER_ADMIN_NAME && existing.realName !== SUPER_ADMIN_NAME) { existing.realName = SUPER_ADMIN_NAME; changed = true; }
+      if (SUPER_ADMIN_PHONE && existing.phone !== SUPER_ADMIN_PHONE) { existing.phone = SUPER_ADMIN_PHONE; changed = true; }
+      if (existing.dept !== SUPER_ADMIN_DEPT) { existing.dept = SUPER_ADMIN_DEPT; changed = true; }
+      if (existing.identity !== SUPER_ADMIN_IDENTITY) { existing.identity = SUPER_ADMIN_IDENTITY; changed = true; }
+      if (changed) { saveAccounts(list); console.log('[manage] 已更新超级管理员资料：', SUPER_ADMIN_EMAIL, SUPER_ADMIN_NAME); }
       return;
     }
     if (!SUPER_ADMIN_PASSWORD) {
@@ -240,10 +247,10 @@ function bootstrapSuperAdmin(): void {
     list.push({
       id: 'a-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
       email: SUPER_ADMIN_EMAIL,
-      phone: process.env.SUPER_ADMIN_PHONE || '',
+      phone: SUPER_ADMIN_PHONE,
       realName: SUPER_ADMIN_NAME,
-      dept: '其他',
-      identity: 'other',
+      dept: SUPER_ADMIN_DEPT,
+      identity: SUPER_ADMIN_IDENTITY,
       status: 'approved',
       adminLevel: 'super',
       passwordHash: hashPassword(SUPER_ADMIN_PASSWORD),
