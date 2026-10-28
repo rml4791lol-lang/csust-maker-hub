@@ -3371,3 +3371,220 @@ input, select, textarea, button { font-size: 15px; }
   .ach-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .ach-stat:nth-child(3) { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
 }
+
+/* ============================================================
+   2026-10-28 v2：字体整体放大（最小五号 ≈14px）+ AI 装饰应用到区块
+   ============================================================ */
+
+/* ---------- 字号基准 ---------- */
+html { font-size: 16px; }
+body { font-size: 16px; }
+p, li, dd, dt { font-size: 15px !important; }
+a { font-size: inherit; }
+.tlinks a { font-size: 15px; }
+.btn, .btn-sm { font-size: 15px; }
+input, select, textarea, button, option { font-size: 15px !important; }
+.skip-link { font-size: 14px; }
+
+/* 描述层：15px */
+.sec-desc, .lead, .ach-desc, .activity-body p, .dept-duty, .archive-summary,
+.ai-summary, .tl-desc, .about-fact b, .about-fact a, .form-msg, .compliance p,
+.foot-lead, .archive-card .archive-summary, .ai-list li, .views-empty {
+  font-size: 15px !important;
+  line-height: 1.75;
+}
+
+/* 标签 / 元信息：统一 14px（五号） */
+.mono, .crumb, .sec-index, .sec-index b, .tag, .skill-chip, .ach-type, .ach-date,
+.ach-avatar, .ach-link, .ach-member a, .activity-kind, .activity-meta,
+.hero-photo-badge, .hero-photo-count, .data-badge, .foot-meta, .brand-sub,
+.brand-mark, .stat-k, .stat-label, .count, .hbar-label, .hbar-num, .archive-meta,
+.archive-stats span, .archive-stats b, .mech-k, .profile-role, .profile-meta,
+.tl-date, .tl-type, .tl-outcome, .tl-link, .ai-tag, .ai-sub, .ai-next b,
+.m-role, figcaption, .panel-head, .member-table th, .search-box input, .chip,
+.carousel-slide figcaption, .mini-type, .mini-date, .member-simple-dept,
+.sec-more, .tfoot h5, .tfoot a, .tfoot p, .field label, .field .hint, .hint,
+.compliance span, .ability-person span, .profile-stat span, .ar, .list-head,
+.list-head span, .tfoot-bottom, .tfoot-bottom span, .carousel-dots button,
+.ability-row .hbar-label, .dept-tags .tag, .archive-tags .tag {
+  font-size: 14px !important;
+}
+
+/* 卡片标题 / 正文标题略微放大 */
+.ach-title { font-size: 17px !important; }
+.activity-body b { font-size: 16px !important; }
+.mini-row b { font-size: 16px !important; }
+.member-simple-head b { font-size: 16px !important; }
+.archive-name { font-size: 16px !important; }
+.about-fact b, .about-fact a { font-size: 16px !important; }
+.about-fact .mono { font-size: 14px !important; }
+.field label { font-size: 14px !important; }
+.profile-name { font-size: 26px; }
+.profile-stat b { font-size: 24px; }
+.ability-panel h3 { font-size: 16px; }
+.dept-name { font-size: 16px; }
+.tl-body b { font-size: 16px; }
+
+/* 关于协会：标签（所在位置等）与值都放大，少一点小字 */
+.about-facts { gap: 14px; }
+.about-fact { padding: 20px 22px; gap: 8px; }
+
+/* ---------- AI 装饰应用到更多区块 ---------- */
+#about { position: relative; overflow: hidden; }
+#about::before {
+  content: "";
+  position: absolute;
+  right: -240px;
+  top: -160px;
+  width: 720px;
+  height: 720px;
+  background: url('/decor/orbit.webp') center / contain no-repeat;
+  opacity: 0.3;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+}
+#about::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 220px;
+  background: url('/decor/mesh.webp') center bottom / cover no-repeat;
+  opacity: 0.32;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  mask-image: linear-gradient(180deg, transparent, #000 60%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 60%, transparent);
+}
+#about > .wrap { position: relative; z-index: 1; }
+
+#members { position: relative; overflow: hidden; }
+#members::before {
+  content: "";
+  position: absolute;
+  right: -120px;
+  top: 40px;
+  width: 520px;
+  height: 420px;
+  background: url('/decor/neural.webp') center / contain no-repeat;
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+}
+#members > .wrap { position: relative; z-index: 1; }
+
+#results, #roster, #ability, #structure { position: relative; overflow: hidden; }
+#results::before,
+#roster::before {
+  content: "";
+  position: absolute;
+  right: -180px;
+  top: -60px;
+  width: 560px;
+  height: 560px;
+  background: url('/decor/orbit.webp') center / contain no-repeat;
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+}
+#ability::before {
+  content: "";
+  position: absolute;
+  left: -140px;
+  top: -80px;
+  width: 480px;
+  height: 380px;
+  background: url('/decor/neural.webp') center / contain no-repeat;
+  opacity: 0.2;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+}
+#results > .wrap, #roster > .wrap, #ability > .wrap, #structure > .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/* 投稿页：表单卡右侧轨道装饰 */
+.form-shell { position: relative; }
+.form-shell::before {
+  content: "";
+  position: absolute;
+  right: -200px;
+  top: 60px;
+  width: 520px;
+  height: 520px;
+  background: url('/decor/orbit.webp') center / contain no-repeat;
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 小屏收敛 */
+@media (max-width: 860px) {
+  #about::before, #about::after, #members::before,
+  #results::before, #roster::before, #ability::before,
+  .form-shell::before { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #about::before { animation: none; }
+}
+
+/* 字体下限补漏 2：剩下的 12.5/13px 全部提到 14px */
+.tfoot li a, .tfoot li span { font-size: 14px !important; }
+.eyebrow-pill, .eyebrow-pill span { font-size: 14px !important; }
+.page-header .crumb, .page-header a.crumb, span.crumb, a.crumb { font-size: 14px !important; }
+.chip .count, .filter-bar .count { font-size: 14px !important; }
+.ach-empty { font-size: 14px !important; }
+.ability-person b { font-size: 14px !important; }
+.check-field, .check-field span { font-size: 14px !important; }
+.carousel-slide figcaption { font-size: 14px !important; }
+
+/* 2026-10-28 v3：再放大一档（标签 15px / 正文 16px / 关于事实 17px） */
+body { font-size: 16px; }
+p, li, dd, dt, figcaption { font-size: 16px !important; }
+.sec-desc, .lead, .ach-desc, .activity-body p, .dept-duty, .archive-summary,
+.ai-summary, .tl-desc, .form-msg, .compliance p, .foot-lead, .ai-list li,
+.views-empty, .about-fact b, .about-fact a {
+  font-size: 16px !important;
+  line-height: 1.75;
+}
+.mono, .crumb, .sec-index, .sec-index b, .tag, .skill-chip, .ach-type, .ach-date,
+.ach-avatar, .ach-link, .ach-member a, .activity-kind, .activity-meta,
+.hero-photo-badge, .hero-photo-count, .data-badge, .foot-meta, .brand-sub,
+.brand-mark, .stat-k, .stat-label, .count, .hbar-label, .hbar-num, .archive-meta,
+.archive-stats span, .archive-stats b, .mech-k, .profile-role, .profile-meta,
+.tl-date, .tl-type, .tl-outcome, .tl-link, .ai-tag, .ai-sub, .ai-next b,
+.m-role, .panel-head, .member-table th, .search-box input, .chip,
+.carousel-slide figcaption, .mini-type, .mini-date, .member-simple-dept,
+.sec-more, .tfoot h5, .tfoot a, .tfoot p, .field label, .field .hint, .hint,
+.compliance span, .ability-person span, .profile-stat span, .ar, .list-head,
+.list-head span, .tfoot-bottom, .tfoot-bottom span, .ability-row .hbar-label,
+.dept-tags .tag, .archive-tags .tag, .ability-person b, .check-field,
+.check-field span, .eyebrow-pill, .eyebrow-pill span, .nav-search, .skip-link,
+input, select, textarea, button, option {
+  font-size: 15px !important;
+}
+.btn, .btn-sm { font-size: 16px; }
+.ach-title, .archive-name, .member-simple-head b, .activity-body b,
+.mini-row b, .dept-name, .tl-body b, .ability-panel h3 { font-size: 17px !important; }
+.about-fact b, .about-fact a { font-size: 17px !important; }
+.about-fact .mono { font-size: 15px !important; }
+.profile-name { font-size: 28px; }
+.profile-stat b { font-size: 26px; }
+
+/* 2026-10-28 v3.1：导航/页脚/标签再放一档（高于五号） */
+.tnav .tlinks a { font-size: 15px !important; }
+.tfoot li a, .tfoot li span, .tfoot a, .tfoot p { font-size: 15px !important; }
+.page-header .crumb, .page-header a.crumb, span.crumb, a.crumb { font-size: 15px !important; }
+.chip .count, .filter-bar .count { font-size: 15px !important; }
+.archive-avatar { font-size: 15px !important; }
+.about-fact .mono { font-size: 15px !important; }
+.ach-empty { font-size: 15px !important; }
+.brand-sub, .brand-mark { font-size: 14px !important; }
+.skill-chip, .tag { font-size: 15px !important; }
