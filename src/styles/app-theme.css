@@ -693,7 +693,7 @@ body { font-size: 16px; }
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  min-height: clamp(560px, calc(100vh - 180px), 720px);
+  min-height: clamp(500px, calc(100vh - 240px), 640px);
   display: flex;
   align-items: center;
   background:
