@@ -5,3 +5,6 @@ dist/
 *.log
 .video_agent/
 metrics.json
+
+# 成员账号/会话数据（服务器本地，绝不入库）
+.csust-maker-data/

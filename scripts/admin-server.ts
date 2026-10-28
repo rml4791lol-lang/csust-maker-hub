@@ -17,8 +17,10 @@
  * 密钥只放服务器 env 文件（.env.admin），绝不入 git。
  */
 import http from 'node:http';
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
+import { randomBytes } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { items } from '../src/data/items';
 import { members } from '../src/data/members';
@@ -28,6 +30,18 @@ import { overdueReviews } from '../src/data/review';
 import { voteLabel } from '../src/data/vote-labels';
 import { analyzeMemberProfiles, analyzeWithLLM } from '../src/data/analyze';
 import { validateSubmission } from '../src/data/contributions';
+import {
+  canUpload,
+  generateTempPassword,
+  hashPassword,
+  publicAccount,
+  roleLabel,
+  signSession,
+  validateRegistration,
+  verifyPassword,
+  verifySession,
+  type Account,
+} from '../src/data/auth';
 
 const ROOT = process.cwd();
 const CONTENT_FILE = join(ROOT, 'content/items.json');
@@ -42,6 +56,23 @@ const TOOLS_FILE = join(ROOT, 'content/tools.json');
 const SUBMISSIONS_FILE = join(ROOT, 'content/submissions.json');
 /** 成员 AI 档案（agent 读投稿后写入） */
 const PROFILES_FILE = join(ROOT, 'content/profiles.json');
+
+/** 成员账号与会话数据放在服务器本地（不入仓库，rsync 部署也不会覆盖） */
+const DATA_DIR = process.env.DATA_DIR || join(homedir(), '.csust-maker-data');
+mkdirSync(DATA_DIR, { recursive: true });
+const ACCOUNTS_FILE = join(DATA_DIR, 'accounts.json');
+const SESSION_SECRET_FILE = join(DATA_DIR, 'session-secret');
+function loadSessionSecret(): string {
+  try {
+    return readFileSync(SESSION_SECRET_FILE, 'utf8').trim();
+  } catch {
+    const secret = randomBytes(32).toString('hex');
+    writeFileSync(SESSION_SECRET_FILE, secret, { encoding: 'utf8', mode: 0o600 });
+    return secret;
+  }
+}
+const SESSION_SECRET = process.env.SESSION_SECRET || loadSessionSecret();
+const SESSION_COOKIE = 'csust_session';
 const PORT = Number(process.env.ADMIN_PORT || 3210);
 const AGENT_TOKEN = process.env.AGENT_TOKEN || '';
 /** 多 agent token：AGENT_TOKENS="token:loong333,token2:Qiu-Py"——日志与审核记录按名字区分操作人 */
@@ -122,6 +153,57 @@ function readJson<T>(file: string, fallback: T): T {
 }
 function writeJson(file: string, data: unknown) {
   writeFileSync(file, JSON.stringify(data, null, 2) + '\n', 'utf8');
+}
+
+/* ---------------------------- 成员账号 / 会话 ---------------------------- */
+
+function loadAccounts(): Account[] {
+  return readJson<Account[]>(ACCOUNTS_FILE, []);
+}
+function saveAccounts(list: Account[]) {
+  writeJson(ACCOUNTS_FILE, list);
+}
+function readCookies(req: http.IncomingMessage): Record<string, string> {
+  const raw = String(req.headers.cookie || '');
+  const out: Record<string, string> = {};
+  for (const part of raw.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx < 0) continue;
+    out[part.slice(0, idx).trim()] = decodeURIComponent(part.slice(idx + 1).trim());
+  }
+  return out;
+}
+function isSecureRequest(req: http.IncomingMessage): boolean {
+  return String(req.headers['x-forwarded-proto'] || '').includes('https') || Boolean(process.env.HTTPS);
+}
+function sessionAccount(req: http.IncomingMessage): Account | null {
+  const token = readCookies(req)[SESSION_COOKIE];
+  if (!token) return null;
+  const payload = verifySession(token, SESSION_SECRET);
+  if (!payload) return null;
+  const account = loadAccounts().find((a) => a.id === payload.accountId);
+  if (!account || account.status !== 'approved') return null;
+  return account;
+}
+function issueSession(req: http.IncomingMessage, res: http.ServerResponse, account: Account) {
+  const token = signSession(account.id, SESSION_SECRET);
+  const secure = isSecureRequest(req) ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${secure}`);
+}
+function clearSession(res: http.ServerResponse) {
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+}
+const loginHits = new Map<string, number[]>();
+function allowLogin(ip: string): boolean {
+  const now = Date.now();
+  const hits = (loginHits.get(ip) || []).filter((x) => now - x < 10 * 60 * 1000);
+  if (hits.length >= 12) return false;
+  hits.push(now);
+  loginHits.set(ip, hits);
+  return true;
+}
+function clientIp(req: http.IncomingMessage): string {
+  return String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
 }
 
 type Who = { role: 'human'; user: string } | { role: 'agent'; user: string } | null;
@@ -362,6 +444,23 @@ function page(actor: string): string {
   </div>`
     : '';
 
+  // 成员账号（注册审核）
+  const accountsNow = loadAccounts().slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const pendingAccounts = accountsNow.filter((a) => a.status === 'pending');
+  const accountsHtml = `<div class="cfgbox"><b>成员账号</b><span>共 ${accountsNow.length} 个，待审核 ${pendingAccounts.length} 个。注册后需审核通过才能登录投稿；角色由管理员核定（部长及以上可上传图片）。</span>
+    ${accountsNow
+      .slice(0, 30)
+      .map(
+        (a) =>
+          `<div class="sub"><div class="sub-main"><b>${esc(a.name)}</b><span class="sub-meta">${esc(a.dept)} · 申请 ${esc(roleLabel[a.requestedRole])} · 当前 ${esc(roleLabel[a.role])} · ${esc(a.status)} · ${esc(a.createdAt.slice(0, 10))}</span></div><div class="ops">${
+            a.status === 'pending'
+              ? `<button class="op" data-acc="${esc(a.id)}" data-acc-action="approve" data-acc-role="member">通过（成员）</button><button class="op" data-acc="${esc(a.id)}" data-acc-action="approve" data-acc-role="lead">通过（部长）</button><button class="op" data-acc="${esc(a.id)}" data-acc-action="reject">拒绝</button>`
+              : `<button class="op" data-acc="${esc(a.id)}" data-acc-action="reset">重置密码</button>`
+          }</div></div>`
+      )
+      .join('')}
+  </div>`;
+
   // IM 推送状态（issue #10）
   const imChannelNow = imChannel();
   const imStatus = imChannelNow
@@ -455,6 +554,7 @@ function page(actor: string): string {
   ${flagsHtml}
   ${toolsHtml}
   ${subsHtml}
+  ${accountsHtml}
   <div class="rules">
     <b>发布前逐条确认：</b>
     <label><input type="checkbox" class="rule"> 不涉政治、宗教、民族敏感内容</label>
@@ -475,7 +575,7 @@ function page(actor: string): string {
     <p><code>DELETE /api/items/:id</code> 删除</p>
     <p><code>POST /api/state</code> body <code>{"id":"g01","state":"published"}</code></p>
     <p><code>POST /api/review</code> body <code>{"id":"g01"}</code> 完成复核（盖复核章，写 review-log）</p>
-    <p><b>成员成果平台：</b>公开 <code>POST /api/contribute</code>（成员投稿，待审核）；<code>GET /api/submissions</code> 投稿列表；<code>POST /api/submissions/:id/status</code> body <code>{"status":"published","note":""}</code> 审核（发布后自动重算档案）；<code>POST /api/analyze</code> 立即重算 AI 汇总（配置 AI_API_KEY 时走 LLM，否则规则分析）；<code>GET /api/profiles</code> / <code>PUT /api/profiles</code></p>
+    <p><b>成员账号：</b><code>POST /api/auth/register</code>（自助注册，待审核）· <code>POST /api/auth/login</code> · <code>POST /api/auth/logout</code> · <code>GET /api/auth/me</code> · <code>POST /api/auth/password</code> · <code>GET /api/my/submissions</code>（登录后）</p><p><b>账号管理：</b><code>GET /api/accounts</code> · <code>POST /api/accounts/:id/review</code> body <code>{"action":"approve","role":"lead"}</code> · <code>POST /api/accounts/:id/reset-password</code></p><p><b>成员成果平台：</b>登录后 <code>POST /api/contribute</code>（身份来自账号，待审核）；<code>GET /api/submissions</code> 投稿列表；<code>POST /api/submissions/:id/status</code> 审核（发布后自动重算档案）；<code>POST /api/analyze</code> 立即重算 AI 汇总；<code>GET /api/profiles</code> / <code>PUT /api/profiles</code></p>
     <p><code>POST /api/build</code> 重新构建并部署</p>
   </div>
 </main>
@@ -633,6 +733,36 @@ function page(actor: string): string {
     });
   });
 
+  // ---- 成员账号审核 / 重置密码 ----
+  document.querySelectorAll('[data-acc]').forEach(btn => btn.addEventListener('click', async () => {
+    const id = btn.dataset.acc, action = btn.dataset.accAction;
+    btn.disabled = true;
+    try {
+      if (action === 'reset') {
+        if (!confirm('重置这个账号的密码？新密码只显示一次。')) { btn.disabled = false; return; }
+        const r = await fetch('api/accounts/' + encodeURIComponent(id) + '/reset-password', { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '操作失败');
+        alert('新密码：' + d.password + '（只显示这一次，请转告成员）');
+      } else {
+        const role = btn.dataset.accRole || undefined;
+        const r = await fetch('api/accounts/' + encodeURIComponent(id) + '/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, role }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '操作失败');
+        toast(action === 'approve' ? '已通过，成员可以登录了' : '已拒绝');
+        setTimeout(() => location.reload(), 500);
+      }
+    } catch (e) {
+      toast('失败：' + e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }));
+
   // 功能开关切换：保存后提示重新构建（静态站构建时生效）
   document.querySelectorAll('.flagtoggle').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -744,6 +874,147 @@ const server = http.createServer(async (req, res) => {
     return json(res, 405, { error: 'method not allowed' }, CORS);
   }
 
+  // ---------- 成员账号：注册 / 登录 / 会话 / 我的投稿 ----------
+  if (url === '/api/auth/register' || url === '/api/auth/login' || url === '/api/auth/logout' || url === '/api/auth/me' || url === '/api/auth/password' || url.startsWith('/api/my/')) {
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      return res.end();
+    }
+    const ip = clientIp(req);
+
+    if (url === '/api/auth/register' && req.method === 'POST') {
+      const raw = await body(req);
+      if (raw.length > 4096) return json(res, 413, { error: '内容过长' });
+      let p: any;
+      try {
+        p = JSON.parse(raw);
+      } catch {
+        return json(res, 400, { error: 'bad json' });
+      }
+      const issues = validateRegistration(p);
+      if (issues.length) return json(res, 400, { error: issues[0], issues });
+      const list = loadAccounts();
+      const member = members.find((m) => m.id === String(p.memberId))!;
+      const existing = list.find((a) => a.memberId === member.id);
+      if (existing && existing.status !== 'rejected') {
+        return json(res, 409, { error: '这个成员已经注册过了，请联系管理员' });
+      }
+      const account: Account = {
+        id: 'a-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+        memberId: member.id,
+        name: member.name,
+        dept: member.dept,
+        role: 'member',
+        requestedRole: p.role === 'lead' ? 'lead' : 'member',
+        status: 'pending',
+        passwordHash: hashPassword(String(p.password)),
+        createdAt: new Date().toISOString(),
+      };
+      if (existing) Object.assign(existing, { ...account, id: existing.id, createdAt: existing.createdAt });
+      else list.push(account);
+      saveAccounts(list);
+      return json(res, 200, { ok: true, status: 'pending', note: '注册已提交，等待管理员审核' });
+    }
+
+    if (url === '/api/auth/login' && req.method === 'POST') {
+      if (!allowLogin(ip)) return json(res, 429, { error: '尝试太频繁，请 10 分钟后再试' });
+      const raw = await body(req);
+      let p: any;
+      try {
+        p = JSON.parse(raw);
+      } catch {
+        return json(res, 400, { error: 'bad json' });
+      }
+      const list = loadAccounts();
+      const account = list.find((a) => a.memberId === String(p.memberId ?? '')) || list.find((a) => a.name === String(p.name ?? ''));
+      if (!account || !verifyPassword(String(p.password ?? ''), account.passwordHash)) {
+        return json(res, 401, { error: '姓名或密码不正确' });
+      }
+      if (account.status === 'pending') return json(res, 403, { error: '账号还在审核中，请等管理员通过' });
+      if (account.status !== 'approved') return json(res, 403, { error: '账号不可用，请联系管理员' });
+      account.lastLoginAt = new Date().toISOString();
+      saveAccounts(list);
+      issueSession(req, res, account);
+      return json(res, 200, { ok: true, account: publicAccount(account), canUpload: canUpload(account.role), roleLabel: roleLabel[account.role] });
+    }
+
+    if (url === '/api/auth/logout' && req.method === 'POST') {
+      clearSession(res);
+      return json(res, 200, { ok: true });
+    }
+
+    const account = sessionAccount(req);
+    if (url === '/api/auth/me') {
+      if (!account) return json(res, 401, { error: '未登录' });
+      return json(res, 200, { account: publicAccount(account), canUpload: canUpload(account.role), roleLabel: roleLabel[account.role] });
+    }
+    if (!account) return json(res, 401, { error: '请先登录', login: '/login' });
+
+    if (url === '/api/auth/password' && req.method === 'POST') {
+      const raw = await body(req);
+      let p: any;
+      try {
+        p = JSON.parse(raw);
+      } catch {
+        return json(res, 400, { error: 'bad json' });
+      }
+      if (!verifyPassword(String(p.oldPassword ?? ''), account.passwordHash)) return json(res, 400, { error: '原密码不正确' });
+      const issues = validateRegistration({ memberId: account.memberId, password: p.newPassword, role: 'member' });
+      const pwIssues = issues.filter((i) => i.includes('密码'));
+      if (pwIssues.length) return json(res, 400, { error: pwIssues[0] });
+      const list = loadAccounts();
+      const target = list.find((a) => a.id === account.id)!;
+      target.passwordHash = hashPassword(String(p.newPassword));
+      saveAccounts(list);
+      return json(res, 200, { ok: true, note: '密码已更新' });
+    }
+
+    if (url === '/api/my/submissions' && req.method === 'GET') {
+      const list = readJson<any[]>(SUBMISSIONS_FILE, []).filter((s) => s.memberId === account.memberId);
+      return json(res, 200, list);
+    }
+
+    const mySub = url.match(/^\/api\/my\/submissions\/([\w-]+)$/);
+    if (mySub && req.method === 'POST') {
+      const raw = await body(req);
+      let p: any;
+      try {
+        p = JSON.parse(raw);
+      } catch {
+        return json(res, 400, { error: 'bad json' });
+      }
+      const list = readJson<any[]>(SUBMISSIONS_FILE, []);
+      const idx = list.findIndex((s) => s.id === mySub[1] && s.memberId === account.memberId);
+      if (idx < 0) return json(res, 404, { error: '记录不存在' });
+      const prev = list[idx];
+      if (!['pending', 'rejected'].includes(prev.status)) return json(res, 400, { error: '已发布的记录不能修改，请联系管理员' });
+      if (p.action === 'withdraw') {
+        list.splice(idx, 1);
+        writeJson(SUBMISSIONS_FILE, list);
+        return json(res, 200, { ok: true, note: '已撤回' });
+      }
+      const candidate = {
+        ...prev,
+        type: p.type ?? prev.type,
+        title: p.title ?? prev.title,
+        date: p.date ?? prev.date,
+        description: p.description ?? prev.description,
+        outcome: p.outcome ?? prev.outcome,
+        link: p.link ?? prev.link,
+        image: p.image ?? prev.image,
+        evidence: p.evidence ?? prev.evidence,
+        memberId: account.memberId,
+      };
+      const issues = validateSubmission(candidate);
+      if (issues.length) return json(res, 400, { error: '修改未通过校验', issues });
+      list[idx] = { ...candidate, status: 'pending', submittedAt: new Date().toISOString(), note: undefined };
+      writeJson(SUBMISSIONS_FILE, list);
+      return json(res, 200, { ok: true, note: '已修改，重新进入待审核' });
+    }
+
+    return json(res, 404, { error: 'not found' });
+  }
+
   // ---------- 公开接口：成员成果投稿（成员自己填写，待审核） ----------
   if (url === '/api/contribute') {
     const CORS = { 'Access-Control-Allow-Origin': '*' };
@@ -756,6 +1027,8 @@ const server = http.createServer(async (req, res) => {
       return res.end();
     }
     if (req.method !== 'POST') return json(res, 405, { error: 'method not allowed' }, CORS);
+    const session = sessionAccount(req);
+    if (!session) return json(res, 401, { error: '请先登录后再提交记录', login: '/login' }, CORS);
     const ip =
       String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
       req.socket.remoteAddress ||
@@ -769,9 +1042,9 @@ const server = http.createServer(async (req, res) => {
     } catch {
       return json(res, 400, { error: 'bad json' }, CORS);
     }
-    const issues = validateSubmission(p);
+    const member = members.find((m) => m.id === session.memberId)!;
+    const issues = validateSubmission({ ...p, memberId: session.memberId });
     if (issues.length) return json(res, 400, { error: '提交未通过校验', issues }, CORS);
-    const member = members.find((m) => m.id === String(p.memberId))!;
     const list = readJson<any[]>(SUBMISSIONS_FILE, []);
     const id = 'c-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
     list.push({
@@ -792,7 +1065,7 @@ const server = http.createServer(async (req, res) => {
       source: 'form',
     });
     writeJson(SUBMISSIONS_FILE, list);
-    logTransition({ id, from: '-', to: 'pending', actor: 'member', method: 'human', note: '成员投稿' });
+    logTransition({ id, from: '-', to: 'pending', actor: session.name, method: 'human', note: '成员投稿（登录账号）' });
     return json(res, 200, { ok: true, id, note: '已提交，待审核' }, CORS);
   }
 
@@ -1050,6 +1323,62 @@ const server = http.createServer(async (req, res) => {
     } catch (e: any) {
       return json(res, 500, { error: e.message });
     }
+  }
+
+  // GET /api/accounts — 成员账号列表（管理员）
+  if (req.method === 'GET' && url === '/api/accounts') {
+    const list = loadAccounts().slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    return json(res, 200, {
+      accounts: list.map(publicAccount),
+      counts: {
+        total: list.length,
+        pending: list.filter((a) => a.status === 'pending').length,
+        approved: list.filter((a) => a.status === 'approved').length,
+      },
+    });
+  }
+
+  const accReview = url.match(/^\/api\/accounts\/([\w-]+)\/review$/);
+  if (accReview && req.method === 'POST') {
+    try {
+      const { action, role } = JSON.parse((await body(req)) || '{}');
+      if (!['approve', 'reject'].includes(action)) throw new Error('操作不合法');
+      const list = loadAccounts();
+      const target = list.find((a) => a.id === accReview[1]);
+      if (!target) throw new Error('账号不存在');
+      target.status = action === 'approve' ? 'approved' : 'rejected';
+      if (role && ['member', 'lead', 'admin'].includes(role)) target.role = role;
+      else if (action === 'approve') target.role = target.requestedRole === 'lead' ? 'lead' : 'member';
+      target.reviewedAt = new Date().toISOString();
+      target.reviewedBy = actor;
+      saveAccounts(list);
+      return json(res, 200, { ok: true, account: publicAccount(target) });
+    } catch (e: any) {
+      return json(res, 400, { error: e.message });
+    }
+  }
+
+  const accReset = url.match(/^\/api\/accounts\/([\w-]+)\/reset-password$/);
+  if (accReset && req.method === 'POST') {
+    const list = loadAccounts();
+    const target = list.find((a) => a.id === accReset[1]);
+    if (!target) return json(res, 404, { error: '账号不存在' });
+    const password = generateTempPassword();
+    target.passwordHash = hashPassword(password);
+    saveAccounts(list);
+    return json(res, 200, { ok: true, password, note: '临时密码只显示这一次' });
+  }
+
+  const accStatus = url.match(/^\/api\/accounts\/([\w-]+)\/status$/);
+  if (accStatus && req.method === 'POST') {
+    const { status } = JSON.parse((await body(req)) || '{}');
+    if (!['approved', 'disabled'].includes(status)) return json(res, 400, { error: '状态不合法' });
+    const list = loadAccounts();
+    const target = list.find((a) => a.id === accStatus[1]);
+    if (!target) return json(res, 404, { error: '账号不存在' });
+    target.status = status;
+    saveAccounts(list);
+    return json(res, 200, { ok: true, account: publicAccount(target) });
   }
 
   // GET /api/profiles — 成员 AI 档案；PUT — agent 写分析结果（整表替换）

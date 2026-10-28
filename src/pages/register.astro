@@ -1,0 +1,97 @@
+---
+import Base from '../layouts/Base.astro';
+import { members } from '../data/members';
+
+const memberOptions = members.map((m) => ({ id: m.id, name: m.name, dept: m.dept }));
+---
+
+<Base title="注册" description="长沙理工大学 AI 创客协会成员注册：姓名与部门需和协会名单一致，管理员审核后开通账号。" noindex>
+  <div class="wrap page-header">
+    <span class="crumb">REGISTER / 注册</span>
+    <h1>成员注册</h1>
+    <p>实名注册：姓名与部门需和协会名单一致；提交后由管理员审核，通过后即可登录投稿。</p>
+  </div>
+
+  <div class="wrap" style="padding-bottom:100px;max-width:620px;">
+    <form class="form-panel" id="registerForm" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="memberId">姓名<i>*</i></label>
+          <select id="memberId" name="memberId" required>
+            <option value="">选择你的名字</option>
+            {memberOptions.map((m) => <option value={m.id} data-dept={m.dept}>{m.name} · {m.dept}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="dept">部门（来自名单）</label>
+          <input id="dept" name="dept" readonly placeholder="选择姓名后自动带出" />
+        </div>
+        <div class="field">
+          <label for="password">设置密码<i>*</i></label>
+          <input id="password" name="password" type="password" autocomplete="new-password" placeholder="至少 8 位，含字母和数字" required />
+        </div>
+        <div class="field">
+          <label for="password2">确认密码<i>*</i></label>
+          <input id="password2" name="password2" type="password" autocomplete="new-password" required />
+        </div>
+        <div class="field full">
+          <label for="role">申请角色</label>
+          <select id="role" name="role">
+            <option value="member">成员</option>
+            <option value="lead">部长</option>
+          </select>
+          <span class="hint">角色由管理员最终核定；部长及以上可以使用后台上传功能。</span>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="registerBtn">提交注册 <span class="ar">→</span></button>
+        <a href="/login" class="btn btn-ghost">已有账号？去登录</a>
+        <span class="form-msg" id="registerMsg" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm') as HTMLFormElement | null;
+    const msg = document.getElementById('registerMsg');
+    const btn = document.getElementById('registerBtn') as HTMLButtonElement | null;
+    const select = document.getElementById('memberId') as HTMLSelectElement | null;
+    const dept = document.getElementById('dept') as HTMLInputElement | null;
+    const show = (text: string, kind: 'ok' | 'err' | '' = '') => {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.className = 'form-msg' + (kind ? ' ' + kind : '');
+    };
+    select?.addEventListener('change', () => {
+      const opt = select.selectedOptions[0];
+      if (dept) dept.value = opt?.dataset.dept || '';
+    });
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form || !btn) return;
+      const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+      if (!data.memberId) return show('请选择你的名字', 'err');
+      if (!data.password || data.password.length < 8) return show('密码至少 8 位', 'err');
+      if (!/[A-Za-z]/.test(data.password) || !/\d/.test(data.password)) return show('密码需要同时包含字母和数字', 'err');
+      if (data.password !== data.password2) return show('两次密码不一致', 'err');
+      btn.disabled = true;
+      show('提交中…');
+      try {
+        const res = await fetch('/admin/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId: data.memberId, dept: data.dept, password: data.password, role: data.role }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || '注册失败');
+        form.reset();
+        if (dept) dept.value = '';
+        show('注册已提交，等待管理员审核；通过后就可以登录了。', 'ok');
+      } catch (err: any) {
+        show(err.message || '注册失败', 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</Base>

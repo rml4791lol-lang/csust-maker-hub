@@ -146,3 +146,15 @@ sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 - 加 collaborator、发 AGENT_TOKEN、加服务器公钥、改后台密码（服务器 `.env.admin` 的 `ADMIN_USERS`）。
 - 定期把服务器的运营数据拉回本机提交（分歧防护）：`bash scripts/sync-from-server.sh`。
 - 审核内容发布（后台点发布，或授权 agent 代审）。
+
+
+## 成员账号（实名登录，2026-10-28）
+
+成员投稿改为「实名账号登录后提交」，不再是公开接口任意填写。
+
+- 注册：`/register`，姓名 + 部门需和 `src/data/members.ts` 名单一致，密码至少 8 位且含字母数字；提交后进入待审核。
+- 审核：后台「成员账号」面板通过（可核定角色：成员 / 部长 / 管理员）；角色为部长及以上才有上传权限（上传功能在 C 批次）。
+- 登录：`/login`，HttpOnly cookie 会话（7 天）。登录后 `/contribute` 自动带出身份，只能看到/修改/撤回自己的投稿。
+- 账号数据存在服务器本地 `~/.csust-maker-data/accounts.json`（可用 `DATA_DIR` 覆盖），**不进仓库**；会话密钥在 `~/.csust-maker-data/session-secret`（或 `SESSION_SECRET` env）。
+- 接口：`POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` · `POST /api/auth/password` · `GET /api/my/submissions` · `POST /api/my/submissions/:id`（`{"action":"update"|"withdraw"}`）· 管理端 `GET /api/accounts` · `POST /api/accounts/:id/review` · `POST /api/accounts/:id/reset-password`。
+- 本地联调：后台默认 3210；`pnpm dev` 已配置 `/admin` → `127.0.0.1:3210` 代理，登录会话可直接在本地页面测试。
