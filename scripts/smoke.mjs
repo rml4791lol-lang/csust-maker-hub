@@ -32,14 +32,13 @@ for (const gone of ['library', 'tools', 'resources', 'stats', 'about']) {
 
 // 3. 首页包含核心模块与定位
 const home = read('index.html');
-for (const label of ['AI 创客协会', '云塘校区', '活动与成果', '成员能力', '提交我的记录', '活动记录', '科创港']) {
+for (const label of ['长理 AI 创客', '云塘校区', '把 AI 用起来', '活动与成果', '提交记录', '精选']) {
   must(home.includes(label), `首页缺少关键内容：${label}`);
 }
+must(home.includes('最近做出来的东西'), '首页缺少精选成果');
 must(home.includes('示例数据'), '首页缺少示例数据提示');
 must(home.includes('og:image'), '首页缺少 og:image（分享卡片）');
 must(home.includes('/share/home.jpg'), '首页缺少分享图');
-must(home.includes('/photos/first-meeting-group.jpg'), '首页缺少第一次会议合影');
-must(home.includes('技术部'), '首页缺少部门信息');
 
 // 4. 成果页 / 成员页 / 提交页的关键内容
 const ach = read('achievements/index.html');
